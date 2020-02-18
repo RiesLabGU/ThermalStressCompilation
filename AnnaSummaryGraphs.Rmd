@@ -135,6 +135,12 @@ These graphs represent some early data exploration, using the subset of the data
 
 ### Subset the data by lifestage (Anna)
 
+```{r}
+egg <- inter[inter$lifestage == "egg", ]
+larva <- inter[inter$lifestage == "larva", ]
+pupa <- inter[inter$lifestage == "pupa", ]
+```
+
 ### Graph the survival data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
 
 ### Graph the development time data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
