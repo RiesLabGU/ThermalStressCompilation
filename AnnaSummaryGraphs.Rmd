@@ -133,6 +133,12 @@ development time data, from `r length(unique(inter$sp))` species.
 ## Exploratory Graphs
 These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
 
+### Change set to a factor
+
+```{r}
+inter$set <- as.factor(inter$set)
+```
+
 ### Subset the data by lifestage (Anna)
 
 ```{r}
@@ -143,4 +149,66 @@ pupa <- inter[inter$lifestage == "pupa", ]
 
 ### Graph the survival data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
 
+
+```{r}
+ggplot(data = egg, aes(x = temp, y = survival, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Survival (percentage)", title = "Egg Survival")
+```
+Figure 5. Egg survival at a range of temperatures, faceted by family. 
+
+
+```{r}
+ggplot(data = larva, aes(x = temp, y = survival, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Survival (percentage)", title = "Larval Survival")
+```
+Figure 6. Larval survival at a range of temperatures, faceted by family. 
+
+
+```{r}
+ggplot(data = pupa, aes(x = temp, y = survival, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Survival (percentage)", title = "Pupal Survival")
+```
+Figure 7. Pupal survival at a range of temperatures, faceted by family. 
+
 ### Graph the development time data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
+
+
+```{r}
+ggplot(data = egg, aes(x = temp, y = dt, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Development time (days)", title = "Egg Development Time")
+```
+Figure 8. Egg development time at a range of temperatures, faceted by family. 
+
+
+```{r}
+ggplot(data = larva, aes(x = temp, y = dt, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Development time (days)", title = "Larval Development Time")
+```
+Figure 9. Larval development time at a range of temperatures, faceted by family. 
+
+
+```{r}
+ggplot(data = pupa, aes(x = temp, y = dt, color = set, group = set)) + 
+  geom_line() +
+  facet_wrap(~family) + 
+  labs(x = "Temperature", y = "Development time (days)", title = "Pupal Development Time")
+```
+Figure 10. Pupal development time at a range of temperatures, faceted by family. 
+
+
+
+## Summary of findings
+
+1. The most promising families in terms of numbers of studies and shapes of curves are Crambidae, Noctuidae, Psychidae, Pyralidae, and Tortricidae. 
+
+2. We have a decently large dataset with which to work. 
