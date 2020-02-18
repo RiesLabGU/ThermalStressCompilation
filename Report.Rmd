@@ -3,7 +3,7 @@ title: "Compilation of Lepidoptera thermal performance curves"
 output: html_notebook
 ---
 # Import data
-Discard parasitoids and change character to vector 
+Discard parasitoids and change character to factor 
 
 ```{r}
 library(tidyverse)
@@ -171,6 +171,7 @@ lifestage_sets_2 <-  Ana_rates %>%
   summarise(sets = length(unique(set))) %>% 
   arrange(sets) %>% 
   filter(sets > 4)
+
 ggplot(lifestage_sets_2, aes(x = reorder(lifestage,  sets), y = sets)) +
   geom_col()+
   geom_hline(yintercept = 50)+
@@ -212,8 +213,21 @@ development time data, from `r length(unique(interval$sp))` families and
 For the three main lifestages (egg, larva, pupa), there are `r length(unique(inter$set))` sets with both survival and
 development time data, from `r length(unique(inter$sp))` species.
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+# Upper Limit Exploration (Mariana)
+At the upper thermal ranges contained in the dataset, we are interested in seeing whether we capture the ranges at which survival/development rate begin to decrease. The below code determines whether (Mariana insert). 
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+## Number of sets where the maximum survival is not at the highest measured temp
+
+## Number of sets where the minimum developmental time is not at the highest measured temp 
+
+# Exploratory Graphs
+These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
+
+## Subset the data by lifestage (Anna)
+
+## Graph the survival data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
+
+## Graph the development time data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
+
+
 
