@@ -3,3 +3,138 @@ title: "Anna's Working Script - Summary Graphs"
 output: html_notebook
 ---
 
+## Load in the dataset in the same manner as "Report.Rmd"
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(cowplot)
+# Anna's laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "T3", na = c("NA", "")) 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+### Calculate development rate
+When all larvae in a treatment die, their development time is "NA", however
+their development rate should be "0". The loop below calculates development rate (1/dt) and assigns 0 to all cases where both survival is 0 and development time is "NA".
+There is one case in which development time is less than 1, it was rounded to 1.
+
+```{r}
+fast <- filter(Ana, dt < 1)
+Ana <- Ana %>% 
+  mutate(dt = ifelse(dt < 1, ceiling(dt),dt))
+  
+
+sets <- unique(Ana$set) 
+rates <- tribble(~set, ~temp, ~dr)
+rates2 <- tribble(~set, ~temp, ~dr)
+output.table <- tibble()
+
+for(i in seq_along(sets)) {
+  
+  # make a table per set and determine whether it includes dt data
+  seti <- sets[i]
+  table <- filter(Ana, set == seti)
+  suma <- sum(table$dt, na.rm = T)
+  
+  # if there is dt data
+  if (suma > 0){ 
+    
+    clement <- filter(table, dt > 0) [["temp"]] # temperatures that allow for development
+    hotlim <- max(clement, na.rm = T) # max temp that permits development
+    coldlim <- min(clement, na.rm = T) # min temp that permits development
+    tempes <- unique(table$temp) # each temperature included in set i
+    
+    # evaluate each temperature of a set
+    for(ii in 1:length(unique(tempes))){
+      
+      tempii <- tempes[ii]
+      
+      # if it is lower than coldlim, dr should be zero
+      if (table$temp[ii] < coldlim){
+        dr <- 0
+      output.row <- cbind(set = seti, temp = tempii, dr = dr)
+      
+      # if it is higher than hotlim, dr should be zero  
+      } else if (table$temp[ii] > hotlim) {
+        
+        dr <- 0
+      output.row <- cbind(set = seti, temp = tempii, dr = dr)
+      
+      # in all other cases, it should be 1/dt
+      } else{
+        dr <- 1/table$dt[ii]
+        output.row <- cbind(set = seti, temp = tempii, dr = dr)
+      }
+      
+      output.table <- rbind(output.table, output.row)
+    }
+    
+    # print stuff to make sure loop is working
+    #cat(seti, " ")
+    
+    
+  # if there is no development time in that set, dr should be zero
+    } else {
+    #cat("set: ", seti, "has no dt \n")
+  }
+  
+}
+
+rates <- output.table
+
+Ana_rates <- left_join(Ana, rates, by = c("set","temp"))
+
+rm(fast, output.row, output.table, rates, rates2, table)
+rm(clement, coldlim, dr, hotlim, i, ii, seti, sets, suma, tempes, tempii)
+
+```
+
+## Sets with both development rate and survival
+
+```{r}
+interval_sets <- Ana_rates %>% 
+  group_by(set) %>% 
+   
+  mutate(dr_sum = sum(dr), 
+         n_temps = length(unique(temp)), 
+         validcount = sum(!is.na(dt)), 
+         validcount_s = sum(!is.na(survival))) %>% 
+  filter(n_temps > 3, dr_sum > 0, validcount > 3, validcount_s > 3)
+
+interval_set_list <- unique(interval_sets$set) 
+
+interval <- Ana_rates %>% filter(set %in% interval_set_list)
+
+main_stages <- Ana_rates %>% 
+  filter(lifestage == "egg"|lifestage == "larva"|lifestage == "pupa")
+main_stages_list <- unique(main_stages$lifestage)
+inter <- interval %>% filter(lifestage %in% main_stages_list) 
+inter$lifestage <- factor(inter$lifestage)
+
+```
+There are `r length(unique(interval$set))` sets with both survival and
+development time data, from `r length(unique(interval$sp))` families and
+`r length(unique(interval$lifestage))` lifestages. 
+
+For the three main lifestages (egg, larva, pupa), there are `r length(unique(inter$set))` sets with both survival and
+development time data, from `r length(unique(inter$sp))` species.
+
+**Using dataset "inter" for future analyses** 
+
+
+## Exploratory Graphs
+These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
+
+### Subset the data by lifestage (Anna)
+
+### Graph the survival data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
+
+### Graph the development time data vs. temperature within each lifestage, with each set as a line, faceted by family (Anna will attempt)
