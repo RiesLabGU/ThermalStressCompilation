@@ -14,9 +14,9 @@
 library(tidyverse)
 library(readxl)
 
-# Mariana's desktop
-Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "T3", na = c("NA", "")) 
+
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                          sheet = "T3", na = c("NA", ""))
 
 Data
 names(Data)
@@ -35,40 +35,64 @@ set_944 <- filter(Ana_rates, set == 944)
 set_6 <- filter(Ana_rates, set == 6)
 set_70 <- filter(Ana_rates, set == 70)
 trial <- rbind(set_6, set_70, set_944)
-# rm(set_70, set_944, trial)
+
 
 # is rise?
 
-is_rise <- 
+
 
 t <- set_6$temp
 p <- set_6$dt
 table <- set_944
-response <- "dr"
+response <- "survival"
 is.rise <- function(table, response){
   ta <- select(table, temp, response)
+  #ta <- na.omit(ta)
+  if(nrow(ta) == sum(is.na(ta[,2]))){
+    print("No data")
+  }else{
   
-  p.large <- max(ta[,2])
-  t.max <- max(ta[,1])
-  t.large <- filter(ta, ta[,2] == p.large)[["temp"]]
+  p.large <- max(ta[,2], na.rm = T)
+  t.max <- max(ta[,1], na.rm = T)
+  t.large <- filter(ta, ta[,2] == p.large)[["temp"]][[1]]
+  t.largemax <- max(t.large, na.rm = T)
   colds <- filter(ta, ta[,1] < t.large)
   hots <- filter(ta, temp > t.large)
   opts <- filter(ta, ta[,2] == p.large)
   
-  output <- tibble(just.rise =  t.max == t.large, 
+  output <- tibble(just.rise =  t.max == t.largemax, 
                    ntemp = nrow(ta),
                    colds = nrow(colds), 
                    hots = nrow(hots), 
-                   opts = nrow(opts))
-output  
+                   opts = nrow(opts), 
+                   response = response)
+output
+}
 }
 
-is.rise(set_6, "dt")
-is.rise(set_70, "dt")
-is.rise(set_944, "dt")
+is.rise(set_6, "dr")
+is.rise(set_6, "survival")
+select(set_6, temp, dr, survival)
+select(set_70, temp, dr, survival)
+select(set_944, temp, dr, survival)
+is.rise(set_70, "survival")
+is.rise(set_70, "dr")
+is.rise(set_944, "survival")
+is.rise(set_944, "dr")
 
 ## Nest data 
-nested <- interval_sets %>% 
+nested <- trial %>% 
   group_by(set) %>% 
   nest() %>% 
-  mutate(ntemps = nrow())
+  mutate(quality_dr = map2(data, "dr", is.rise), 
+         quality_sur = map2(data, "survival", is.rise))
+
+full <- inter %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(quality_dr = map2(data, "dr", is.rise), 
+         quality_sur = map2(data, "survival", is.rise)) %>% 
+  select(set, quality_dr, quality_sur) %>% 
+  unnest()
+
+         
