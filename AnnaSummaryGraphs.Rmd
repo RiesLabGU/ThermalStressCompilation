@@ -205,25 +205,17 @@ ggplot(data = pupa, aes(x = temp, y = dt, color = set, group = set)) +
 ```
 Figure 10. Pupal development time at a range of temperatures, faceted by family. 
 
-
-
-## Summary of findings
-
-1. The most promising families in terms of numbers of studies and shapes of curves are Crambidae, Noctuidae, Psychidae, Pyralidae, and Tortricidae. 
-
-2. We have a decently large dataset with which to work. 
-
-# Survival and development rate of eggs in the same plot
+## Survival and development rate of eggs in the same plot
 
 ```{r}
 ggplot(data = egg, aes(x = temp, y = dr, color = set, group = set)) + 
   geom_line() +
   geom_line(data = egg, mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~family) + 
-  labs(x = "Temperature", y = "Development time (days)", title = "Pupal Development Time")
+  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Egg Development and Survival")
 ```
 
-# Survival and development rate of Noctuids by species
+## Survival and development rate of Noctuids by species
 
 
 ```{r}
@@ -231,6 +223,11 @@ ggplot(data = filter(egg, family == "Noctuidae"), aes(x = temp, y = dr, color = 
   geom_line() +
   geom_line(data = filter(egg, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
-  labs(x = "Temperature", y = "Development time (days)", title = "Pupal Development Time")
+  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Development and Survival")
 ```
 
+## Summary of findings
+
+1. The most promising families in terms of numbers of studies and shapes of curves are Crambidae, Noctuidae, Psychidae, Pyralidae, and Tortricidae. 
+
+2. We have a decently large dataset with which to work. 
