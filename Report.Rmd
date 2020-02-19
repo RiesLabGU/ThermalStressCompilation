@@ -214,11 +214,64 @@ For the three main lifestages (egg, larva, pupa), there are `r length(unique(int
 development time data, from `r length(unique(inter$sp))` species.
 
 # Upper Limit Exploration (Mariana)
-At the upper thermal ranges contained in the dataset, we are interested in seeing whether we capture the ranges at which survival/development rate begin to decrease. The below code determines whether (Mariana insert). 
+At the upper thermal ranges contained in the dataset, we are interested in seeing whether we capture the ranges at which survival/development rate begin to decrease. 
+The function below (is.rise) returns a table with the number of temperature treatments, it requires a tibble or data frame (temp) and a response ("dr" or "survival")
+```{r}
+is.rise <- function(table, response){
+  ta <- select(table, temp, response)
+  
+  if(nrow(ta) == sum(is.na(ta[,2]))){
+    print("No data")
+  }else{
+    
+    p.large <- max(ta[,2], na.rm = T)
+    t.max <- max(ta[,1], na.rm = T)
+    t.large <- filter(ta, ta[,2] == p.large)[["temp"]][[1]]
+    t.largemax <- max(t.large, na.rm = T)
+    colds <- filter(ta, ta[,1] < t.large)
+    hots <- filter(ta, temp > t.large)
+    opts <- filter(ta, ta[,2] == p.large)
+    
+    output <- tibble(just.rise =  t.max == t.largemax, 
+                     ntemp = nrow(ta),
+                     colds = nrow(colds), 
+                     hots = nrow(hots), 
+                     opts = nrow(opts), 
+                     response = response)
+    output
+  }
+}
+```
 
 ## Number of sets where the maximum survival is not at the highest measured temp
+This code applies the function above to each set, the result is a tibble of tables
+```{r}
+qualitycheck <- inter %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(quality_dr = map2(data, "dr", is.rise), 
+         quality_sur = map2(data, "survival", is.rise))
+```
 
-## Number of sets where the minimum developmental time is not at the highest measured temp 
+Get only the quality metrics by set
+```{r}
+Qmetrics <- select(qualitycheck, set, quality_dr, quality_sur) %>% 
+  unnest( cols = quality_dr, quality_sur)
+```
+
+
+## Number of sets where the minimum developmental time is not at the highest measured temp: `r sum(Qmetrics$just.rise == FALSE)`
+There are `r length(unique(Qmetrics$set))` sets and most of them  `r sum(Qmetrics$just.rise == FALSE)` report a fall in development time as temperature increases.
+
+There are `r sum(Qmetrics$just.rise1 == FALSE)` sets in which the highest survival is not at the highest temperature
+
+```{r}
+ggplot(inter, aes(x = temp))+
+  geom_bar()+
+  theme_cowplot()+
+  facet_grid(~lifestage)
+```
+Frequency of temperature treatments in "inter" data set. The most popular temperature treatments are 15, 20, 25, 30, and 35.
 
 # Exploratory Graphs
 These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
