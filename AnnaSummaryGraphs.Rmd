@@ -223,7 +223,23 @@ ggplot(data = filter(egg, family == "Noctuidae"), aes(x = temp, y = dr, color = 
   geom_line() +
   geom_line(data = filter(egg, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
-  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Development and Survival")
+  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Egg Development and Survival")
+```
+
+```{r}
+ggplot(data = filter(larva, family == "Noctuidae"), aes(x = temp, y = dr, color = set, group = set)) + 
+  geom_line() +
+  geom_line(data = filter(larva, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
+  facet_wrap(~sp) + 
+  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Larval Development and Survival")
+```
+
+```{r}
+ggplot(data = filter(pupa, family == "Noctuidae"), aes(x = temp, y = dr, color = set, group = set)) + 
+  geom_line() +
+  geom_line(data = filter(pupa, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
+  facet_wrap(~sp) + 
+  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Pupal Development and Survival")
 ```
 
 ## Summary of findings
