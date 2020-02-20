@@ -218,26 +218,36 @@ At the upper thermal ranges contained in the dataset, we are interested in seein
 The function below (is.rise) returns a table with the number of temperature treatments, it requires a tibble or data frame (temp) and a response ("dr" or "survival")
 ```{r}
 is.rise <- function(table, response){
-  ta <- select(table, temp, response)
+  ta <- select(table, temp, response) # make a 2 column table
   
-  if(nrow(ta) == sum(is.na(ta[,2]))){
+  if(nrow(ta) == sum(is.na(ta[,2]))){ # this is to discard sets with only NA                                           # values
     print("No data")
   }else{
     
-    p.large <- max(ta[,2], na.rm = T)
+    # get:
+    # maximum performance
+    p.large <- max(ta[,2], na.rm = T) 
+    # maximum temperature
     t.max <- max(ta[,1], na.rm = T)
+    # coldest temperature that maximizes performance
     t.large <- filter(ta, ta[,2] == p.large)[["temp"]][[1]]
+    # hotest temperature that maximizes performance (eg, survival can be 1 at 
+    # multiple temperatures)
     t.largemax <- max(t.large, na.rm = T)
+    # temperatures below the coldest optimum
     colds <- filter(ta, ta[,1] < t.large)
-    hots <- filter(ta, temp > t.large)
+    # temperature above the hotest optimum
+    hots <- filter(ta, temp > t.largemax)
+    # temperatures that maximize performance
     opts <- filter(ta, ta[,2] == p.large)
     
-    output <- tibble(just.rise =  t.max == t.largemax, 
-                     ntemp = nrow(ta),
-                     colds = nrow(colds), 
-                     hots = nrow(hots), 
-                     opts = nrow(opts), 
-                     response = response)
+    #output table
+    output <- tibble(just.rise =  t.max == t.largemax, # TRUE for curves missing fall
+                     ntemp = nrow(ta), # number of temperature treatments
+                     colds = nrow(colds), # number of temps below optimum
+                     hots = nrow(hots), # number of temps above optimum
+                     opts = nrow(opts), # number of optimum temps
+                     response = response) # dr or survival
     output
   }
 }
