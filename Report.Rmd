@@ -285,6 +285,18 @@ Frequency of temperature treatments in "inter" data set. The most popular temper
 
 # Exploratory Graphs
 These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
+```{r}
+drhist <- ggplot(Qmetrics, aes(x = hots))+
+  geom_histogram() +
+  xlab("temps above dr optimum")+
+  theme_cowplot()
+survivalhist <- ggplot(Qmetrics, aes(x = hots1))+
+  geom_histogram() +
+  xlab("temps above survival optimum")+
+  theme_cowplot()
+plot_grid(drhist, survivalhist)
+
+```
 
 ## Subset the data by lifestage (Anna)
 
