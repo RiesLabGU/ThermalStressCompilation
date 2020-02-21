@@ -298,12 +298,39 @@ plot_grid(drhist, survivalhist)
 
 ```
 
+# Scale development time
+
+Function to extract longest development time and create a new column with scaled development time
+```{r}
+scale.dt <- function(table){
+  maxdt <- max(table$dt, na.rm = T)
+  table$s_dt <- 1 - table$dt/maxdt
+  table
+}
+```
+
+Apply the function to each set
+```{r}
+inter <- inter %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(s_dt = map(data, scale.dt)) %>% 
+  unnest(cols = data,s_dt)
+```
+
+
+
+
+
 ## Subset the data by lifestage
 
 ```{r}
 egg <- inter[inter$lifestage == "egg", ]
+egg$set <- factor(egg$set)
 larva <- inter[inter$lifestage == "larva", ]
+larva$set <- factor(larva$set)
 pupa <- inter[inter$lifestage == "pupa", ]
+pupa$set <- factor(pupa$set)
 ```
 
 
@@ -370,34 +397,32 @@ Figure 10. Pupal development time at a range of temperatures, faceted by family.
 ### Noctuids - an example of family-specific graphs
 
 ```{r}
-ggplot(data = filter(egg, family == "Noctuidae"), aes(x = temp, y = dr, color = set, group = set)) + 
+ggplot(data = filter(egg, family == "Noctuidae"), aes(x = temp, y = s_dt, color = set, group = set)) + 
   geom_line() +
   geom_line(data = filter(egg, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
-  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Egg Development and Survival")
+  labs(x = "Temperature", y = "Scaled dt / Survival (dashed)", title = "Noctuid Egg Development and Survival")
 ```
 Figure 11. Egg development rate and survival in the Noctuidae family, faceted by species. 
 
 
 ```{r}
-ggplot(data = filter(larva, family == "Noctuidae"), aes(x = temp, y = dr, color = set, group = set)) + 
+ggplot(data = filter(larva, family == "Noctuidae"), aes(x = temp, y = s_dt, color = set, group = set)) + 
   geom_line() +
   geom_line(data = filter(larva, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
-  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Larval Development and Survival")
+  labs(x = "Temperature", y = "Scaled dev time / Survival (dashed)", title = "Noctuid Larval Development and Survival")
 ```
 Figure 12. Larval development rate and survival in the Noctuidae family, faceted by species. 
 
 
 ```{r}
-ggplot(data = filter(pupa, family == "Noctuidae"), aes(x = temp, y = dr, color = set, group = set)) + 
+ggplot(data = filter(pupa, family == "Noctuidae"), aes(x = temp, y = s_dt, color = set, group = set)) + 
   geom_line() +
   geom_line(data = filter(pupa, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
-  labs(x = "Temperature", y = "Development rate / Survival (dashed)", title = "Noctuid Pupal Development and Survival")
+  labs(x = "Temperature", y = "Scaled dev time / Survival (dashed)", title = "Noctuid Pupal Development and Survival")
 ```
 Figure 13. Pupal development rate and survival in the Noctuidae family, faceted by species. 
-
-
 
 
