@@ -253,6 +253,36 @@ is.rise <- function(table, response){
 }
 ```
 
+ Function to determine if minimum development time occurs at the highest temperature
+```{r}
+# Is development time minimum at the highest temperature? ---------------------------------------------------------------
+
+where.min.dt <- function(table){
+  ta <- select(table, temp, dt) # make a 2 column table
+  
+  if(nrow(ta) == sum(is.na(ta[,2]))){ # this is to discard sets with only NA                                           # values
+    print("No data")
+  }else{
+    
+    # get:
+    # minimum development time
+    min.dt <- min(ta$dt, na.rm = T) 
+    # maximum temperature
+    t.max <- max(ta$temp, na.rm = T)
+    
+    min.dt.t <- tail(filter(ta, dt == min.dt)[["temp"]])
+    
+    #output table
+    output <- tibble(is.min.at.hottest =  t.max == min.dt.t) # TRUE when min at hotest
+    output
+  }
+}
+```
+
+
+
+
+
 ## Number of sets where the maximum survival is not at the highest measured temp
 This code applies the function above to each set, the result is a tibble of tables
 ```{r}
@@ -260,24 +290,89 @@ qualitycheck <- inter %>%
   group_by(set) %>% 
   nest() %>% 
   mutate(quality_dr = map2(data, "dr", is.rise), 
-         quality_sur = map2(data, "survival", is.rise))
+         quality_sur = map2(data, "survival", is.rise), 
+         is.min.dt.at.max.t = map(data, where.min.dt))
 ```
 
 Get only the quality metrics by set
 ```{r}
-Qmetrics <- select(qualitycheck, set, quality_dr, quality_sur) %>% 
-  unnest( cols = quality_dr, quality_sur)
+Qmetrics <- select(qualitycheck, set, quality_dr, quality_sur, is.min.dt.at.max.t) %>% 
+  unnest( cols = quality_dr, quality_sur, is.min.dt.at.max.t)
 ```
 
 
-## Number of sets where the minimum developmental time is not at the highest measured temp: `r sum(Qmetrics$just.rise == FALSE)`
+## Number of sets where the minimum development time is not at the highest measured temp: `r sum(Qmetrics$is.min.at.hottest == FALSE)`
 There are `r length(unique(Qmetrics$set))` sets and most of them  `r sum(Qmetrics$just.rise == FALSE)` report a fall in development time as temperature increases.
 
 There are `r sum(Qmetrics$just.rise1 == FALSE)` sets in which the highest survival is not at the highest temperature
 
 ```{r}
 ggplot(inter, aes(x = temp))+
-  geom_bar()+
+  geom_bar()+Show in New WindowClear OutputExpand/Collapse Output
+ [1] "pest"            "migratory"       "forestpest"      "biocontrol"      "pest/biocontrol" "silk"               
+ [7] "ornamental"      "insectivorous"   "reseach"         "wild"            "parasitoid"      "nopest"         
+[13] "tea"             "endangered"     
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+unnest() has a new interface. See ?unnest for details.
+Try `df %>% unnest(c(quality_dr, quality_sur))`, with `mutate()` if needed
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+R Console
+
+Show in New WindowClear OutputExpand/Collapse Output
+unnest() has a new interface. See ?unnest for details.
+Try `df %>% unnest(c(data, s_dt))`, with `mutate()` if needed
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 6 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 1 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 9 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 40 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 41 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 54 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 13 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 11 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 12 rows containing missing values (geom_path).
+Removed 3 rows containing missing values (geom_path).
+
   theme_cowplot()+
   facet_grid(~lifestage)
 ```
