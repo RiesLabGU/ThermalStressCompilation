@@ -308,7 +308,71 @@ There are `r sum(Qmetrics$just.rise1 == FALSE)` sets in which the highest surviv
 
 ```{r}
 ggplot(inter, aes(x = temp))+
-  geom_bar()+
+  geom_bar()+Show in New WindowClear OutputExpand/Collapse Output
+ [1] "pest"            "migratory"       "forestpest"      "biocontrol"      "pest/biocontrol" "silk"               
+ [7] "ornamental"      "insectivorous"   "reseach"         "wild"            "parasitoid"      "nopest"         
+[13] "tea"             "endangered"     
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+unnest() has a new interface. See ?unnest for details.
+Try `df %>% unnest(c(quality_dr, quality_sur))`, with `mutate()` if needed
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+R Console
+
+Show in New WindowClear OutputExpand/Collapse Output
+unnest() has a new interface. See ?unnest for details.
+Try `df %>% unnest(c(data, s_dt))`, with `mutate()` if needed
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 6 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 1 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 9 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 40 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 41 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 54 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 13 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 11 rows containing missing values (geom_path).
+
+Show in New WindowClear OutputExpand/Collapse Output
+	
+Removed 12 rows containing missing values (geom_path).
+Removed 3 rows containing missing values (geom_path).
+
   theme_cowplot()+
   facet_grid(~lifestage)
 ```
