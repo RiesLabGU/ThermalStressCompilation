@@ -60,6 +60,8 @@ source("/Users/marianaabarcazama/Desktop/Projects/MyFunctions.R")
 inter %>% 
   group_by(id, sp, lifestage, set) %>% 
   tally(sort = T)
+
+
 egg_ids <- tibble(id = unique(egg$id))
 larva_ids <- tibble(id = unique(larva$id))
 pupa_ids <- tibble(id = unique(pupa$id))

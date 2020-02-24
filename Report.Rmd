@@ -308,71 +308,7 @@ There are `r sum(Qmetrics$just.rise1 == FALSE)` sets in which the highest surviv
 
 ```{r}
 ggplot(inter, aes(x = temp))+
-  geom_bar()+Show in New WindowClear OutputExpand/Collapse Output
- [1] "pest"            "migratory"       "forestpest"      "biocontrol"      "pest/biocontrol" "silk"               
- [7] "ornamental"      "insectivorous"   "reseach"         "wild"            "parasitoid"      "nopest"         
-[13] "tea"             "endangered"     
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-unnest() has a new interface. See ?unnest for details.
-Try `df %>% unnest(c(quality_dr, quality_sur))`, with `mutate()` if needed
-Show in New WindowClear OutputExpand/Collapse Output
-
-Show in New WindowClear OutputExpand/Collapse Output
-
-`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-R Console
-
-Show in New WindowClear OutputExpand/Collapse Output
-unnest() has a new interface. See ?unnest for details.
-Try `df %>% unnest(c(data, s_dt))`, with `mutate()` if needed
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 6 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 1 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 9 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 40 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 41 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 54 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 13 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 11 rows containing missing values (geom_path).
-
-Show in New WindowClear OutputExpand/Collapse Output
-	
-Removed 12 rows containing missing values (geom_path).
-Removed 3 rows containing missing values (geom_path).
-
+  geom_bar()+
   theme_cowplot()+
   facet_grid(~lifestage)
 ```
@@ -520,4 +456,40 @@ ggplot(data = filter(pupa, family == "Noctuidae"), aes(x = temp, y = s_dt, color
 ```
 Figure 13. Pupal development rate and survival in the Noctuidae family, faceted by species. 
 
+# Cummulative survival graphs
+For studies that report survival of eggs, larvae and pupa, make graphs of cummulative survival:
+ 
+```{r}
+# get ids of sets that report survival in all three life stages
+egg_ids <- tibble(id = unique(egg$id))
+larva_ids <- tibble(id = unique(larva$id))
+pupa_ids <- tibble(id = unique(pupa$id))
+
+fullstudies <- intersect(egg_ids,larva_ids,pupa_ids)
+# the new table "ontosurvival" contains only those sets
+ontosurvival <- inter %>% filter(id %in% fullstudies$id)
+ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontosurvival$lifestage == "larva",2, 3))
+```
+
+Plot survival
+```{r}
+ggplot(ontosurvival, aes(x = stagenum, y = survival, col = factor(round(temp))))+
+  geom_point()+
+  geom_line(aes( y = survival, x = stagenum, col = factor(round(temp))))+
+  theme(legend.position = "none")+
+  xlab("Life stage 1:egg, 2:larva, 3:pupa")+
+  facet_wrap(id~sp)
+names(ontosurvival)
+
+```
+ Each line corresponds to one temperature treatment
+```{r}
+ggplot(filter(ontosurvival, id == 80), aes(x = stagenum, y = survival, col = factor(round(temp))))+
+  geom_point()+
+  geom_line(aes( y = survival, x = stagenum, col = factor(round(temp))))+
+  #theme(legend.position = "none")+
+  xlab("Life stage 1:egg, 2:larva, 3:pupa")+
+  facet_wrap(id~sp)
+names(ontosurvival)
+```
 
