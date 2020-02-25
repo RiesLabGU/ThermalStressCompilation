@@ -461,11 +461,19 @@ For studies that report survival of eggs, larvae and pupa, make graphs of cummul
  
 ```{r}
 # get ids of sets that report survival in all three life stages
+egg <- filter(inter, lifestage == "egg", survival >= 0)
+egg$set <- factor(egg$set)
+larva <- filter(inter, lifestage == "larva",  survival >= 1)
+larva$set <- factor(larva$set)
+pupa <- filter(inter, lifestage == "pupa",  survival >= 1)
+pupa$set <- factor(pupa$set)
+
 egg_ids <- tibble(id = unique(egg$id))
 larva_ids <- tibble(id = unique(larva$id))
 pupa_ids <- tibble(id = unique(pupa$id))
 
-fullstudies <- intersect(egg_ids,larva_ids,pupa_ids)
+fullstudies1 <- intersect(egg_ids,larva_ids)
+fullstudies <- intersect(fullstudies1,pupa_ids)
 # the new table "ontosurvival" contains only those sets
 ontosurvival <- inter %>% filter(id %in% fullstudies$id)
 ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontosurvival$lifestage == "larva",2, 3))
