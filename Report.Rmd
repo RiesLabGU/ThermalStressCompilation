@@ -9,6 +9,10 @@ Discard parasitoids and change character to factor
 library(tidyverse)
 library(readxl)
 library(cowplot)
+
+#Anna's Laptop
+Data <- read.xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
+
 # Mariana's desktop
 Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
                   sheet = "T3", na = c("NA", "")) 
