@@ -527,8 +527,71 @@ head(ontosurvival)
 
 ```
 
+
+Anna's solution:
+
 ```{r}
+combsurvival2 <- combsurvival[, c("set", "id", "sp", "lifestage", "temp", "survival")]
+head(combsurvival2)
+```
+
+Make it wider:
+```{r}
+combsurvival3 <- combsurvival2 %>% 
+  pivot_wider(names_from = lifestage, values_from = survival)
+
+head(combsurvival3)
+```
+
+Combine data into one row for each temp:
+
+(This is a very round-about way to do this - if you have a smoother suggestion, please implement it instead of this mess!!)
+
+```{r}
+#Separate them into different dataframes
+
+eggsurv <- combsurvival3[, c("id", "sp", "temp", "egg")]
+larvasurv <- combsurvival3[, c("id", "sp", "temp", "larva")]
+pupasurv <- combsurvival3[, c("id", "sp", "temp", "pupa")]
+
+#Remove rows with NAs
+
+eggsurv <- eggsurv %>% 
+  drop_na()
+
+larvasurv <- larvasurv %>%
+  drop_na()
+
+pupasurv <- pupasurv %>%
+  drop_na()
+
+# Merge into one dataframe
+
+combsurvival4 <- merge(eggsurv, larvasurv, by = c("id", "sp", "temp"))
+combsurvival5 <- merge(combsurvival4, pupasurv, by = c("id", "sp", "temp"))
+```
 
 
+Make cumulative survival column:
+```{r}
+combsurvival5$total <- (((combsurvival5$egg)/100) * ((combsurvival5$larva)/100) * ((combsurvival5$pupa)/100))
+combsurv <- combsurvival5
+```
+
+Here we have it! 
+
+Now, we plot!
+
+## Plotting Cumulative survival at different temperatures
+
+```{r}
+ggplot(combsurv, aes(x = temp, y = total, group = id))+
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_wrap(id~sp)
+
+ggsave("combsurv27Feb.png", width = 10, height = 8)
 ```
 
