@@ -61,7 +61,8 @@ combsurvival5 <- merge(combsurvival4, pupasurv, by = c("id", "sp", "temp"))
 
 Make cumulative survival column:
 ```{r}
-combsurvival5$total <- combsurvival5$egg * combsurvival5$larva * combsurvival5$pupa
+combsurvival5$total <- (((combsurvival5$egg)/100) * ((combsurvival5$larva)/100) * ((combsurvival5$pupa)/100))
+combsurv <- combsurvival5
 ```
 
 Here we have it! 
@@ -69,4 +70,13 @@ Here we have it!
 Now, we plot!
 
 ## Plotting Cumulative survival at different temperatures
+
+```{r}
+ggplot(combsurv, aes(x = temp, y = total, group = id))+
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_wrap(id~sp)
+```
 
