@@ -5,12 +5,9 @@ output: html_notebook
 
 Here, I will put working code for any side projects I'm working on, which will eventually be added to Report.rmd 
 
-```{r}
-library(tidyr)
-```
-
-
 ## Working on making the dataset wide instead of long to calculate cumulative survival. 
+
+Dataset taken from Report.Rmd:
 
 ```{r}
 head(combsurvival)
@@ -20,7 +17,6 @@ head(combsurvival)
 combsurvival2 <- combsurvival[, c("set", "id", "sp", "lifestage", "temp", "survival")]
 head(combsurvival2)
 ```
-
 
 Make it wider:
 ```{r}
@@ -61,7 +57,8 @@ combsurvival5 <- merge(combsurvival4, pupasurv, by = c("id", "sp", "temp"))
 
 Make cumulative survival column:
 ```{r}
-combsurvival5$total <- combsurvival5$egg * combsurvival5$larva * combsurvival5$pupa
+combsurvival5$total <- (((combsurvival5$egg)/100) * ((combsurvival5$larva)/100) * ((combsurvival5$pupa)/100))
+combsurv <- combsurvival5
 ```
 
 Here we have it! 
@@ -69,4 +66,15 @@ Here we have it!
 Now, we plot!
 
 ## Plotting Cumulative survival at different temperatures
+
+```{r}
+ggplot(combsurv, aes(x = temp, y = total, group = id))+
+  geom_point() +
+  geom_line() +
+  theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_wrap(id~sp)
+
+ggsave("combsurv27Feb.png", width = 10, height = 8)
+```
 
