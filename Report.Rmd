@@ -2,20 +2,32 @@
 title: "Compilation of Lepidoptera thermal performance curves"
 output: html_notebook
 ---
-# Import data
-Discard parasitoids and change character to factor 
-
+# Load packages
 ```{r}
 library(tidyverse)
 library(readxl)
 library(cowplot)
-
+```
+ 
+# Import data
+```{r}
 #Anna's Laptop
-Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
+#Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
+```
 
+```{r}
 # Mariana's desktop
-Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "T3", na = c("NA", "")) 
+#Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", "")) 
+
+```
+
+```{r}
+# Mariana's laptop
+#Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", "")) 
+```
+
+Remove parasitoids and convert character to factor
+```{r}
 unique(Data$status)
 Ana <- Data[Data$status != "parasitoid",]
 rm(Data)
@@ -102,8 +114,7 @@ rm(clement, coldlim, dr, hotlim, i, ii, seti, sets, suma, tempes, tempii)
 ```
 
 # Summary statistics
-
-There are `r length(unique(Ana_rates$family))` families in the dataset.
+There are `r length(unique(Ana_rates$family))` Lepidoptera families in the dataset.
 ```{r}
 family_sets <-  Ana_rates %>%
   select(set, family) %>% 
@@ -143,7 +154,7 @@ ggplot(species, aes(x = reorder(family, - sp_count), y = sp_count)) +
   coord_flip()
 ```
 
-Figure 2. Number of species per family, 
+Figure 2. Number of species per family, lines indicate 5 and 10 species counts.
 
 
 ```{r}
@@ -159,7 +170,7 @@ ggplot(lifestage_sets, aes(x = reorder(lifestage,  sets), y = sets)) +
   geom_hline(yintercept = 50)+
   geom_hline(yintercept = 25, linetype = 2)+
   theme_cowplot()+
-  xlab("Family")+
+  xlab("Life stage")+
  
   coord_flip()
 ```
@@ -181,7 +192,7 @@ ggplot(lifestage_sets_2, aes(x = reorder(lifestage,  sets), y = sets)) +
   geom_hline(yintercept = 50)+
   geom_hline(yintercept = 25, linetype = 2)+
   theme_cowplot()+
-  xlab("Family")+
+  xlab("Life stage")+
   
   coord_flip()
 ```
@@ -217,9 +228,16 @@ development time data, from `r length(unique(interval$sp))` families and
 For the three main lifestages (egg, larva, pupa), there are `r length(unique(inter$set))` sets with both survival and
 development time data, from `r length(unique(inter$sp))` species.
 
-# Upper Limit Exploration (Mariana)
+# Upper Limit Exploration 
 At the upper thermal ranges contained in the dataset, we are interested in seeing whether we capture the ranges at which survival/development rate begin to decrease. 
-The function below (is.rise) returns a table with the number of temperature treatments, it requires a tibble or data frame (temp) and a response ("dr" or "survival")
+The function below (is.rise) can be applied to development rate and to survival data. It returns a table with 6 columns:
+just.rise: TURE/FALSE. TRUE for curves missing the range at which performance decreases.
+ntemp: number of temperature treatments
+colds: number of temperature treatments below optimum
+hots: number of temperature treatments above optimum
+opts: number of temperatures that maximize performance (it's common to observe multiple survival optima)
+response: dr/survival
+
 ```{r}
 is.rise <- function(table, response){
   ta <- select(table, temp, response) # make a 2 column table
@@ -260,7 +278,6 @@ is.rise <- function(table, response){
  Function to determine if minimum development time occurs at the highest temperature
 ```{r}
 # Is development time minimum at the highest temperature? ---------------------------------------------------------------
-
 where.min.dt <- function(table){
   ta <- select(table, temp, dt) # make a 2 column table
   
@@ -283,11 +300,7 @@ where.min.dt <- function(table){
 }
 ```
 
-
-
-
-
-## Number of sets where the maximum survival is not at the highest measured temp
+## Calculate the number of sets where the maximum survival is not at the highest measured temp
 This code applies the function above to each set, the result is a tibble of tables
 ```{r}
 qualitycheck <- inter %>% 
@@ -310,13 +323,16 @@ There are `r length(unique(Qmetrics$set))` sets and most of them  `r sum(Qmetric
 
 There are `r sum(Qmetrics$just.rise1 == FALSE)` sets in which the highest survival is not at the highest temperature
 
+# What are the most popular temperature treatments implemented?
+
 ```{r}
 ggplot(inter, aes(x = temp))+
   geom_bar()+
   theme_cowplot()+
   facet_grid(~lifestage)
 ```
-Frequency of temperature treatments in "inter" data set. The most popular temperature treatments are 15, 20, 25, 30, and 35.
+Figure 5. Frequency of temperature treatments in "inter" data set by life stage. 
+The most popular temperature treatments are 15, 20, 25, 30, and 35.
 
 # Exploratory Graphs
 These graphs represent some early data exploration, using the subset of the data that contains both survival and development time for the three main lifestages (egg, larva, pupa). 
@@ -332,31 +348,38 @@ survivalhist <- ggplot(Qmetrics, aes(x = hots1))+
 plot_grid(drhist, survivalhist)
 
 ```
+Figure 6. Histograms showing most sets in the "inter" subset include at least one temperature above the dr optimum and multple above the survival optimum
 
 # Scale development time
-
-Function to extract longest development time and create a new column with scaled development time
+Function to extract longest development time by set and create a new column with scaled development time. 
+s_dt = 1 - (dt/maxdt).
 ```{r}
 scale.dt <- function(table){
   maxdt <- max(table$dt, na.rm = T)
-  table$s_dt <- 1 - table$dt/maxdt
+  table$s_dt <- 1 - (table$dt/maxdt)
   table
 }
 ```
 
-Apply the function to each set
+
+Apply the function to each set and add s_dt column (scaled dt)
 ```{r}
 inter <- inter %>% 
   group_by(set) %>% 
   nest() %>% 
   mutate(s_dt = map(data, scale.dt)) %>% 
-  unnest(cols = data,s_dt)
+  unnest(cols = s_dt) %>% 
+  select(-data)
 ```
 
-## Anna comment - I am having issues with unnest() creating a heinous dataframe with 107/108 columns. I'm not sure how to fix it because it appears the syntax for unnest() is different now. 
-
-
-## Subset the data by lifestage
+Plot to check that s_dt was calculated properly
+```{r}
+ggplot(filter(inter, set == 941|set == 1179| set == 3), aes(x = dt, y = s_dt, col = factor(set)))+
+  geom_point()+
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+dt: development time, s_dt, scaled development time (0 for longest)
 
 ```{r}
 egg <- inter[inter$lifestage == "egg", ]
@@ -367,9 +390,7 @@ pupa <- inter[inter$lifestage == "pupa", ]
 pupa$set <- factor(pupa$set)
 ```
 
-
 ## Graph the survival data vs. temperature within each lifestage, with each set as a line, faceted by family 
-
 
 ```{r}
 ggplot(data = egg, aes(x = temp, y = survival, color = set, group = set)) + 
@@ -482,35 +503,17 @@ ontosurvival <- inter %>% filter(id %in% fullstudies$id)
 ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontosurvival$lifestage == "larva",2, 3))
 ```
 
-Plot survival
-```{r}
-ggplot(ontosurvival, aes(x = stagenum, y = survival, col = factor(round(temp))))+
-  geom_point()+
-  geom_line(aes( y = survival, x = stagenum, col = factor(round(temp))))+
-  theme(legend.position = "none")+
-  xlab("Life stage 1:egg, 2:larva, 3:pupa")+
-  facet_wrap(id~sp)
-names(ontosurvival)
-
-```
- Each line corresponds to one temperature treatment
-```{r}
-ggplot(filter(ontosurvival, id == 80), aes(x = stagenum, y = survival, col = factor(round(temp))))+
-  geom_point()+
-  geom_line(aes( y = survival, x = stagenum, col = factor(round(temp))))+
-  #theme(legend.position = "none")+
-  xlab("Life stage 1:egg, 2:larva, 3:pupa")+
-  facet_wrap(id~sp)
-names(ontosurvival)
-```
 
 # Making a graph with cumulative survival
-
 Here, I calculate cumulative/total suvival at each temp for each set and attempt to plot it. 
-
 ```{r}
 head(ontosurvival)
 
 combsurvival <- ontosurvival[, c("set", "id", "sp", "lifestage", "temp", "survival", "stagenum")]
+```
+
+```{r}
+
+
 ```
 
