@@ -11,7 +11,7 @@ library(readxl)
 library(cowplot)
 
 #Anna's Laptop
-Data <- read.xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
 
 # Mariana's desktop
 Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
@@ -353,8 +353,7 @@ inter <- inter %>%
   unnest(cols = data,s_dt)
 ```
 
-
-
+## Anna comment - I am having issues with unnest() creating a heinous dataframe with 107/108 columns. I'm not sure how to fix it because it appears the syntax for unnest() is different now. 
 
 
 ## Subset the data by lifestage
@@ -503,5 +502,15 @@ ggplot(filter(ontosurvival, id == 80), aes(x = stagenum, y = survival, col = fac
   xlab("Life stage 1:egg, 2:larva, 3:pupa")+
   facet_wrap(id~sp)
 names(ontosurvival)
+```
+
+# Making a graph with cumulative survival
+
+Here, I calculate cumulative/total suvival at each temp for each set and attempt to plot it. 
+
+```{r}
+head(ontosurvival)
+
+combsurvival <- ontosurvival[, c("set", "id", "sp", "lifestage", "temp", "survival", "stagenum")]
 ```
 
