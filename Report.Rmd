@@ -506,10 +506,25 @@ ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontos
 
 # Making a graph with cumulative survival
 Here, I calculate cumulative/total suvival at each temp for each set and attempt to plot it. 
+Issues: a unique identifier for comparable groups of different lifestages is missing. 
+Cols with relevant info to identify these groups are: sex, lifestage, id, temp, host. I'll work on this, It looks like the 
+only species affected are Chilo auricilius and Metissa plana.
+
 ```{r}
-head(ontosurvival)
 
 combsurvival <- ontosurvival[, c("set", "id", "sp", "lifestage", "temp", "survival", "stagenum")]
+head(ontosurvival)
+# ontosurvival %>% mutate(key = factor(paste(id, sp, sep = "-")))
+# unique(ontosurvival$sex)
+# ontosurvival_small <- data.frame(ontosurvival[, c("key", "lifestage", "temp", "survival")])
+#   ontosurvival_small <- ontosurvival_small %>% 
+#     
+#   unique(factor(inter$idaid))
+#   ontosurvival_small %>% 
+#     group_by(key) %>% 
+#   pivot_wider(names_from = lifestage, values_from = survival)
+  
+
 ```
 
 ```{r}
