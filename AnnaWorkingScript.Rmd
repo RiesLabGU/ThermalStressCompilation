@@ -5,12 +5,9 @@ output: html_notebook
 
 Here, I will put working code for any side projects I'm working on, which will eventually be added to Report.rmd 
 
-```{r}
-library(tidyr)
-```
-
-
 ## Working on making the dataset wide instead of long to calculate cumulative survival. 
+
+Dataset taken from Report.Rmd:
 
 ```{r}
 head(combsurvival)
@@ -20,7 +17,6 @@ head(combsurvival)
 combsurvival2 <- combsurvival[, c("set", "id", "sp", "lifestage", "temp", "survival")]
 head(combsurvival2)
 ```
-
 
 Make it wider:
 ```{r}
@@ -78,5 +74,7 @@ ggplot(combsurv, aes(x = temp, y = total, group = id))+
   theme(legend.position = "none") +
   labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
   facet_wrap(id~sp)
+
+ggsave("combsurv27Feb.png", width = 10, height = 8)
 ```
 
