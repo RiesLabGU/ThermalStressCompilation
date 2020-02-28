@@ -507,68 +507,29 @@ ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontos
 # Making a graph with cumulative survival
 Here, I calculate cumulative/total suvival at each temp for each set and attempt to plot it. 
 Issues: a unique identifier for comparable groups of different lifestages is missing. 
-Cols with relevant info to identify these groups are: sex, lifestage, id, temp, host. I'll work on this, It looks like the 
-only species affected are Chilo auricilius and Metissa plana.
-
+Cols with relevant info to identify these groups are: sex, lifestage, id, temp, host.
+The only species affected are Chilo auricilius, Metisa plana, and Pteroma pendula.
 ```{r}
-
-combsurvival <- ontosurvival[, c("set", "id", "sp", "lifestage", "temp", "survival", "stagenum")]
-head(ontosurvival)
-# ontosurvival %>% mutate(key = factor(paste(id, sp, sep = "-")))
-# unique(ontosurvival$sex)
-# ontosurvival_small <- data.frame(ontosurvival[, c("key", "lifestage", "temp", "survival")])
-#   ontosurvival_small <- ontosurvival_small %>% 
-#     
-#   unique(factor(inter$idaid))
-#   ontosurvival_small %>% 
-#     group_by(key) %>% 
-#   pivot_wider(names_from = lifestage, values_from = survival)
-  
-
+combsurvival <- ontosurvival %>% 
+  filter(sp != "Chilo auricilius", sp != "Metisa plana", sp !="Pteroma pendula")
 ```
-
 
 Anna's solution:
 
 ```{r}
-combsurvival2 <- combsurvival[, c("set", "id", "sp", "lifestage", "temp", "survival")]
+combsurvival2 <- combsurvival[, c("id", "sp", "lifestage", "temp", "survival")]
 head(combsurvival2)
+
+
 ```
 
 Make it wider:
 ```{r}
 combsurvival3 <- combsurvival2 %>% 
+  ungroup() %>% # by ungrouping you get rid of the issue of having a bunch of NA and non- matching rows
   pivot_wider(names_from = lifestage, values_from = survival)
-
+comsurvival5 <- combsurvival3
 head(combsurvival3)
-```
-
-Combine data into one row for each temp:
-
-(This is a very round-about way to do this - if you have a smoother suggestion, please implement it instead of this mess!!)
-
-```{r}
-#Separate them into different dataframes
-
-eggsurv <- combsurvival3[, c("id", "sp", "temp", "egg")]
-larvasurv <- combsurvival3[, c("id", "sp", "temp", "larva")]
-pupasurv <- combsurvival3[, c("id", "sp", "temp", "pupa")]
-
-#Remove rows with NAs
-
-eggsurv <- eggsurv %>% 
-  drop_na()
-
-larvasurv <- larvasurv %>%
-  drop_na()
-
-pupasurv <- pupasurv %>%
-  drop_na()
-
-# Merge into one dataframe
-
-combsurvival4 <- merge(eggsurv, larvasurv, by = c("id", "sp", "temp"))
-combsurvival5 <- merge(combsurvival4, pupasurv, by = c("id", "sp", "temp"))
 ```
 
 
@@ -577,6 +538,36 @@ Make cumulative survival column:
 combsurvival5$total <- (((combsurvival5$egg)/100) * ((combsurvival5$larva)/100) * ((combsurvival5$pupa)/100))
 combsurv <- combsurvival5
 ```
+
+Solve id issue of "Chilo auricilius", "Metisa plana" and "Pteroma pendula"
+
+```{r}
+Chilo <- ontosurvival %>% 
+  filter(sp == "Chilo auricilius")
+
+Metisa <- ontosurvival %>% 
+  filter(sp == "Metisa plana")
+
+Pteroma <- ontosurvival %>% 
+  filter(sp =="Pteroma pendula")
+```
+
+Chilo auricilius was reared under different levels of humidity: `r unique(factor(Chilo$idaid))`
+```{r}
+Chilo_40 <- Chilo %>% 
+  filter(idaid == 40) %>% 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+
+Chilo_40survispread <- Chilo_40 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival)
+```
+
+
+
+Metisa data are reported for males, females, both and for different instar numbers
+Pteroma data reported for males, females and both
 
 Here we have it! 
 
@@ -590,8 +581,12 @@ ggplot(combsurv, aes(x = temp, y = total, group = id))+
   geom_line() +
   theme(legend.position = "none") +
   labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
-  facet_wrap(id~sp)
+  facet_wrap(.~sp)
 
-ggsave("combsurv27Feb.png", width = 10, height = 8)
+#ggsave("combsurv27Feb.png", width = 10, height = 8)
+```
+
+```{r}
+
 ```
 
