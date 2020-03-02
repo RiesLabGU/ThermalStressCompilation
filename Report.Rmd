@@ -510,6 +510,7 @@ Issues: a unique identifier for comparable groups of different lifestages is mis
 Cols with relevant info to identify these groups are: sex, lifestage, id, temp, host.
 The only species affected are Chilo auricilius, Metisa plana, and Pteroma pendula.
 ```{r}
+# 1. remove problematic sets
 combsurvival <- ontosurvival %>% 
   filter(sp != "Chilo auricilius", sp != "Metisa plana", sp !="Pteroma pendula")
 ```
@@ -517,6 +518,7 @@ combsurvival <- ontosurvival %>%
 Anna's solution:
 
 ```{r}
+# select only relevant columns (no tydiverse, so "set" can be removed as the grouping variable)
 combsurvival2 <- combsurvival[, c("id", "sp", "lifestage", "temp", "survival")]
 head(combsurvival2)
 
@@ -525,19 +527,12 @@ head(combsurvival2)
 
 Make it wider:
 ```{r}
-combsurvival3 <- combsurvival2 %>% 
+combsurvival2 <- combsurvival2 %>% 
   ungroup() %>% # by ungrouping you get rid of the issue of having a bunch of NA and non- matching rows
   pivot_wider(names_from = lifestage, values_from = survival)
-comsurvival5 <- combsurvival3
-head(combsurvival3)
+
 ```
 
-
-Make cumulative survival column:
-```{r}
-combsurvival5$total <- (((combsurvival5$egg)/100) * ((combsurvival5$larva)/100) * ((combsurvival5$pupa)/100))
-combsurv <- combsurvival5
-```
 
 Solve id issue of "Chilo auricilius", "Metisa plana" and "Pteroma pendula"
 
@@ -550,6 +545,7 @@ Metisa <- ontosurvival %>%
 
 Pteroma <- ontosurvival %>% 
   filter(sp =="Pteroma pendula")
+
 ```
 
 Chilo auricilius was reared under different levels of humidity: `r unique(factor(Chilo$idaid))`
@@ -557,17 +553,131 @@ Chilo auricilius was reared under different levels of humidity: `r unique(factor
 Chilo_40 <- Chilo %>% 
   filter(idaid == 40) %>% 
   ungroup() %>% 
-  select(sp,  temp, survival, id, lifestage)
+  select(id, sp, temp, survival, id, lifestage)
 
 Chilo_40survispread <- Chilo_40 %>% 
   ungroup() %>% 
-  pivot_wider(names_from = lifestage, values_from = survival)
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Chilo auricilius_40%humidity")
+
+Chilo_65 <- Chilo %>% 
+  filter(idaid == 65) %>% 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+
+Chilo_65survispread <- Chilo_65 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Chilo auricilius_65%humidity")
+Chilo_90 <- Chilo %>% 
+  filter(idaid == 90) %>% 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+
+Chilo_90survispread <- Chilo_40 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Chilo auricilius_90%humidity")
+
 ```
 
 
 
-Metisa data are reported for males, females, both and for different instar numbers
+Metisa data are reported for males, females, both (eggs) `r unique(factor(Metisa$sex))` and for different instar numbers `r unique(factor(Metisa$idaid))` Females: 6 and 7 instars, Males 5 and 6 instars
+
+```{r}
+# This is a messs, fix it!
+unique(Metisa$idaid)
+# extract egg data 
+Metisa_eggs <- Metisa %>% 
+  filter(sex == "both") %>% # this keeps eggs (both sexes) 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Metisa_female_6 <- Metisa %>% 
+  filter(sex == "female", idaid == "6 instars") %>% # this keeps eggs (both sexes) and females
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Metisa_female_6 <- rbind(Metisa_eggs, Metisa_female_6) # add egg data
+Metisa_female_6_spread <- Metisa_female_6 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Metisa plana_female_6_instars")
+rm(Metisa_female_6)
+
+Metisa_female_7 <- Metisa %>% 
+  filter(sex != "male", idaid == "7 instars") %>% # this keeps eggs (both sexes) and females
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Metisa_female_7 <- rbind(Metisa_eggs, Metisa_female_7) # add egg data
+Metisa_female_7_spread <- Metisa_female_7 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Metisa plana_female_7_instars")
+rm(Metisa_female_7)
+Metisa_male_5 <- Metisa %>% 
+  filter(sex != "female", idaid == "5 instars") %>% # this keeps eggs (both sexes) and females
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Metisa_male_5 <- rbind(Metisa_eggs, Metisa_male_5) # add egg data
+Metisa_male_5_spread <- Metisa_male_5 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Metisa plana_male_5_instars")
+rm(Metisa_male_5)
+
+Metisa_male_6 <- Metisa %>% 
+  filter(sex != "female", idaid == "6 instars") %>% # this keeps eggs (both sexes) and females
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Metisa_male_6 <- rbind(Metisa_eggs, Metisa_male_6) # add egg data
+Metisa_male_6_spread <- Metisa_male_6 %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Metisa plana_male_6_instars")
+rm(Metisa_male_6)
+
+
+Metisa_plana <- rbind(Metisa_male_5_spread, Metisa_male_6_spread,
+                      Metisa_female_7_spread, Metisa_female_6_spread)
+```
+
+
 Pteroma data reported for males, females and both
+
+```{r}
+Pteroma_eggs<- Pteroma %>%  # extract egg data 
+  filter(sex == "both") %>% # this keeps eggs (both sexes) 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Pteroma_female <- Pteroma %>% 
+  filter(sex == "female") %>% 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Pteroma_female <- rbind(Pteroma_eggs, Pteroma_female) # add egg data
+Pteroma_female_spread <- Pteroma_female %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Pteroma pendula_female")
+
+Pteroma_male <- Pteroma %>% 
+  filter(sex == "male") %>% 
+  ungroup() %>% 
+  select(sp,  temp, survival, id, lifestage)
+Pteroma_male <- rbind(Pteroma_eggs, Pteroma_male) # add egg data
+Pteroma_male_spread <- Pteroma_male %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = lifestage, values_from = survival) %>% 
+  mutate(sp = "Pteroma pendula_male")
+rm(Metisa_female_6)
+```
+
+
+Combine tables and make cumulative survival column:
+```{r}
+combsurvival3 <- rbind(combsurvival2, Chilo_40survispread, Chilo_65survispread, Chilo_90survispread, 
+                       Metisa_plana, Pteroma_female_spread, Pteroma_male_spread)
+combsurvival3$total <- (((combsurvival3$egg)/100) * ((combsurvival3$larva)/100) * ((combsurvival3$pupa)/100))
+```
 
 Here we have it! 
 
@@ -576,7 +686,10 @@ Now, we plot!
 ## Plotting Cumulative survival at different temperatures
 
 ```{r}
-ggplot(combsurv, aes(x = temp, y = total, group = id))+
+
+
+names(combsurvival3)
+ggplot(combsurvival3, aes(x = temp, y = total, col = factor(id)))+
   geom_point() +
   geom_line() +
   theme(legend.position = "none") +
@@ -584,9 +697,5 @@ ggplot(combsurv, aes(x = temp, y = total, group = id))+
   facet_wrap(.~sp)
 
 #ggsave("combsurv27Feb.png", width = 10, height = 8)
-```
-
-```{r}
-
 ```
 
