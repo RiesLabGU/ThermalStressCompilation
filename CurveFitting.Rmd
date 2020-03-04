@@ -1,0 +1,356 @@
+---
+title: "GLM curve fitting to estimate the favorable interval"
+output: html_notebook
+---
+Fit a binomial curve using glm to survival and development time data
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+```
+
+Import data
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+```
+
+
+
+```{r}
+# Discard parasitoids and change character to factor 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+# Favorable interval estimation. 
+We included only sets with both development time and survival data
+```{r}
+interval_set_list <- unique(SetQuality$set) 
+
+inter <- Ana %>% filter(set %in% interval_set_list)
+
+complete_dr_list <- SetQuality %>% 
+ filter(just.rise == FALSE, is.min.at.hottest == FALSE) # only just.rise: 114, both: 109
+
+complete_survival_list <- SetQuality %>% 
+ filter(just.rise1 == FALSE) # 148
+complete_list <- intersect(complete_dr_list$set, complete_survival_list$set)
+
+complete <- Ana %>% filter(set %in% complete_list)
+
+```
+There are `r length(unique(factor(inter$set)))` sets from `r length(unique(factor(inter$sp)))` species. Of these, there are `r length(unique(factor(complete_dr_list$set)))` sets with complete data for development, `r length(unique(factor(complete_survival_list$set)))` for survival and 
+ `r length(unique(factor(complete_list)))` for both variables from `r length(unique(factor(complete$sp)))` species of `r length(unique(complete$family))` Lepidoptera families: `r unique(factor(complete$family))`
+ 
+#  Development rate, adjusted development rate, and scaled development time.
+Choose one of the above to estimate performance from development time data.
+dr and adjusted dr have already been calculated.
+Function to extract longest development time and create a new column with scaled development time:
+```{r}
+scale.dt <- function(table){
+  maxdt <- max(table$dt, na.rm = T)
+  table$s_dt <- 1 - table$dt/maxdt
+  table
+}
+```
+
+Apply the function to each set
+```{r}
+inter <- inter %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(s_dt = map(data, scale.dt)) %>% 
+  unnest(cols = data,s_dt)
+```
+
+
+ Functions to fit binomial curves and calculate predicted dr and survival. Adjust if using scaled development time.
+```{r}
+# 1. Model: development rate ~ temperature 
+fit_dt <- function(df){
+  glm(dr ~ temp + I(temp^2), data = df, family = quasibinomial)
+}
+# 2. Model: survival ~ temperature 
+fit_survival <- function(df) {
+  glm(survival/100 ~ temp + I(temp^2), data = df, family = quasibinomial)
+}
+
+# 3. Calculate predicted values over the full temperature range
+get_predicted <- function(model){
+  pred <- tibble(temp = c(1:40), 
+                 predicted = predict.glm(model, newdata = tibble(temp = c(1:40)), type = "response"))
+}
+
+# 4. Extract model coefficients
+get_coefficients <- function(model){
+  tibble(intercept = coefficients(model)[1], 
+         temperature = coefficients(model)[2], 
+         tempsquare = coefficients(model)[3])
+}
+
+# 5. Plot observed points and model line
+
+plo_dr <- function(df, predf){
+  ggplot(df, aes(x = temp, y = dr))+
+    geom_point()+
+    theme_cowplot()+
+    #ggtitle(set)+
+    geom_line(data = predf, mapping = aes(x = temp, y = predicted), col = "darkgrey")
+}
+
+plo_s <- function(df, predf){
+  ggplot(df, aes(x = temp, y = survival/100))+
+    geom_point()+
+    theme_cowplot()+
+    #ggtitle(set)+
+    geom_line(data = predf, mapping = aes(x = temp, y = predicted), col = "darkgrey")
+}
+
+
+
+```
+
+
+Apply functions, obtain predictions and calculate the favorable interval
+
+```{r}
+# 3. Calculate Fl: length, Fmin: min and Fmax: max ----------------------------------------------------------
+unique(inter$lifestage)
+# 3.1. nest data (divide into analysis units)
+nested <- complete %>% 
+  group_by(set) %>% 
+  nest()
+
+# 3.2 Apply the model to each set, save predicted and coefficients
+
+nested <- nested %>%
+  mutate(model_dt = map(data, fit_dt), 
+         predicted_dt = map(model_dt, get_predicted),
+         coefficients_dt = map(model_dt, get_coefficients), 
+         model_s = map(data, fit_survival),
+         predicted_s = map(model_s, get_predicted),
+         coefficients_s = map(model_s, get_coefficients))
+
+
+v_nested <- nested %>%
+  mutate(plot_dr = map2(data,predicted_dt, plo_dr), 
+         plot_s = map2(data, predicted_s, plo_s))
+
+extract_predictions1 <-v_nested %>% 
+  select(set, predicted_dt) %>% 
+  unnest(cols = c("predicted_dt")) %>% 
+  transmute(temperature = temp, predicted_dt = predicted)
+
+extract_predictions2 <-v_nested %>% 
+  select(set, predicted_s) %>% 
+  unnest(cols = c("predicted_s")) %>% 
+  transmute(temperature = temp, predicted_s = predicted)
+
+predictions <- merge(extract_predictions1, extract_predictions2)
+
+
+
+
+get_performance <- function(predicted){
+  #predicted <- enquo(predicted)
+  Max_dr <-  filter(predicted, predicted_dt == max(predicted_dt))[["predicted_dt"]] # maximum development rate (value)
+  Topt <-  filter(predicted, predicted_dt == max(predicted_dt))[["temperature"]] # maximum development rate (value)
+  Inte <- filter(predicted, predicted_dt >= Max_dr/2 & predicted_s >= 0.75)
+  Imin <-  Inte[1, "temperature"][[1]]
+  Imax <-  tail(Inte, n = 1) [["temperature"]]
+  performance <- tibble(Maxdr = Max_dr,
+                        Imin = Imin,
+                        Imax = Imax,
+                        Topt = Topt)
+}
+
+
+
+nestpre <-  predictions %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(lims = map(data, get_performance)) %>% 
+  select(set, lims) %>% 
+  unnest( cols = c(lims)) %>% 
+  mutate(Ilength = Imax - Imin)
+
+# add back species and family
+
+add <- complete %>% 
+  select(set, sp, family, lifestage) %>% 
+  distinct()
+
+
+nestpre <- merge(nestpre, add)
+
+```
+
+
+Preliminary plots (model validation still pending!!!)
+```{r}
+
+# Boxplots by lifestage
+toadd <- select(inter, set, host, lat, lon, quality)
+plotable <- inner_join(nestpre, toadd, by = "set")
+names(plotable)
+plotable$lifestage <- factor(plotable$lifestage)
+ggplot(filter(plotable, set != 748, set != 1102), aes(x = lifestage, y = Imax))+
+  geom_boxplot()+
+  theme_cowplot()+
+  xlab("Life stage")+
+  ylab("Interval Max limit (C)")+
+  ylim(0,40)
+
+```
+Figure 1. Higher limit of the favorable interval by lifestage.
+```{r}
+# Exclude sets with concave/ Incomplete survival curves
+plotable %>% 
+  filter(Imax >= 40)
+Plotss <- v_nested %>%
+  select(set, plot_dr, plot_s)
+set748 <- Plotss %>% filter(set == 748)
+set748[[2]]# dr plot
+set748[[3]] # survival plot
+set1102 <- Plotss %>% filter(set == 1102)
+set1102[[2]]
+set1102[[3]]
+
+```
+Discard sets 748 & 1102
+
+
+```{r}
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = lifestage, y = Imin))+
+  geom_boxplot()+
+  theme_cowplot()+
+  xlab("Life stage")+
+  ylab("Interval Min limit (C)")+
+  ylim(0,40)
+
+```
+Figure 2. Lower limit of the favorable interval by lifestage.
+
+```{r}
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = lifestage, y = Ilength))+
+  geom_boxplot()+
+  #geom_jitter(data = plotable, mapping = aes(x = lifestage, y = Imax, col = sp))+
+  theme_cowplot()+
+  xlab("Life stage")+
+  ylab("Favorable interval lenght (C)")+
+  ylim(0,30)
+
+```
+Figure 4. Lenght of the favorable interval by life stage 
+
+#
+
+```{r}
+
+library(lme4)
+
+unique(plotable$set)
+fit <- lmer(Ilength~ lifestage + (1|sp), data = plotable)
+hist(plotable$Ilength)
+shapiro.test(plotable$Ilength)
+summary(fit)
+
+hist(plotable$Ilength)
+fit2 <-glm(Ilength~ lifestage, data = plotable, family = Gamma ) 
+summary(fit2)
+
+
+
+
+```
+
+
+```{r}
+# Scatterplot by latitude
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = abs(lat), y = Topt, col = lifestage))+
+  geom_point()+
+ # geom_smooth()+
+ 
+  facet_grid(.~lifestage)
+
+spmean <- plotable %>% 
+  group_by(sp, family, lifestage) %>% 
+  summarise_if(is.numeric, mean, na.rm = T)
+
+```
+
+
+```{r}
+# Scatterplot by latitude
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = abs(lat), y = Imin, col = lifestage))+
+  geom_point()+
+ # geom_smooth()+
+ 
+  facet_grid(.~lifestage)
+
+```
+
+
+
+```{r}
+# Scatterplot by latitude
+ggplot(spmean, aes(x = abs(lat), y = Ilength))+
+  geom_point()+
+ # geom_smooth()+
+ 
+  facet_grid(.~lifestage)
+
+```
+
+
+```{r}
+# Scatterplot by latitude
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = abs(lat), y = Imax, col = sp))+
+  geom_point()+
+ # geom_smooth()+
+ theme(legend.position = "none")+
+  facet_grid(.~lifestage)
+
+```
+
+```{r}
+# Scatterplot by latitude
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = abs(lat), y = Ilength, col = lifestage))+
+  geom_point()+
+ # geom_smooth()+
+ 
+  facet_grid(.~lifestage)
+
+```
+
+```{r}
+# Scatterplot by latitude
+ggplot(filter(plotable, set != 1102, set != 748), aes(x = abs(lat), y = Maxdr, col = lifestage))+
+  geom_point()+
+ # geom_smooth()+
+ 
+  facet_grid(.~lifestage)
+
+```
+
