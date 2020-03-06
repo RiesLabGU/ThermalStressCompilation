@@ -134,8 +134,8 @@ ggplot(family_sets, aes(x = reorder(family, - sets), y = sets)) +
   xlab("Family")+
   coord_flip()
 ```
-
 Figure 1. Number of sets per family, lines indicate 25 and 50 counts
+
 ```{r}
 species <-  Ana_rates %>%
   select(family, sp) %>% 
@@ -153,7 +153,6 @@ ggplot(species, aes(x = reorder(family, - sp_count), y = sp_count)) +
   ylab("Species")+
   coord_flip()
 ```
-
 Figure 2. Number of species per family, lines indicate 5 and 10 species counts.
 
 
@@ -174,8 +173,6 @@ ggplot(lifestage_sets, aes(x = reorder(lifestage,  sets), y = sets)) +
  
   coord_flip()
 ```
-
-
 Figure 3. Number of sets measuring each lifestage.
 
 ```{r}
@@ -231,7 +228,7 @@ development time data, from `r length(unique(inter$sp))` species.
 # Upper Limit Exploration 
 At the upper thermal ranges contained in the dataset, we are interested in seeing whether we capture the ranges at which survival/development rate begin to decrease. 
 The function below (is.rise) can be applied to development rate and to survival data. It returns a table with 6 columns:
-just.rise: TURE/FALSE. TRUE for curves missing the range at which performance decreases.
+just.rise: TRUE/FALSE. TRUE for curves missing the range at which performance decreases.
 ntemp: number of temperature treatments
 colds: number of temperature treatments below optimum
 hots: number of temperature treatments above optimum
@@ -317,7 +314,6 @@ Qmetrics <- select(qualitycheck, set, quality_dr, quality_sur, is.min.dt.at.max.
   unnest( cols = quality_dr, quality_sur, is.min.dt.at.max.t)
 ```
 
-
 ## Number of sets where the minimum development time is not at the highest measured temp: `r sum(Qmetrics$is.min.at.hottest == FALSE)`
 There are `r length(unique(Qmetrics$set))` sets and most of them  `r sum(Qmetrics$just.rise == FALSE)` report a fall in development time as temperature increases.
 
@@ -396,27 +392,30 @@ pupa$set <- factor(pupa$set)
 ggplot(data = egg, aes(x = temp, y = survival, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Survival (percentage)", title = "Egg Survival")
 ```
-Figure 5. Egg survival at a range of temperatures, faceted by family. 
+Figure 7. Egg survival at a range of temperatures, faceted by family. 
 
 
 ```{r}
 ggplot(data = larva, aes(x = temp, y = survival, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Survival (percentage)", title = "Larval Survival")
 ```
-Figure 6. Larval survival at a range of temperatures, faceted by family. 
+Figure 8. Larval survival at a range of temperatures, faceted by family. 
 
 
 ```{r}
 ggplot(data = pupa, aes(x = temp, y = survival, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Survival (percentage)", title = "Pupal Survival")
 ```
-Figure 7. Pupal survival at a range of temperatures, faceted by family. 
+Figure 9. Pupal survival at a range of temperatures, faceted by family. 
 
 
 ## Graph the development time data vs. temperature within each lifestage, with each set as a line, faceted by family
@@ -425,27 +424,30 @@ Figure 7. Pupal survival at a range of temperatures, faceted by family.
 ggplot(data = egg, aes(x = temp, y = dt, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Development time (days)", title = "Egg Development Time")
 ```
-Figure 8. Egg development time at a range of temperatures, faceted by family. 
+Figure 10. Egg development time at a range of temperatures, faceted by family. 
 
 
 ```{r}
 ggplot(data = larva, aes(x = temp, y = dt, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Development time (days)", title = "Larval Development Time")
 ```
-Figure 9. Larval development time at a range of temperatures, faceted by family. 
+Figure 11. Larval development time at a range of temperatures, faceted by family. 
 
 
 ```{r}
 ggplot(data = pupa, aes(x = temp, y = dt, color = set, group = set)) + 
   geom_line() +
   facet_wrap(~family) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Development time (days)", title = "Pupal Development Time")
 ```
-Figure 10. Pupal development time at a range of temperatures, faceted by family. 
+Figure 12. Pupal development time at a range of temperatures, faceted by family. 
 
 ## Other exploratory graphs
 
@@ -456,9 +458,10 @@ ggplot(data = filter(egg, family == "Noctuidae"), aes(x = temp, y = s_dt, color 
   geom_line() +
   geom_line(data = filter(egg, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Scaled dt / Survival (dashed)", title = "Noctuid Egg Development and Survival")
 ```
-Figure 11. Egg development rate and survival in the Noctuidae family, faceted by species. 
+Figure 13. Egg development rate and survival in the Noctuidae family, faceted by species. 
 
 
 ```{r}
@@ -466,9 +469,10 @@ ggplot(data = filter(larva, family == "Noctuidae"), aes(x = temp, y = s_dt, colo
   geom_line() +
   geom_line(data = filter(larva, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Scaled dev time / Survival (dashed)", title = "Noctuid Larval Development and Survival")
 ```
-Figure 12. Larval development rate and survival in the Noctuidae family, faceted by species. 
+Figure 14. Larval development rate and survival in the Noctuidae family, faceted by species. 
 
 
 ```{r}
@@ -476,9 +480,10 @@ ggplot(data = filter(pupa, family == "Noctuidae"), aes(x = temp, y = s_dt, color
   geom_line() +
   geom_line(data = filter(pupa, family == "Noctuidae"), mapping = aes(x = temp, y = survival/100, color = set, group = set), linetype = 2)+
   facet_wrap(~sp) + 
+  theme(legend.position = "none") + 
   labs(x = "Temperature", y = "Scaled dev time / Survival (dashed)", title = "Noctuid Pupal Development and Survival")
 ```
-Figure 13. Pupal development rate and survival in the Noctuidae family, faceted by species. 
+Figure 15. Pupal development rate and survival in the Noctuidae family, faceted by species. 
 
 # Cummulative survival graphs
 For studies that report survival of eggs, larvae and pupa, make graphs of cummulative survival:
@@ -518,7 +523,7 @@ combsurvival <- ontosurvival %>%
 Anna's solution:
 
 ```{r}
-# select only relevant columns (no tydiverse, so "set" can be removed as the grouping variable)
+# select only relevant columns (no tidyverse, so "set" can be removed as the grouping variable)
 combsurvival2 <- combsurvival[, c("id", "sp", "lifestage", "temp", "survival")]
 head(combsurvival2)
 
@@ -668,7 +673,6 @@ Pteroma_male_spread <- Pteroma_male %>%
   ungroup() %>% 
   pivot_wider(names_from = lifestage, values_from = survival) %>% 
   mutate(sp = "Pteroma pendula_male")
-rm(Metisa_female_6)
 ```
 
 
@@ -686,8 +690,6 @@ Now, we plot!
 ## Plotting Cumulative survival at different temperatures
 
 ```{r}
-
-
 names(combsurvival3)
 ggplot(combsurvival3, aes(x = temp, y = total, col = factor(id)))+
   geom_point() +
@@ -698,4 +700,4 @@ ggplot(combsurvival3, aes(x = temp, y = total, col = factor(id)))+
 
 #ggsave("combsurv27Feb.png", width = 10, height = 8)
 ```
-
+Figure 16. Cumulative survival across all lifestages, for all species where we have survival for egg and larval and pupal stages. Species containing different sets are faceted by set in the last two rows.  
