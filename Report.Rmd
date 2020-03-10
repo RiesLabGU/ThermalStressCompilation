@@ -701,3 +701,8 @@ ggplot(combsurvival3, aes(x = temp, y = total, col = factor(id)))+
 #ggsave("combsurv27Feb.png", width = 10, height = 8)
 ```
 Figure 16. Cumulative survival across all lifestages, for all species where we have survival for egg and larval and pupal stages. Species containing different sets are faceted by set in the last two rows.  
+
+
+# Meeting questions
+How is sample size reported?
+`r unique(inter$n)`
