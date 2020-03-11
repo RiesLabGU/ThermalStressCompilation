@@ -1,0 +1,145 @@
+---
+title: "Methods figure"
+output: html_notebook
+---
+
+```{r}
+# Load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+```
+ 
+Import data
+```{r}
+#Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", ""))
+```
+
+
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+d_complete_sets <- SetQuality %>% # to get a list of complete sets for dt
+  filter(just.rise == FALSE) %>% 
+  select(set) %>% 
+  distinct()
+
+s_complete_sets <- SetQuality %>% # to get a list of complete sets for survival
+  filter(just.rise1 == FALSE) %>% 
+  select(set) %>% 
+  distinct()
+  
+```
+
+Remove parasitoids and convert character to factor
+```{r}
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+# Methods
+We compiled a database including records of development time and/or survival  of Lepidoptera growing at constant temperatures. The full table includes `r length(unique(Ana$sp))` species from `r length(unique(Ana$family))` families from `r length(unique(Ana$locality))` localities. See supplementary information for a full list of species.
+Using linear interppolation we calculated the following variables in all complete sets (curves including both a rise and a fall) for development rate (n = `r length(d_complete_sets$set)`) and for survival (n = `r length(s_complete_sets$set)`)
+
+dTopt: temperature that maximizes development rate
+
+max_sTopt: maximum temperature that maximizes survival, 
+
+min_sTopt: minimum temperature maximizing survival
+
+dBreadth: interval of temperatures permiting >= 50% development efficiency
+
+sBreadth: interval of temperatures permiting >= 50% survival
+
+P: survival*development (fitness)
+
+```{r}
+# Figure 1
+set_944 <- filter(Ana, set == 944) # example set
+
+# Functions to make a smooth curve 
+# 1 Development rate
+fit_dt <- function(df){
+  glm(dr ~ temp + I(temp^2), data = df, family = quasibinomial)
+}
+# 2. Model: survival ~ temperature 
+fit_survival <- function(df) {
+  glm(survival/100 ~ temp + I(temp^2), data = df, family = quasibinomial)
+}
+
+# 3. Calculate predicted values over the full temperature range
+get_predicted <- function(model){
+  pred <- tibble(temp = c(1:40), 
+                 predicted = predict.glm(model, newdata = tibble(temp = c(1:40)), type = "response"))
+}
+
+# Apply functions to set 944
+hypofit <- fit_dt(set_944)
+hyposu <- fit_survival(set_944)
+dtpredicted <- get_predicted(hypofit)
+supredicted <- get_predicted(hyposu)
+predicted <- left_join(dtpredicted, supredicted, by = "temp")
+names(predicted) <- c("temp", "dr", "survival")
+rm(hypofit, hyposu, dtpredicted, supredicted)
+
+```
+
+
+```{r}
+# # Calculate variables
+# dTopt: temperature that maximizes development rate
+# max_sTopt: maximum temperature that maximizes survival, 
+# min_sTopt: minimum temperature maximizing survival
+# dBreadth: interval of temperatures permiting >= 50% development efficiency
+# sBreadth: interval of temperatures permiting >= 50% survival
+# P: survival*development (fitness)
+
+# Calculate thermal limits for plot
+d_opt <- max(predicted$dr) # maximum development rate value
+predicted$ndr <- predicted$dr/d_opt # normalized development rate
+
+dopts <- filter(predicted, dr >= (d_opt *0.5)) # cases in which development rate is at 50% efficiency or both
+sopts <- filter(predicted, survival >= 0.5) # cases in which survival is at 50% efficiency or both
+
+dTopt <- filter(predicted, dr == d_opt)[[1]] 
+max_sTopt <- tail(filter(predicted, dr >= d_opt * 0.5), 1) [[1]]
+min_sTopt <- head(filter(predicted, dr >= d_opt* 0.5), 1)[[1]]
+
+dBreadth <- select(dopts, temp)
+sBreadth <- select(sopts, temp)
+predicted$P <- predicted$survival * predicted$dr
+
+ggplot(data = predicted, aes(x = temp, y = dr/0.23)) + 
+  geom_line(linetype = 2) +
+  theme_cowplot()+
+  geom_line(data = predicted, mapping = aes(x = temp, y = survival), linetype = 3)+
+  geom_line(data = predicted, mapping = aes(x = temp, y = P/0.23), linetype = 1)+
+  geom_segment(aes(x = 18, y = 0.5, xend = 37.55, yend = 0.5), linetype = 2)+
+  geom_point(y = d_opt/0.23, x = dTopt, col = "black")+
+  geom_segment(aes(x = 6, y = 0.5, xend = 36, yend = 0.5), linetype = 3)+
+  labs(x = "Temperature", y = "Survival")+
+  scale_y_continuous(sec.axis = sec_axis(~.*0.23, name = "development rate, P"))
+
+
+```
+Figure 1. Survival (dotted), development rate (dashed) and P (P = survival * development rate, solid). Horizontal lines correspond to the survival breadth (dotted) and development breadth (dashed). Black point corresponds to maximum development rate
+
