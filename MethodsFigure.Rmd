@@ -14,6 +14,8 @@ Import data
 ```{r}
 #Anna's Laptop
 Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", ""))
+
+SetQuality <- read_csv("~/Desktop/GitHub/ThermalStressCompilation/SetCharacterization.csv")
 ```
 
 
