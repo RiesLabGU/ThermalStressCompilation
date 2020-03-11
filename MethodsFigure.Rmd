@@ -80,7 +80,7 @@ set_944 <- filter(Ana, set == 944) # example set
 
 # Functions to make a smooth curve 
 # 1 Development rate
-fit_dt <- function(df){
+fit_dr <- function(df){
   glm(dr ~ temp + I(temp^2), data = df, family = quasibinomial)
 }
 # 2. Model: survival ~ temperature 
@@ -95,7 +95,7 @@ get_predicted <- function(model){
 }
 
 # Apply functions to set 944
-hypofit <- fit_dt(set_944)
+hypofit <- fit_dr(set_944)
 hyposu <- fit_survival(set_944)
 dtpredicted <- get_predicted(hypofit)
 supredicted <- get_predicted(hyposu)
