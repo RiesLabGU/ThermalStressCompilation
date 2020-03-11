@@ -1,0 +1,50 @@
+---
+title: "Combined Dataset Manipulation"
+output: html_notebook
+---
+
+## Introduction
+
+This script is working with the subsetted dataset that contains only those sets with both development rate and survival information. From this dataset, we will be able to compare how thermal optima differ for survival and development rate metrics, as well as directly investigate portions of fitness at different temperatures. 
+
+## Roadmap
+
+1. Load in the data 
+2. Do linear interpolation to create "best-fit curves"
+3. Extract values from interpolated curves
+4. Copy Mariana's functions to calculate metrics
+5. Apply to all sets
+6. Graph metrics for all sets
+
+## 1. Load in the Data
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(cowplot)
+```
+
+```{r}
+#Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na = c("NA", ""))
+SetQuality <- read_csv("~/Desktop/GitHub/ThermalStressCompilation/SetCharacterization.csv")
+```
+
+```{r}
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+## 2. Do linear interpolation
+
+## 3. Extract values from interpolated curves
+
+## 4. Copy Mariana's functions 
+
+## 5. Apply to all sets
+
+## 6. Graph metrics for all sets
