@@ -228,10 +228,11 @@ mid_3 <- ((max_3 - min_3) / 2) + min_3
 ### Find all values of temp where survival >= midpoint
 
 ```{r}
-surv_int <- for(i in 1:length(surv_3_2)){
-  temps <- vector(mode = "list", length = 0)
+temps <- vector(mode = "list", length = 0)
+
+surv_int <- for(i in 1:length(surv_3_2$x)){
   if (surv_3_2[i, 2] >= mid_3){
-      temps <- c(temps, surv_3_2[i, 1])
+      temps<- c(temps, surv_3_2[i, 1])
   } 
 
 }
@@ -242,26 +243,45 @@ surv_int <- for(i in 1:length(surv_3_2)){
 Let's try another way:
 
 ```{r}
-library(magicfor)
-
-magic_for()
-
-for(i in 1:length(surv_3_2)){
-  if (surv_3_2[i, 2] >= mid_3){
-    int <- surv_3_2[i, 1]  
-  } 
- put(int)
-}
+#library(magicfor)
 
 
-temps_2 <- magic_result_as_dataframe()
+#magic_for()
+
+#for(i in 1:length(surv_3_2)){
+#  if (surv_3_2[i, 2] >= mid_3){
+#    int <- surv_3_2[i, 1]  
+# } 
+# put(int)
+#}
+
+
+#temps_2 <- magic_result_as_dataframe()
 
 #Only loops twice
+```
+
+Modified a printed loop to save the output: 
+
+```{r}
+temps_3 <- data.frame(temp = character())
+
+for(i in 1:length(surv_3_2$x)){
+  if (surv_3_2[i, 2] >= mid_3){
+    temps_3 <- rbind(temps_3, surv_3_2[i, 1])  
+  } 
+
+}
 ```
 
 
 
 ### Extract endpoints on curve
+
+```{r}
+min_temp_3 <- min(temps_3)
+max_temp_3 <- max(temps_3)
+```
 
 
 ## Write a function to do the above:
@@ -280,6 +300,8 @@ midpoint_surv <- function(table){
     max <- max(set$survival)
     min <- min(set$survival)
     mid <- ((max - min)/2) + min
+    
+    
   } 
   
   
@@ -293,4 +315,77 @@ midpoint_surv <- function(table){
 
 ## 5. Apply to all sets
 
+0. Make an empty dataframe with set, minTemp, maxTemp, survival midpoint 
+1. Find midpoint
+2. Apply linear interpolation
+3. Find all interpolated values where temp >= midpoint
+4. Find min and max of that range
+5. Print a dataframe row with set, minTemp, maxTemp, survival midpoint
+
+```{r}
+setvals <- unique(inter$set)
+surv_range_vals <- data.frame(set = integer(), minTemp = integer(), maxTemp = integer(), survMid = integer())
+
+surv_range <- function(table){
+  for (i in setvals){
+    set <- filter (table, set == i)
+    max <- max(set$survival)
+    min <- min(set$survival)
+    mid <- ((max - min)/2) + min
+    
+    interpol <- approx(x = set$temp, y = set$survival, method = "linear", rule = 1, n = 1000)
+    interpol <- as.data.frame(interpol)
+    
+    interpol_temps <- data.frame(temp = character())
+
+    for (j in 1:length(interpol$x)){
+      if (interpol[j, 2] >= mid){
+      interpol_temps <- rbind(interpol_temps, interpol[j, 1]) 
+     }
+    } 
+    
+    min_interpol <- min(interpol_temps)
+    max_interpol <- max(interpol_temps)
+
+    new_row <- c(i, min_interpol, max_interpol, mid)
+    surv_range_vals <- rbind(surv_range_vals, new_row)
+    
+    
+}  
+}
+
+surv_range(inter)
+```
+
 ## 6. Graph metrics for all sets
+
+
+# Jess Helping 
+
+Make basic dataset to test it
+
+
+```{r}
+surv_3_2[2, 1]
+
+for(i in 1:4){#(length(set_3$temp)-1)){
+  print(i)
+  tempCol = 12
+  survivalCol = 17
+  x1 = set_3[i, tempCol]
+  x2 = set_3[i + 1, tempCol]
+  y1 = set_3[i, survivalCol]
+  y2 = set_3[i + 1, survivalCol]
+  slope = (y2 -y1)/(x2-x1)
+  n = y1 - slope * x1
+  message("slope: ", slope, " n:", n)
+  
+  xAvg = (y1 - n)/slope
+  if( xAvg >= x1 && xAvg<= x2){
+    message("xAvg is between x1 and x2: ", xAvg)
+  }
+  
+  
+}
+
+```
