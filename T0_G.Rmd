@@ -1,0 +1,56 @@
+---
+title: "T0 and G calculation"
+output: html_notebook
+---
+
+
+Function to calculate T0
+```{r}
+set_944 <- filter(Ana, set == 944)
+ set_6 <- filter(Ana, set == 6)
+ set_70 <- filter(Ana, set == 70)
+ trial <- rbind(set_6, set_70, set_944)
+ Data <- set_944
+```
+
+
+
+```{r}
+get_t0 <- function(Data){
+  d_opt <- max(Data$dr) # maximum development rate value
+  dTopt <- filter(Data, dr == d_opt)[[1]] 
+  Data <- filter(Data, temp <= dTopt, dr > 0)
+	  fit <- lm(dr ~ temp, data = Data) # linear regression
+    T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
+    slope_f <- as.numeric(coef(fit)[2])
+    R2 <- as.numeric(summary(fit)$r.squared) #extract r2
+    P <- as.numeric(summary(fit)$coefficients[2, 4]) #extract P
+    shap <- as.numeric(shapiro.test(fit$residuals)[2])
+    Data$G <- Data$dt * (Data$temp - as.numeric(as.character(T0)))
+    mean_G <- mean(Data$G, na.rm = T)
+    mean_temp <- mean(Data$temp, na.rm = T)
+    Output <- tibble(T0 = T0, 
+                     slope = slope_f, 
+                     N_temp = nrow(Data),
+                     spread = max(Data$temp) - min(Data$temp),
+                     r2= R2, P = P, shapiro_testP = shap, G = mean_G, 
+                  meantemp = mean_temp) 
+                  #plot = plot(dr~temp, data = Data, main = paste(Data$sp[1], Data$set[1]))
+    
+}
+
+
+```
+
+
+
+```{r}
+ s <- get_t0(set_944)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
