@@ -187,9 +187,107 @@ set_3 <- filter(inter, set == 3)
 
 ### Run linear interpolations on survival and scaled development rate
 
+Survival:
 
+```{r}
+surv_3 <- approx(x = set_3$temp, y = set_3$survival, xout = set_3$temp, method = "linear", rule = 1)
+
+surv_3 <- as.data.frame(surv_3)
+
+ggplot(data = surv_3, aes(x = x, y = y)) + 
+  geom_point() + 
+  geom_line()
+
+surv_3_2 <- approx(x = set_3$temp, y = set_3$survival, method = "linear", rule = 1, n = 1000)
+surv_3_2 <- as.data.frame(surv_3_2)
+
+ggplot(data = set_3, aes(x = temp, y = survival)) + 
+  geom_point() + 
+  geom_line(data = surv_3_2, aes(x = x, y = y))
+
+
+#surv_3_fun <- approxfun(x = set_3$temp, y = set_3$survival, method = "linear", rule = 1)
+
+#surv_3_fun
+
+```
 
 ## 3. Extract values from interpolated curves
+
+### Find midpoint of survival
+
+(Survival max - survival min)/2 + survival min = survival midpoint 
+
+```{r}
+max_3 <- max(set_3$survival)
+min_3 <- min(set_3$survival)
+mid_3 <- ((max_3 - min_3) / 2) + min_3
+
+```
+
+### Find all values of temp where survival >= midpoint
+
+```{r}
+surv_int <- for(i in 1:length(surv_3_2)){
+  temps <- vector(mode = "list", length = 0)
+  if (surv_3_2[i, 2] >= mid_3){
+      temps <- c(temps, surv_3_2[i, 1])
+  } 
+
+}
+
+#Only loops once and deletes the first value
+```
+
+Let's try another way:
+
+```{r}
+library(magicfor)
+
+magic_for()
+
+for(i in 1:length(surv_3_2)){
+  if (surv_3_2[i, 2] >= mid_3){
+    int <- surv_3_2[i, 1]  
+  } 
+ put(int)
+}
+
+
+temps_2 <- magic_result_as_dataframe()
+
+#Only loops twice
+```
+
+
+
+### Extract endpoints on curve
+
+
+## Write a function to do the above:
+
+List of set values in inter:
+
+```{r}
+setvals <- unique(inter$set)
+```
+
+
+```{r}
+midpoint_surv <- function(table){
+  for (i in setvals){
+    set <- filter (table, set == i)
+    max <- max(set$survival)
+    min <- min(set$survival)
+    mid <- ((max - min)/2) + min
+  } 
+  
+  
+}
+
+##Stopped halfway through to figure out what I'm doing above
+```
+
 
 ## 4. Copy Mariana's functions 
 
