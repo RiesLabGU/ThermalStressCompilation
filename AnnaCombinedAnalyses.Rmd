@@ -364,23 +364,33 @@ surv_range(inter)
 
 Make basic dataset to test it
 
+```{r}
+test <- read.csv("~/Desktop/test.csv", header = TRUE)
+```
+
 
 ```{r}
 surv_3_2[2, 1]
 
-for(i in 1:4){#(length(set_3$temp)-1)){
+max <- max(test$survival)
+min <- min(test$survival)
+mid <- ((max - min)/2) + min
+message(mid)
+for(i in 1:(length(test$temp)-1)){
   print(i)
-  tempCol = 12
-  survivalCol = 17
-  x1 = set_3[i, tempCol]
-  x2 = set_3[i + 1, tempCol]
-  y1 = set_3[i, survivalCol]
-  y2 = set_3[i + 1, survivalCol]
+  tempCol = 1
+  survivalCol = 2
+  x1 = test[i, tempCol]
+  x2 = test[i + 1, tempCol]
+  y1 = test[i, survivalCol]
+  y2 = test[i + 1, survivalCol]
   slope = (y2 -y1)/(x2-x1)
   n = y1 - slope * x1
+  message("x1: ", x1, " y1: ", y1)
+  message("x2: ", x2, " y2: ", y2)
   message("slope: ", slope, " n:", n)
   
-  xAvg = (y1 - n)/slope
+  xAvg = (mid - n)/slope
   if( xAvg >= x1 && xAvg<= x2){
     message("xAvg is between x1 and x2: ", xAvg)
   }
@@ -389,3 +399,37 @@ for(i in 1:4){#(length(set_3$temp)-1)){
 }
 
 ```
+
+```{r}
+surv_range <- function(table){
+  for (i in setvals){
+    set <- filter (table, set == i)
+    max <- max(set$survival)
+    min <- min(set$survival)
+    mid <- ((max - min)/2) + min
+    
+    interpol <- approx(x = set$temp, y = set$survival, method = "linear", rule = 1, n = 1000)
+    interpol <- as.data.frame(interpol)
+    
+    interpol_temps <- data.frame(temp = character())
+
+    for (j in 1:length(interpol$x)){
+      if (interpol[j, 2] >= mid){
+      interpol_temps <- rbind(interpol_temps, interpol[j, 1]) 
+     }
+    } 
+    
+    min_interpol <- min(interpol_temps)
+    max_interpol <- max(interpol_temps)
+
+    new_row <- c(i, min_interpol, max_interpol, mid)
+    surv_range_vals <- rbind(surv_range_vals, new_row)
+    
+    
+}  
+}
+
+```
+
+
+
