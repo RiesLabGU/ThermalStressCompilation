@@ -153,6 +153,7 @@ s_complete_sets <- SetQuality %>% # to get a list of complete sets for survival
   distinct()
 ```
 
+# SURVIVAL ONLY
 
 ## 2. Do linear interpolation
 
@@ -185,7 +186,7 @@ inter <- inter %>%
 set_3 <- filter(inter, set == 3)
 ```
 
-### Run linear interpolations on survival and scaled development rate
+### Run linear interpolations on survival
 
 Survival:
 
@@ -235,15 +236,12 @@ for(i in 1:length(surv_3_2$x)){
 
 ```
 
-
-
 ### Extract endpoints on curve
 
 ```{r}
 min_temp_3 <- min(temps_3)
 max_temp_3 <- max(temps_3)
 ```
-
 
 ## Write a function to do the above:
 
@@ -290,7 +288,7 @@ Actually trying to make my own (see below)
 setvals <- unique(inter$set)
 setvals <- as.data.frame(setvals)
 
-surv_range_vals <- data.frame(set = numeric(), minTemp = numeric(), maxTemp = numeric(), survMid = numeric())
+surv_range_vals <- data.frame(set = numeric(), minTemp = numeric(), maxTemp = numeric(), survMid = numeric(), favIntWidth = numeric(), favIntMidTemp = numeric())
 
 surv_range <- function(table){
 
@@ -322,10 +320,10 @@ surv_range <- function(table){
     max_interpol <- max(interpol_temps)
       
   #5  
-    new_row <- c(setvals[i, 1], min_interpol, max_interpol, mid)
+    new_row <- c(setvals[i, 1], min_interpol, max_interpol, mid, max_interpol - min_interpol, min_interpol + ((max_interpol - min_interpol)/2))
     surv_range_vals <- rbind(surv_range_vals, new_row)
   } 
-  surv_range_vals <- setNames(surv_range_vals, c("set", "minTemp", "maxTemp", "survMid"))
+  surv_range_vals <- setNames(surv_range_vals, c("set", "minTemp", "maxTemp", "survMid", "favIntWidth", "favIntMidTemp"))
   return(surv_range_vals)
 }
 
@@ -334,7 +332,75 @@ surv_range_inter <- surv_range(inter)
 surv_range_inter
 ```
 
+# STEPS 2-5 REPEATED FOR SCALED DEV RATE
+
+```{r}
+#0
+dr_range_vals <- data.frame(set = numeric(), minTemp = numeric(), maxTemp = numeric(), drMid = numeric(), favIntWidth = numeric(), favIntMidTemp = numeric())
+
+dr_range <- function(table){
+
+  #1
+  for (i in 1:length(setvals[, 1])){
+    set <- filter(table, set == setvals[i, 1])
+    set <- set[complete.cases(set$s_dr), ]
+    max <- max(set$s_dr)
+    min <- min(set$s_dr)
+    mid <- ((max - min)/2) + min
+  
+  #2  
+    interpol <- approx(x = set$temp, y = set$s_dr, method = "linear", rule = 1, n = 1000)
+    interpol <- as.data.frame(interpol)
+    
+    interpol_temps <- data.frame(temp = character())
+
+  #3
+    for (j in 1:length(interpol$x)){
+      if (interpol[j, 2] >= mid){
+      interpol_temps <- rbind(interpol_temps, interpol[j, 1]) 
+        
+      }
+    
+    } 
+    
+  #4  
+    min_interpol <- min(interpol_temps)
+    max_interpol <- max(interpol_temps)
+      
+  #5  
+    new_row <- c(setvals[i, 1], min_interpol, max_interpol, mid, max_interpol - min_interpol, min_interpol + ((max_interpol - min_interpol)/2))
+    dr_range_vals <- rbind(dr_range_vals, new_row)
+  } 
+  dr_range_vals <- setNames(dr_range_vals, c("set", "minTemp", "maxTemp", "drMid", "favIntWidth", "favIntMidTemp"))
+  return(dr_range_vals)
+}
+
+dr_range_inter <- dr_range(inter)
+
+dr_range_inter
+```
+
+
 ## 6. Graph metrics for all sets
+
+Use a loop to make a graph like this one for each set? Print those graphs out into png images? 
+
+Mariana's code to base my plots off of: 
+
+```{r}
+ggplot(data = predicted, aes(x = temp, y = dr/0.23)) + 
+  geom_line(linetype = 2) +
+  theme_cowplot()+
+  geom_line(data = predicted, mapping = aes(x = temp, y = survival), linetype = 3)+
+  geom_line(data = predicted, mapping = aes(x = temp, y = P/0.23), linetype = 1)+
+  geom_segment(aes(x = 18, y = 0.5, xend = 37.55, yend = 0.5), linetype = 2)+
+  geom_point(y = d_opt/0.23, x = dTopt, col = "black")+
+  geom_segment(aes(x = 6, y = 0.5, xend = 36, yend = 0.5), linetype = 3)+
+  labs(x = "Temperature", y = "Survival")+
+  scale_y_continuous(sec.axis = sec_axis(~.*0.23, name = "development rate, P"))
+```
+
+
 
 
 # Jess Helping 
