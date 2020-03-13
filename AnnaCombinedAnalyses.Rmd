@@ -14,7 +14,8 @@ This script is working with the subsetted dataset that contains only those sets 
 3. Extract values from interpolated curves
 4. Copy Mariana's functions to calculate metrics
 5. Apply to all sets
-6. Graph metrics for all sets
+6. Calculate difference in midpoint of favorable intervals for each set 
+7. Graph metrics for all sets
 
 ## 1. Load in the Data
 
@@ -380,8 +381,41 @@ dr_range_inter <- dr_range(inter)
 dr_range_inter
 ```
 
+## 6. Difference in favorable intervals within sets
 
-## 6. Graph metrics for all sets
+Change names
+
+```{r}
+surv_range_inter <- setNames(surv_range_inter, c("set", "sminTemp", "smaxTemp", "survMid", "sfavIntWidth", "sfavIntMidTemp"))
+
+dr_range_inter <- setNames(dr_range_inter, c("set", "drminTemp", "drmaxTemp", "drMid", "drfavIntWidth", "drfavIntMidTemp"))
+```
+
+Merge datasets
+
+```{r}
+set_data <- merge(surv_range_inter, dr_range_inter, by = "set")
+```
+
+Calculate difference in midpoints of favorable intervals
+
+```{r}
+set_data$midDiff <- set_data$sfavIntMidTemp - set_data$drfavIntMidTemp
+
+set_data$midDiffAbs <- abs(set_data$sfavIntMidTemp - set_data$drfavIntMidTemp)
+
+mean(set_data$midDiffAbs)
+
+min(set_data$midDiff)
+max(set_data$midDiff)
+
+which(set_data$midDiff > 0) #only 1 set
+which(set_data$midDiff < 0) # all other sets
+```
+
+Interestingly, the midpoint of the favorable interval for survival is almost always lower than the midpoint of the favorable interval for scaled development rate.  
+
+## 7. Graph metrics for all sets
 
 Use a loop to make a graph like this one for each set? Print those graphs out into png images? 
 
