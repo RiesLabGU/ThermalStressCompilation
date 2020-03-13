@@ -205,11 +205,6 @@ ggplot(data = set_3, aes(x = temp, y = survival)) +
   geom_point() + 
   geom_line(data = surv_3_2, aes(x = x, y = y))
 
-
-#surv_3_fun <- approxfun(x = set_3$temp, y = set_3$survival, method = "linear", rule = 1)
-
-#surv_3_fun
-
 ```
 
 ## 3. Extract values from interpolated curves
@@ -227,45 +222,9 @@ mid_3 <- ((max_3 - min_3) / 2) + min_3
 
 ### Find all values of temp where survival >= midpoint
 
-```{r}
-temps <- vector(mode = "list", length = 0)
-
-surv_int <- for(i in 1:length(surv_3_2$x)){
-  if (surv_3_2[i, 2] >= mid_3){
-      temps<- c(temps, surv_3_2[i, 1])
-  } 
-
-}
-
-#Only loops once and deletes the first value
-```
-
-Let's try another way:
-
-```{r}
-#library(magicfor)
-
-
-#magic_for()
-
-#for(i in 1:length(surv_3_2)){
-#  if (surv_3_2[i, 2] >= mid_3){
-#    int <- surv_3_2[i, 1]  
-# } 
-# put(int)
-#}
-
-
-#temps_2 <- magic_result_as_dataframe()
-
-#Only loops twice
-```
-
 Modified a printed loop to save the output: 
 
 ```{r}
-temps_3 <- data.frame(temp = character())
-
 for(i in 1:length(surv_3_2$x)){
   if (surv_3_2[i, 2] >= mid_3){
     temps_3 <- rbind(temps_3, surv_3_2[i, 1])  
@@ -330,8 +289,8 @@ Actually trying to make my own (see below)
 #0
 setvals <- unique(inter$set)
 setvals <- as.data.frame(setvals)
-surv_range_vals <- data.frame(set = integer(), minTemp = integer(), maxTemp = integer(), survMid = integer())
 
+surv_range_vals <- data.frame(set = numeric(), minTemp = numeric(), maxTemp = numeric(), survMid = numeric())
 
 surv_range <- function(table){
 
@@ -366,41 +325,14 @@ surv_range <- function(table){
     new_row <- c(setvals[i, 1], min_interpol, max_interpol, mid)
     surv_range_vals <- rbind(surv_range_vals, new_row)
   } 
-  setNames(surv_range_vals, c("set", "minTemp", "maxTemp", "survMid"))
-  print(surv_range_vals)
-  save(surv_range_vals, file = "surv_range_vals.csv")
+  surv_range_vals <- setNames(surv_range_vals, c("set", "minTemp", "maxTemp", "survMid"))
+  return(surv_range_vals)
 }
 
-surv_range(inter)
+surv_range_inter <- surv_range(inter)
+
+surv_range_inter
 ```
-
-```{r}
-surv_range_vals <- read.csv("surv_range_vals.csv")
-```
-
-
-### Space for troubleshooting:
-
-#### Checking out one of these NA sets - FIXED
-
-```{r}
-set_179 <- filter(inter, set == 179)
-
-set_179 <- set_179[complete.cases(set_179$survival), ]
-
-max_179 <- max(set_179$survival)
-min_179 <- min(set_179$survival)
-
-```
-
-#### Checking how it's pulling out sets - CORRECT
-
-```{r}
-settest <- filter(inter, set == setvals[4, 1])
-    settest <- settest[complete.cases(settest$survival), ]
-```
-
-
 
 ## 6. Graph metrics for all sets
 
@@ -444,37 +376,3 @@ for(i in 1:(length(test$temp)-1)){
 }
 
 ```
-
-```{r}
-surv_range <- function(table){
-  for (i in setvals){
-    set <- filter (table, set == i)
-    max <- max(set$survival)
-    min <- min(set$survival)
-    mid <- ((max - min)/2) + min
-    
-    interpol <- approx(x = set$temp, y = set$survival, method = "linear", rule = 1, n = 1000)
-    interpol <- as.data.frame(interpol)
-    
-    interpol_temps <- data.frame(temp = character())
-
-    for (j in 1:length(interpol$x)){
-      if (interpol[j, 2] >= mid){
-      interpol_temps <- rbind(interpol_temps, interpol[j, 1]) 
-     }
-    } 
-    
-    min_interpol <- min(interpol_temps)
-    max_interpol <- max(interpol_temps)
-
-    new_row <- c(i, min_interpol, max_interpol, mid)
-    surv_range_vals <- rbind(surv_range_vals, new_row)
-    
-    
-}  
-}
-
-```
-
-
-
