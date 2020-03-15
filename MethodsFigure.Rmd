@@ -77,7 +77,7 @@ P: survival*development (fitness)
 ```{r}
 # Figure 1
 set_944 <- filter(Ana, set == 944) # example set
-set_636 <- filter(Ana, set == 636) # example set
+set_3 <- filter(Ana, set == 3)
 
 # Functions to make a smooth curve 
 # 1 Development rate
@@ -96,9 +96,10 @@ get_predicted <- function(model){
 }
 
 #  T0 from GDD model
+
 get_t0 <- function(Data){
   d_opt <- max(Data$dr) # maximum development rate value
-  dTopt <- filter(Data, dr == d_opt)[[1]] 
+  dTopt <- filter(Data, dr == d_opt)[["temp"]] 
   Data <- filter(Data, temp <= dTopt, dr > 0) # to include only linear section
 	  fit <- lm(dr ~ temp, data = Data) # linear regression
     T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
@@ -122,9 +123,9 @@ get_t0 <- function(Data){
 
 # Apply functions to set 636
 hypofit <- fit_dr(set_944)
-hypofit2 <- fit_dr(set_636)
+hypofit2 <- fit_dr(set_3)
 hyposu <- fit_survival(set_944)
-hyposu2 <- fit_survival(set_636)
+hyposu2 <- fit_survival(set_3)
 dtpredicted <- get_predicted(hypofit)
 dtpredicted2 <- get_predicted(hypofit2)
 supredicted <- get_predicted(hyposu)
@@ -135,7 +136,6 @@ names(predicted) <- c("temp", "dr", "survival")
 names(predicted2) <- c("temp", "dr", "survival")
 rm(hypofit, hyposu, dtpredicted, supredicted)
 rm(hypofit2, hyposu2, dtpredicted2, supredicted2)
-
 ```
 
 
@@ -181,25 +181,26 @@ Figure 1. Survival (dotted), development rate (dashed) and P (P = survival * dev
 
 ```{r}
 # Figure 1A: development rate, linear regression and T0
-d_opt2 <- max(set_636$dr)
-dTopt2 <- filter(set_636, dr == d_opt2)[["temp"]]
+d_opt2 <- max(set_3$dr)
+dTopt2 <- filter(set_3, dr == d_opt2)[["temp"]]
 
-t0table <- get_t0(set_636)
-linear_636 <- filter(set_636, temp <= dTopt2, dr > 0)
+t0table <- get_t0(set_3)
 
+linear_3 <- filter(set_3, temp <= dTopt2, dr > 0)
+model <- lm(dr~temp, data = linear_3)
+linear_predicted <-  tibble(temp = c(1:40),
+  predicted_dr = predict.lm(model, newdata = tibble(temp = c(1:40)), type = "response"))
 t0 <- t0table[[1]]
-ggplot(data = predicted2, aes(x = temp, y = dr)) + 
-  geom_line(linetype = 2) +
-  geom_point(data = linear_636, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_636, mapping = aes(x = temp, y = dr), shape = 1)+
-  #geom_abline(slope = t0table[[2]], intercept = t0table[[1]])+
-  geom_abline(slope = 0.01393435, intercept = 3.761635)+
-  geom_segment(x = 3.761635, y = 0, xend = max(linear_636$temp), yend = max(linear_636$dr))+
-  # geom_text(x = 3.761635, y = 0.03, label= "T0")+
-  # geom_text(x = 3.761635, y = 0, label = "3.8")+
-  geom_vline(xintercept  = 3.761635, linetype = 4)+
+ggplot(data = linear_predicted, aes(x = temp, y = predicted_dr)) + 
+  geom_line() +
+  geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
+  geom_point(data = set_3, mapping = aes(x = temp, y = dr), shape = 1)+
+   geom_text(x = 7.5, y = 0.02, label = "T0 = 9.7")+
+  #geom_vline(xintercept  = 3.761635, linetype = 4)+
   theme_cowplot()+
-  labs(x = "Temperature", y = "Development rate")
+  ylim(0, 0.25)+
+  xlim(5, 40)+
+  labs(x = "Temperature (°C)", y = "Development rate")
 
 
 
@@ -208,20 +209,28 @@ ggplot(data = predicted2, aes(x = temp, y = dr)) +
 
 ```{r}
 # Figure 1B: Development rate, sub and supra optimum breadth. 
-
+d_opt2 
+dTopt2 
+d_50 <- d_opt2/2
+out <- seq(from = 0, to = 40, by = 0.1)
+interpolation <- as.data.frame(approx(x = set_3$temp, y = set_3$dr, xout = out, method = "linear", rule = 1))
+names(interpolation) <- c("temp", "dr")
+sub_min <- head(filter(interpolation, dr >= d_50), 1)[[1]]
+sub_max <- tail(filter(interpolation, dr >= d_50), 1)[[1]]
 
 ggplot(data = predicted2, aes(x = temp, y = dr)) + 
   #geom_line(linetype = 2) +
   #geom_point(data = linear_636, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_636, mapping = aes(x = temp, y = dr))+
-  geom_line(data = set_636, mapping = aes(x = temp, y = dr))+
-  #geom_smooth(data = set_636, mapping = aes(x = temp, y = dr), shape = 1)+
+  geom_point(data = set_3, mapping = aes(x = temp, y = dr))+
+  geom_line(data = set_3, mapping = aes(x = temp, y = dr), alpha = 0.6)+
+  
   #geom_abline(slope = t0table[[2]], intercept = t0table[[1]])+
   #geom_abline(slope = 0.01393435, intercept = 3.761635)+
-  
+  geom_segment(x = sub_min, xend = dTopt2, y = d_50, yend = d_50, linetype = 3)+
+  geom_segment(x = dTopt2, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
   # geom_text(x = 3.761635, y = 0.03, label= "T0")+
   # geom_text(x = 3.761635, y = 0, label = "3.8")+
-  #geom_vline(xintercept  = 3.761635, linetype = 4)+
+  geom_segment(x  = dTopt2, xend  = dTopt2, y = 0, yend = d_opt2, linetype = 2)+
   theme_cowplot()+
   labs(x = "Temperature", y = "Development rate")
 
@@ -229,6 +238,31 @@ ggplot(data = predicted2, aes(x = temp, y = dr)) +
 
 ```{r}
 # Figure 1C: Survival. Breadth and cold and hot optima
+max_sTopt <- tail(filter(set_944, survival >=  50), 1) [[1]]
+min_sTopt <- head(filter(set_944, survival >= 50), 1)[[1]]
+
+out <- seq(from = 0, to = 40, by = 0.1)
+interpolation <- as.data.frame(approx(x = set_944$temp, y = set_944$survival, xout = out, method = "linear", rule = 1))
+names(interpolation) <- c("temp", "survival")
+sub_min <- head(filter(interpolation, survival >= 50), 1)[[1]]
+sub_max <- tail(filter(interpolation, survival >= 50), 1)[[1]]
+
+ggplot(data = predicted2, aes(x = temp, y = dr)) + 
+  #geom_line(linetype = 2) +
+  #geom_point(data = linear_636, mapping = aes(x = temp, y = dr))+
+  geom_point(data = set_944, mapping = aes(x = temp, y = survival/100))+
+  geom_line(data = set_944, mapping = aes(x = temp, y = survival/100), alpha = 0.6)+
+  
+  #geom_abline(slope = t0table[[2]], intercept = t0table[[1]])+
+  #geom_abline(slope = 0.01393435, intercept = 3.761635)+
+  geom_segment(x = sub_min, xend = sub_max, y = 0.5, yend = 0.5, linetype = 3)+
+  #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
+  # geom_text(x = 3.761635, y = 0.03, label= "T0")+
+  # geom_text(x = 3.761635, y = 0, label = "3.8")+
+  geom_segment(x  = 32.5, xend  = 32.5, y = 0.5, yend = 0.5, linetype = 2)+
+  theme_cowplot()+
+  labs(x = "Temperature", y = "Development rate")
+
 ```
 
 ```{r}
