@@ -34,7 +34,10 @@ Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyData
                   sheet = "WorkingTable", na = c("NA", "")) 
 SetQuality <- read_csv("SetCharacterization.csv")
 # cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+```
 
+```{r}
+# get lists of complete sets for development and survival
 d_complete_sets <- SetQuality %>% # to get a list of complete sets for dt
   filter(just.rise == FALSE) %>% 
   select(set) %>% 
@@ -44,7 +47,6 @@ s_complete_sets <- SetQuality %>% # to get a list of complete sets for survival
   filter(just.rise1 == FALSE) %>% 
   select(set) %>% 
   distinct()
-  
 ```
 
 Remove parasitoids and convert character to factor
@@ -75,9 +77,9 @@ sBreadth: interval of temperatures permiting >= 50% survival
 P: survival*development (fitness)
 
 ```{r}
-# Figure 1
-set_944 <- filter(Ana, set == 944) # example set
-set_3 <- filter(Ana, set == 3)
+# Woring set and functions
+
+set_w <- filter(Ana, set == 175) # working set
 
 # Functions to make a smooth curve 
 # 1 Development rate
@@ -96,7 +98,7 @@ get_predicted <- function(model){
 }
 
 #  T0 from GDD model
-
+Data <- set_w
 get_t0 <- function(Data){
   d_opt <- max(Data$dr) # maximum development rate value
   dTopt <- filter(Data, dr == d_opt)[["temp"]] 
@@ -122,151 +124,162 @@ get_t0 <- function(Data){
 
 
 # Apply functions to set 636
-hypofit <- fit_dr(set_944)
-hypofit2 <- fit_dr(set_3)
-hyposu <- fit_survival(set_944)
-hyposu2 <- fit_survival(set_3)
+hypofit <- fit_dr(set_w)
+
+hyposu <- fit_survival(set_w)
+
 dtpredicted <- get_predicted(hypofit)
-dtpredicted2 <- get_predicted(hypofit2)
+
 supredicted <- get_predicted(hyposu)
-supredicted2 <- get_predicted(hyposu2)
+
 predicted <- left_join(dtpredicted, supredicted, by = "temp")
-predicted2 <- left_join(dtpredicted2, supredicted2, by = "temp")
+
 names(predicted) <- c("temp", "dr", "survival")
-names(predicted2) <- c("temp", "dr", "survival")
+
 rm(hypofit, hyposu, dtpredicted, supredicted)
-rm(hypofit2, hyposu2, dtpredicted2, supredicted2)
-```
-
-
-```{r}
-# # Calculate variables
-# dTopt: temperature that maximizes development rate
-# max_sTopt: maximum temperature that maximizes survival, 
-# min_sTopt: minimum temperature maximizing survival
-# dBreadth: interval of temperatures permiting >= 50% development efficiency
-# sBreadth: interval of temperatures permiting >= 50% survival
-# P: survival*development (fitness)
-
-# Calculate thermal limits for plot
-d_opt <- max(predicted$dr) # maximum development rate value
-predicted$ndr <- predicted$dr/d_opt # normalized development rate
-
-dopts <- filter(predicted, dr >= (d_opt *0.5)) # cases in which development rate is at 50% efficiency or both
-sopts <- filter(predicted, survival >= 0.5) # cases in which survival is at 50% efficiency or both
-
-dTopt <- filter(predicted, dr == d_opt)[[1]] 
-max_sTopt <- tail(filter(predicted, dr >= d_opt * 0.5), 1) [[1]]
-min_sTopt <- head(filter(predicted, dr >= d_opt* 0.5), 1)[[1]]
-
-dBreadth <- select(dopts, temp)
-sBreadth <- select(sopts, temp)
-predicted$P <- predicted$survival * predicted$dr
-
-ggplot(data = predicted, aes(x = temp, y = dr/0.23)) + 
-  geom_line(linetype = 2) +
-  theme_cowplot()+
-  geom_line(data = predicted, mapping = aes(x = temp, y = survival), linetype = 3)+
-  geom_line(data = predicted, mapping = aes(x = temp, y = P/0.23), linetype = 1)+
-  geom_segment(aes(x = 18, y = 0.5, xend = 37.55, yend = 0.5), linetype = 2)+
-  geom_point(y = d_opt/0.23, x = dTopt, col = "black")+
-  geom_segment(aes(x = 6, y = 0.5, xend = 36, yend = 0.5), linetype = 3)+
-  labs(x = "Temperature", y = "Survival")+
-  scale_y_continuous(sec.axis = sec_axis(~.*0.23, name = "development rate, P"))
-
 
 ```
-Figure 1. Survival (dotted), development rate (dashed) and P (P = survival * development rate, solid). Horizontal lines correspond to the survival breadth (dotted) and development breadth (dashed). Black point corresponds to maximum development rate
-
 
 ```{r}
 # Figure 1A: development rate, linear regression and T0
-d_opt2 <- max(set_3$dr)
-dTopt2 <- filter(set_3, dr == d_opt2)[["temp"]]
-
-t0table <- get_t0(set_3)
-
-linear_3 <- filter(set_3, temp <= dTopt2, dr > 0)
+d_opt <- max(set_w$dr) # optimum development rate
+dTopt <- filter(set_w, dr == d_opt)[["temp"]] # temperature that maximizes development rate
+gs <- "grey66"
+t0table <- get_t0(set_w)
+text <- tibble(temp = 7.5,
+               dr = 0.02)
+linear_3 <- filter(set_w, temp <= dTopt, dr > 0)
 model <- lm(dr~temp, data = linear_3)
-linear_predicted <-  tibble(temp = c(1:40),
-  predicted_dr = predict.lm(model, newdata = tibble(temp = c(1:40)), type = "response"))
+linear_predicted <-  tibble(temp = c(0:40),
+  predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
 t0 <- t0table[[1]]
-ggplot(data = linear_predicted, aes(x = temp, y = predicted_dr)) + 
-  geom_line() +
+Figure1A <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
+  geom_rect(xmin = T0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, linetype = 3,alpha = 0.03, fill = gs)+
+  geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
   geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_3, mapping = aes(x = temp, y = dr), shape = 1)+
-   geom_text(x = 7.5, y = 0.02, label = "T0 = 9.7")+
+  geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
+   geom_text(data = text, aes(x = temp+15, y = dr, label = paste("T0 =",round(T0, digits = 2), sep = " ")))+
+  #geom_hline(yintercept = 0, col = gs)+
+  
   #geom_vline(xintercept  = 3.761635, linetype = 4)+
   theme_cowplot()+
-  ylim(0, 0.25)+
-  xlim(5, 40)+
+   ylim(0, 0.35)+
+   xlim(5, 43)+
   labs(x = "Temperature (°C)", y = "Development rate")
-
-
-
+Figure1A
 ```
-
+Figure 1A. Development rate (1/development time) of  `r set_w$sp [[1]]` `r set_w$lifestage [[1]]`s kept at constant temperatures. Line indicates a linear regression including only the treatments in which development rate has a linear relationship with temperature (solid points). T0 is estimated as the x-intercept of this relationship (9.7 C). The shaded region indicates the interval of temperatures at which development is assumed to occur.
 
 ```{r}
 # Figure 1B: Development rate, sub and supra optimum breadth. 
-d_opt2 
-dTopt2 
-d_50 <- d_opt2/2
+ 
+d_50 <- d_opt/2 # value of development rate at 50% efficiency
 out <- seq(from = 0, to = 40, by = 0.1)
-interpolation <- as.data.frame(approx(x = set_3$temp, y = set_3$dr, xout = out, method = "linear", rule = 1))
+interpolation <- as.data.frame(approx(x = set_w$temp, y = set_w$dr, xout = out, method = "linear", rule = 1))
 names(interpolation) <- c("temp", "dr")
-sub_min <- head(filter(interpolation, dr >= d_50), 1)[[1]]
-sub_max <- tail(filter(interpolation, dr >= d_50), 1)[[1]]
+d_sub_min <- head(filter(interpolation, dr >= d_50), 1)[[1]]
+d_sub_max <- tail(filter(interpolation, dr >= d_50), 1)[[1]]
+cd <- "#E69F00"
+gd <- "grey20"
+cs <- "#56B4E9"
+label_text1 <- tibble(x = 25,
+                    y = 0.05,
+                label = "Development interval")
 
-ggplot(data = predicted2, aes(x = temp, y = dr)) + 
-  #geom_line(linetype = 2) +
-  #geom_point(data = linear_636, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_3, mapping = aes(x = temp, y = dr))+
-  geom_line(data = set_3, mapping = aes(x = temp, y = dr), alpha = 0.6)+
-  
-  #geom_abline(slope = t0table[[2]], intercept = t0table[[1]])+
-  #geom_abline(slope = 0.01393435, intercept = 3.761635)+
-  geom_segment(x = sub_min, xend = dTopt2, y = d_50, yend = d_50, linetype = 3)+
-  geom_segment(x = dTopt2, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
-  # geom_text(x = 3.761635, y = 0.03, label= "T0")+
-  # geom_text(x = 3.761635, y = 0, label = "3.8")+
-  geom_segment(x  = dTopt2, xend  = dTopt2, y = 0, yend = d_opt2, linetype = 2)+
+Figure1B <- ggplot(data = predicted, aes(x = temp, y = dr)) + 
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = d_sub_min, xmax = d_sub_max, alpha = 0.03, fill = gs)+
+  geom_point(data = set_w, mapping = aes(x = temp, y = dr))+
+  geom_line(data = set_w, mapping = aes(x = temp, y = dr))+
+  geom_text(data = label_text1, aes(x = x + 7.5, y = y ,label ="Development\n interval"))+
+  geom_segment(x = d_sub_min, xend = d_sub_max, y = d_50, yend = d_50, linetype = 3)+
+  #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
+   ylim(0, 0.35)+
+   xlim(5, 43)+
   theme_cowplot()+
+  
   labs(x = "Temperature", y = "Development rate")
-
+Figure1B
 ```
-
+Figure 1B. By linear interpolation we estimated the interval of temperatures that allow for development rate at 50% of the maximum efficiency `r d_opt` at `r dTopt` (0.22 at 32C)
 ```{r}
 # Figure 1C: Survival. Breadth and cold and hot optima
-max_sTopt <- tail(filter(set_944, survival >=  50), 1) [[1]]
-min_sTopt <- head(filter(set_944, survival >= 50), 1)[[1]]
 
 out <- seq(from = 0, to = 40, by = 0.1)
-interpolation <- as.data.frame(approx(x = set_944$temp, y = set_944$survival, xout = out, method = "linear", rule = 1))
-names(interpolation) <- c("temp", "survival")
-sub_min <- head(filter(interpolation, survival >= 50), 1)[[1]]
-sub_max <- tail(filter(interpolation, survival >= 50), 1)[[1]]
+s_interpolation <- as.data.frame(approx(x = set_w$temp, y = set_w$survival, xout = out, method = "linear", rule = 1))
+names(s_interpolation) <- c("temp", "survival")
+su_min <- head(filter(s_interpolation, survival >= 50), 1)[[1]]
+su_max <- tail(filter(s_interpolation, survival >= 50), 1)[[1]]
+label_text <- tibble(x = 25,
+                    y = 0.6,
+                label = "Survival interval")
 
-ggplot(data = predicted2, aes(x = temp, y = dr)) + 
-  #geom_line(linetype = 2) +
-  #geom_point(data = linear_636, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_944, mapping = aes(x = temp, y = survival/100))+
-  geom_line(data = set_944, mapping = aes(x = temp, y = survival/100), alpha = 0.6)+
-  
-  #geom_abline(slope = t0table[[2]], intercept = t0table[[1]])+
-  #geom_abline(slope = 0.01393435, intercept = 3.761635)+
-  geom_segment(x = sub_min, xend = sub_max, y = 0.5, yend = 0.5, linetype = 3)+
-  #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
-  # geom_text(x = 3.761635, y = 0.03, label= "T0")+
-  # geom_text(x = 3.761635, y = 0, label = "3.8")+
+Figure1C <- ggplot(data = set_w,aes(x = temp, y = survival/100)) + 
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = su_min, xmax = su_max, alpha = 0.03, fill = gs)+
+  geom_point(shape = 2)+
+  geom_line(data = set_w, mapping = aes(x = temp, y = survival/100))+
+  geom_segment(x = su_min, xend = su_max, y = 0.5, yend = 0.5, linetype = 3)+
   geom_segment(x  = 32.5, xend  = 32.5, y = 0.5, yend = 0.5, linetype = 2)+
   theme_cowplot()+
-  labs(x = "Temperature", y = "Development rate")
-
+  geom_text(data = label_text, aes(x = x, y = y ,label ="Survival interval"))+
+  #ylim(0, 0.35)+
+   xlim(5, 43)+
+  labs(x = "Temperature", y = "Survival")
+Figure1C
 ```
-
+Figure 1C. Survival of eggs at `r set_w$sp [[1]]` `r set_w$lifestage [[1]]`s kept at constant temperatures. Blue interval corresponds to treatments that allowed for at least 50% survival
 ```{r}
 # Figure 1D: Performance: in gray survival and development rate curves, in bold the resulting performance curve (d*p). 
 
+set_w$P <- set_w$dr * (set_w$survival/100)
+P_opt <- max(set_w$P)
+
+P50 <- P_opt/2
+PTopt <- filter(set_w, P ==P_opt)[["temp"]]
+out <- seq(from = 0, to = 40, by = 0.1)
+Pinterpolation <- as.data.frame(approx(x = set_w$temp, y = set_w$P, xout = out, method = "linear", rule = 1))
+names(Pinterpolation) <- c("temp", "P")
+P_min <- head(filter(Pinterpolation, P >= P50), 1)[["temp"]]
+P_max <- tail(filter(Pinterpolation, P >= P50), 1)[["temp"]]
+label_sub <- tibble(temp = 28,
+                    P = 0.25,
+                label = "suboptimum")
+label_supra <- tibble(temp = 37,
+                    P = 0.25,
+                label = "supraoptimum")
+PoptPoint <- filter(Pinterpolation, P == P_opt)
+PlastPoint <- tail(filter(Pinterpolation, P > 0),1)[["P"]]
+Figure1D <- ggplot(data = set_w,aes(x = temp, y = P/0.4)) + 
+  geom_line()+
+  geom_point(data = set_w, mapping = aes(x = temp, y = survival/100), shape = 2, col= "darkgrey")+
+  geom_point(data = set_w, mapping = aes(x = temp, y = dr/0.4), col = "darkgrey")+
+  geom_line(data = set_w, mapping = aes(x = temp, y = survival/100), linetype = 2, col = "darkgrey")+
+  geom_line(data = set_w, mapping = aes(x = temp, y = dr/0.4),linetype = 2, col = "darkgrey")+
+  
+  geom_segment(x = P_min, xend = PTopt, y = P50/0.4, yend = P50/0.4,linetype = 3)+
+  #geom_text(data = label_sub, aes(x = temp, y = P + 0.01,label ="sub-Popt"))+
+  
+  geom_segment(x = PTopt, xend = P_max, y = P50/0.4, yend = P50/0.4, linetype = 3)+
+  #geom_text(data = label_supra, aes(x = temp, y = P +.01,label ="supra\nPopt"))+
+  geom_text(data = label_sub, aes(x = temp + 4, y = P - .15,label ="Performance \n interval"))+
+  
+  theme_cowplot()+
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = P_min, xmax = PTopt, alpha = 0.03, fill = gd)+
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = PTopt, xmax = P_max, alpha = 0.06, fill = gd)+
+  geom_segment(x  = PTopt, xend  = PTopt, y = 0, yend = +Inf, linetype = 1, col = "darkgrey")+
+  
+  geom_point(x  = PTopt, y = P_opt/0.4)+
+  geom_text(data = PoptPoint-2, aes(x = temp-3, y = 0.75,label ="Popt"))+
+  
+  scale_y_continuous(sec.axis = sec_axis(~.* 0.4, name = "P, Development rate"))+
+   #ylim(0, 0.35)+
+   xlim(5, 43)+
+  labs(x = "Temperature", y = "Survival")
+Figure1D
+```
+Figure 1D. Performance (P, solid line) is the result of multipliying survival (triangles, dashed line) by development rate (points, dashed line). Shaded region denotes the interval of temperatures that allows for at least 50% survival and 50% development efficiency. This interval can be split into sub-optimal temperatures (below Popt, ligth grey) and supra-optimal temperatures, (above Popt, dark grey)
+
+```{r}
+#Multiplot
+plot_grid(Figure1B, Figure1C, Figure1A,Figure1D,labels = c('A', 'B', 'C', 'D'))
 ```
 
