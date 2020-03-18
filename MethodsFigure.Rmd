@@ -61,7 +61,7 @@ Ana <- Ana %>%
 ```
 
 # Methods
-We compiled a database including records of development time and/or survival  of Lepidoptera growing at constant temperatures. The full table includes `r length(unique(Ana$sp))` species from `r length(unique(Ana$family))` families from `r length(unique(Ana$locality))` localities. See supplementary information for a full list of species.
+We compiled a database including records of development time and/or survival  of Lepidoptera growing at constant temperatures. The full table includes `r length(unique(Ana$set))` sets of `r length(unique(Ana$sp))` species from `r length(unique(Ana$family))` families from `r length(unique(Ana$locality))` localities. See supplementary information for a full list of species.
 Using linear interppolation we calculated the following variables in all complete sets (curves including both a rise and a fall) for development rate (n = `r length(d_complete_sets$set)`) and for survival (n = `r length(s_complete_sets$set)`)
 
 dTopt: temperature that maximizes development rate
@@ -75,6 +75,7 @@ dBreadth: interval of temperatures permiting >= 50% development efficiency
 sBreadth: interval of temperatures permiting >= 50% survival
 
 P: survival*development (fitness)
+
 
 ```{r}
 # Woring set and functions
@@ -154,11 +155,11 @@ linear_predicted <-  tibble(temp = c(0:40),
   predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
 t0 <- t0table[[1]]
 Figure1A <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
-  geom_rect(xmin = T0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, linetype = 3,alpha = 0.03, fill = gs)+
+  geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, linetype = 3,alpha = 0.03, fill = gs)+
   geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
   geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
-   geom_text(data = text, aes(x = temp+15, y = dr, label = paste("T0 =",round(T0, digits = 2), sep = " ")))+
+   geom_text(data = text, aes(x = temp+15, y = dr, label = paste("T0 =",round(t0, digits = 2), sep = " ")))+
   #geom_hline(yintercept = 0, col = gs)+
   
   #geom_vline(xintercept  = 3.761635, linetype = 4)+
@@ -194,6 +195,7 @@ Figure1B <- ggplot(data = predicted, aes(x = temp, y = dr)) +
   geom_segment(x = d_sub_min, xend = d_sub_max, y = d_50, yend = d_50, linetype = 3)+
   #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
    ylim(0, 0.35)+
+  geom_text(data = label_text1, mapping = (aes(x = x+10, y = y + 0.29,label ="Dopt")))+
    xlim(5, 43)+
   theme_cowplot()+
   
@@ -221,6 +223,8 @@ Figure1C <- ggplot(data = set_w,aes(x = temp, y = survival/100)) +
   geom_segment(x  = 32.5, xend  = 32.5, y = 0.5, yend = 0.5, linetype = 2)+
   theme_cowplot()+
   geom_text(data = label_text, aes(x = x, y = y ,label ="Survival interval"))+
+  geom_text(data = label_text, aes(x = x - 16 , y = y + 0.4 ,label ="minSopt"))+
+  geom_text(data = label_text, aes(x = x + 16, y = y + 0.4 ,label ="maxSopt"))+
   #ylim(0, 0.35)+
    xlim(5, 43)+
   labs(x = "Temperature", y = "Survival")
@@ -283,3 +287,26 @@ Figure 1D. Performance (P, solid line) is the result of multipliying survival (t
 plot_grid(Figure1B, Figure1C, Figure1A,Figure1D,labels = c('A', 'B', 'C', 'D'))
 ```
 
+
+Other descriptive stats of the data set
+
+```{r}
+Temps_by_set <- Ana %>% 
+  select(set, temp) %>% 
+  group_by(set) %>% 
+  tally(sort = T)
+```
+
+Each set is a unit including `r min(Temps_by_set$n)` to `r max (Temps_by_set$n)`  constant temperature treatments (mode = `r which.max(tabulate(Temps_by_set$n))`) and the corresponding values of development time and/or survival.
+
+
+```{r}
+non_redundant_sets <- Ana %>% 
+  select(id, sp, lifestage,locality) %>%
+  distinct()  
+  
+  
+  
+```
+
+There are multiple sets per population in this database because performance was often evaluated under a variety of experimental conditions including different host plants or daylengths, in addition, data was sometimes reported by sex. We considered sets from the same locality and ontogenetic stage that were reported in the same study (publication) to be redundant and thus combined them by taking the geometric mean at each temperature treatment. After this correction we had `r nrow(non_redundant_sets)` non-redundant sets. 
