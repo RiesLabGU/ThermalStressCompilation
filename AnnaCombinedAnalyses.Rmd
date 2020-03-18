@@ -417,7 +417,21 @@ Interestingly, the midpoint of the favorable interval for survival is almost alw
 
 ## 7. Graph metrics for all sets
 
-Use a loop to make a graph like this one for each set? Print those graphs out into png images? 
+Use a loop to make a graph like this one for each set? Print those graphs out into png images? Yes! 
+
+Survival:
+0. Scale survival
+1. Find midpoint
+2. Apply linear interpolation
+3. Find all interpolated values where temp >= midpoint
+4. Find min and max of that range
+DR: 
+5. Find midpoint
+6. Apply linear interpolation
+7. Find all interpolated values where temp >= midpoint
+8. Find min and max of that range
+Graph:
+9. Create graph for that set with each curve and range 
 
 Mariana's code to base my plots off of: 
 
@@ -434,8 +448,97 @@ ggplot(data = predicted, aes(x = temp, y = dr/0.23)) +
   scale_y_continuous(sec.axis = sec_axis(~.*0.23, name = "development rate, P"))
 ```
 
+Creating my huge horrible loop:
 
+```{r}
+inter$s_survival <- inter$survival / 100
+```
 
+```{r}
+graphing <- function(table){
+
+  #1
+  for (i in 1:length(setvals[, 1])){
+    setsurv <- filter(table, set == setvals[i, 1])
+    setsurv <- setsurv[complete.cases(setsurv$s_survival), ]
+    maxsurv <- max(setsurv$s_survival)
+    minsurv <- min(setsurv$s_survival)
+    midsurv <- ((maxsurv - minsurv)/2) + minsurv
+  
+  #2  
+    interpolsurv <- approx(x = setsurv$temp, y = setsurv$s_survival, method = "linear", rule = 1, n = 1000)
+    interpolsurv <- as.data.frame(interpolsurv)
+    
+    interpolsurv_temps <- data.frame(temp = character())
+
+  #3
+    for (j in 1:length(interpolsurv$x)){
+      if (interpolsurv[j, 2] >= midsurv){
+      interpolsurv_temps <- rbind(interpolsurv_temps, interpolsurv[j, 1]) 
+        
+      }
+    
+    } 
+    
+  #4  
+    min_interpolsurv <- min(interpolsurv_temps)
+    max_interpolsurv <- max(interpolsurv_temps)
+      
+  #5
+    setdr <- filter(table, set == setvals[i, 1])
+    setdr <- setdr[complete.cases(setdr$s_dr), ]
+    maxdr <- max(setdr$s_dr)
+    mindr <- min(setdr$s_dr)
+    middr <- ((maxdr - mindr)/2) + mindr
+  
+  #6  
+    interpoldr <- approx(x = setdr$temp, y = setdr$s_dr, method = "linear", rule = 1, n = 1000)
+    interpoldr <- as.data.frame(interpoldr)
+    
+    interpoldr_temps <- data.frame(temp = character())
+
+  #7
+    for (j in 1:length(interpoldr$x)){
+      if (interpoldr[j, 2] >= middr){
+      interpoldr_temps <- rbind(interpoldr_temps, interpoldr[j, 1]) 
+        
+      }
+    
+    } 
+    
+  #8  
+    min_interpoldr <- min(interpoldr_temps)
+    max_interpoldr <- max(interpoldr_temps)
+    
+  #9 
+  plot <- ggplot(data = setsurv, aes(x = temp, y = s_survival)) + 
+    theme_cowplot() +
+    geom_point() + 
+    geom_line(data = interpolsurv, aes(x = x, y = y), linetype = 1) +
+    geom_segment(aes(x = min_interpolsurv, y = 0.49, xend = max_interpolsurv, yend = 0.49), 
+                 linetype = 1) +
+    geom_point(data = setsurv, aes(x = temp, y = s_dr)) + 
+    geom_line(data = interpoldr, aes(x = x, y = y), linetype = 2) + 
+    geom_segment(aes(x = min_interpoldr, y = 0.51, xend = max_interpoldr, yend = 0.51), 
+                 linetype = 2) +
+    labs(x = "Temperature", y = "Survival (solid) / Scaled Development Rate (dashed)")
+    
+    print(plot) 
+  }
+  
+}
+
+```
+
+Let's try it out:
+
+```{r}
+graphing(inter)
+```
+
+It works!! So great! 
+
+I could also write the loop to save each one, but I have chosen not to at this point. 
 
 # Jess Helping 
 
