@@ -184,14 +184,14 @@ cd <- "#E69F00"
 gd <- "grey20"
 cs <- "#56B4E9"
 label_text1 <- tibble(x = 25,
-                    y = 0.05,
+                    y = 0.12,
                 label = "Development interval")
 
 Figure1B <- ggplot(data = predicted, aes(x = temp, y = dr)) + 
   geom_rect(ymin = -Inf, ymax = +Inf, xmin = d_sub_min, xmax = d_sub_max, alpha = 0.03, fill = gs)+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr))+
   geom_line(data = set_w, mapping = aes(x = temp, y = dr))+
-  geom_text(data = label_text1, aes(x = x + 7.5, y = y ,label ="Development\n interval"))+
+  geom_text(data = label_text1, aes(x = x + 7.5, y = y ,label ="D-interval"))+
   geom_segment(x = d_sub_min, xend = d_sub_max, y = d_50, yend = d_50, linetype = 3)+
   #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
    ylim(0, 0.35)+
@@ -222,7 +222,7 @@ Figure1C <- ggplot(data = set_w,aes(x = temp, y = survival/100)) +
   geom_segment(x = su_min, xend = su_max, y = 0.5, yend = 0.5, linetype = 3)+
   geom_segment(x  = 32.5, xend  = 32.5, y = 0.5, yend = 0.5, linetype = 2)+
   theme_cowplot()+
-  geom_text(data = label_text, aes(x = x, y = y ,label ="Survival interval"))+
+  geom_text(data = label_text, aes(x = x, y = y ,label ="S-interval"))+
   geom_text(data = label_text, aes(x = x - 16 , y = y + 0.4 ,label ="minSopt"))+
   geom_text(data = label_text, aes(x = x + 16, y = y + 0.4 ,label ="maxSopt"))+
   #ylim(0, 0.35)+
@@ -264,7 +264,7 @@ Figure1D <- ggplot(data = set_w,aes(x = temp, y = P/0.4)) +
   
   geom_segment(x = PTopt, xend = P_max, y = P50/0.4, yend = P50/0.4, linetype = 3)+
   #geom_text(data = label_supra, aes(x = temp, y = P +.01,label ="supra\nPopt"))+
-  geom_text(data = label_sub, aes(x = temp + 4, y = P - .15,label ="Performance \n interval"))+
+  geom_text(data = label_sub, aes(x = temp + 4, y = P - .15,label ="P-interval"))+
   
   theme_cowplot()+
   geom_rect(ymin = -Inf, ymax = +Inf, xmin = P_min, xmax = PTopt, alpha = 0.03, fill = gd)+
@@ -280,7 +280,8 @@ Figure1D <- ggplot(data = set_w,aes(x = temp, y = P/0.4)) +
   labs(x = "Temperature", y = "Survival")
 Figure1D
 ```
-Figure 1D. Performance (P, solid line) is the result of multipliying survival (triangles, dashed line) by development rate (points, dashed line). Shaded region denotes the interval of temperatures that allows for at least 50% survival and 50% development efficiency. This interval can be split into sub-optimal temperatures (below Popt, ligth grey) and supra-optimal temperatures, (above Popt, dark grey)
+Figure 1D. Performance (P, solid line) is the result of multipliying survival (triangles, dashed line) by development rate (points, dashed line). Shaded region denotes the interval of temperatures that allows for at least 50% survival and 50% development efficiency. This interval can be split into sub-optimal temperatures (below Popt, ligth grey) and supra-optimal temperatures, (above Popt, dark grey) 
+Performance of `r unique(set_w$sp)` (`r unique(set_w$family)`), from `r unique(set_w$locality)`
 
 ```{r}
 #Multiplot
