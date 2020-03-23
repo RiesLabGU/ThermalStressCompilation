@@ -31,6 +31,26 @@ Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "T3", na 
 SetQuality <- read_csv("~/Desktop/GitHub/ThermalStressCompilation/SetCharacterization.csv")
 ```
 
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "T3", na = c("NA", "")) 
+SetQuality <- read_csv("SetCharacterization.csv")
+# cols 1 to 7 correspond to dt, 8 to 13 to survival, 14 to development time
+
+```
+
+
+
 ### Adapt dataset to just contain sets with development rate and survival data
 
 ```{r}
@@ -227,6 +247,7 @@ mid_3 <- ((max_3 - min_3) / 2) + min_3
 Modified a printed loop to save the output: 
 
 ```{r}
+temps_3 <- data.frame()
 for(i in 1:length(surv_3_2$x)){
   if (surv_3_2[i, 2] >= mid_3){
     temps_3 <- rbind(temps_3, surv_3_2[i, 1])  
