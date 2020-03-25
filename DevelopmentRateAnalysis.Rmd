@@ -1,0 +1,192 @@
+---
+title: "Development rate"
+output: html_notebook
+---
+## Steps
+1. Import data
+2. Select sets with at least 4 data points and a complete curve (low 50%, peak, high 50%) for egg, larva, pupa, eggtoadult.
+3. Calculate Topt & Ropt (rate at Topt)
+4. Calculate interval (min, max, length)
+5. Perform analyses
+
+
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+```
+
+ Import data
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", ""))
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Discard parasitoids and change character to factor 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+# 2. Select sets 
+To be included in development rate analyses, sets should have at least 4 temperature treatments reporting development time that form a complete curve (low 50%, peak, high 50%) for egg, larva, pupa or eggtoadult.
+
+
+```{r}
+# Function to determine whether a set is:
+# "Complete" (has low, peak and high values)
+# "Incomplete" (only low and peak)
+# "No data" (no development rate data available)
+Ana$set2 <- Ana$set
+is_complete <- function(dat){
+  dat <- dat[!is.na(dat$dr) & !is.na(dat$temp),] # Remove treatments with no dr data
+ if(nrow(dat)>0 ){
+  
+   y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
+  x_max <- dat[dat$dr == y_max, "temp"][[1]][1]# get temperature that maximizes dr 
+  
+  species <- unique(dat$sp)
+  lifestage <- unique(dat$lifestage)
+  seti <- unique(dat$set2)
+  print(paste("set:",seti))
+  print(species)
+  print(lifestage)
+  print(x_max)
+  print(y_max)
+  cold <- filter(dat, temp < x_max)  
+  hot <- filter(dat, temp > x_max)  
+  # if(sum(cold$dr >=0) && sum(hot$dr >=0)){
+  #     print("Complete")
+  #   } else {(print("Incomplete"))}
+  result = nrow(cold[!is.na(cold$dr),]) && nrow(hot[!is.na(hot$dr),])
+  if(result){
+    print("Complete")
+  } else {
+    print("Incomplete")
+  }
+ } else{
+   print("No data")
+ }
+  
+  
+}
+
+
+```
+
+
+```{r}
+# Apply is_complete() to all sets
+SetAssessment <- Ana %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(curve = map(data,is_complete)) %>% 
+  select(set, curve) %>% 
+  unnest() 
+
+```
+
+From a total of `r length(unique(Ana$set))`, only  `r nrow(filter(SetAssessment, curve == "Complete"))` had a complete curve for development rate.
+```{r}
+# Select sets of life stages of interest: egg, larva, pupa, egg to emergence
+complete_sets<- SetAssessment %>% 
+  filter(curve == "Complete") 
+list_complete <- (unique(complete_sets$set))
+life_stages <- c("egg", "larva", "pupa", "eggtoemergence")
+Ana_dr <- Ana %>% 
+  filter(set %in% list_complete) %>% 
+  filter(lifestage %in% life_stages)
+egg_dr <- Ana_dr %>%
+  filter(lifestage == "egg")
+larva_dr <- Ana_dr %>%
+  filter(lifestage == "larva")
+pupa_dr <- Ana_dr %>%
+  filter(lifestage == "pupa")
+eggtoemergence_dr <- Ana_dr %>%
+  filter(lifestage == "eggtoemergence")
+
+
+```
+There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))`species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
+
+3. Calculate Topt & Ropt (rate at Topt)
+```{r}
+# function to get optimum
+dat <- filter(Ana_dr, set == 3)
+get_Dopt <- function(dat){
+  dat <- dat[!is.na(dat$dr) & !is.na(dat$temp),] # Remove treatments with no dr data
+   y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
+  x_max_list <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr   
+  if(length(x_max_list) > 1){
+    Dopt <- tibble(DTopt = x_max_list,
+                   Dropt = y_max, 
+                   Opt = "optima")
+  } else{
+    Dopt <- tibble(DTopt = x_max_list,
+                   Dropt = y_max, 
+                   Opt = "optimum")
+  }
+} 
+ set_w <- filter(Ana_dr, set == 3)
+get_Dopt(set_w) 
+# apply function to all sets
+Dopt <- Ana_dr %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(Dopt = map(data,get_Dopt)) %>% 
+  select(set, Dopt)
+
+```
+
+
+4. Calculate interval (min, max, length)
+
+
+
+```{r}
+# Returns values
+get_shape <- function(dat){
+y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
+x_max <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr
+cold <- filter(dat, temp < x_max)  
+hot <- filter(dat, temp > x_max)  
+c_lethal <- tail(filter(cold, dr == 0)[["temp"]],1)
+h_lethal <- head(filter(hot, dr == 0)[["temp"]],1)
+mincold <- filter(cold, dr > 0)
+minhot <- filter(hot, dr > 0)
+y_min_cold <- min(mincold$dr)
+x_min_cold <- mincold[mincold$dr == y_min_cold,"temp"][[1]]
+y_min_hot <- min(minhot$dr)
+x_min_hot <- minhot[minhot$dr == y_min_hot, "temp"][[1]]
+
+output <- tibble(set = rep(unique(dat$set), 5),
+                 lifestage =rep(unique(dat$lifestage),5),
+                 variable = c("Dopt","minCold", "minHot", 
+                             "lethalCold","lethalHot"),
+                 temp = c(x_max, x_min_cold, x_min_hot, 
+                          c_lethal, h_lethal),
+                 dr = c(y_max, y_min_cold, y_min_hot,
+                        NA,NA))
+output
+
+}
+
+```
+
+5. Perform analyses
