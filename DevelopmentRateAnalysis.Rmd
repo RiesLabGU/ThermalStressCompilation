@@ -264,16 +264,35 @@ get_interval <- function(dat){
   x_max <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr
   cold <- filter(dat, temp < x_max)  
   hot <- filter(dat, temp > x_max)  
-  y_mincold <- min(filter(cold, dr <= y_max/2)[["dr"]])
-  y_minhot <- min(filter(hot, dr <= y_max/2)[["dr"]])
-  x_min_cold <- min(filter(cold, dr <= y_max/2)[["temp"]])
-  x_min_hot <- min(filter(hot, dr <= y_max/2)[["temp"]])
+  limit <- y_max/2
+  if (min(cold$dr) > limit){
+    print("cold incomplete")
+    y_mincold <- NA
+    x_min_cold <- NA
+  } else{
+    y_mincold <- min(filter(cold, dr <= y_max/2)[["dr"]])
+    x_min_cold <- min(filter(cold, dr <= y_max/2)[["temp"]])
+  }
+  
+  if(min(hot$dr) > limit){
+    print("heat incomplete")
+    y_minhot <- NA
+    x_min_hot <- NA 
+    
+  } else {
+    y_minhot <- min(filter(hot, dr <= y_max/2)[["dr"]])
+    x_min_hot <- min(filter(hot, dr <= y_max/2)[["temp"]])
+  }
+  
+
   output <- tibble(Imin = x_min_cold, 
                    Imax = x_min_hot, 
                    Ilength = Imax - Imin)
   
   
 }
+
+set_w <- filter(Ana_dr, set == 3)
 
 try <- get_interval(set_w)
 ggplot(set_w, aes(x = temp, y = dr))+
@@ -289,8 +308,6 @@ Interval <- Predicted_Ana_dr %>%
 
 ggplot(Interval, aes(x = Imin, y = Ilength))+
   geom_point()
-
-  
 ```
 
 
