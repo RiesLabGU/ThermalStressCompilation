@@ -4,12 +4,12 @@ output: html_notebook
 ---
 ## Steps
 1. Import data
-2. Select sets with at least 4 data points and a complete curve (low 50%, peak, high 50%) for egg, larva, pupa, eggtoadult.
-3. Calculate Topt & Ropt (rate at Topt)
-4. Calculate interval (min, max, length)
-5. Perform analyses
-
-
+2. Select sets with at least 4 data points and a complete curve (low, peak, high) for egg, larva, pupa, eggtoadult.
+3. Obtain predicted dr in the range from 0 to 40 C using linear interpolation
+4. Calculate Topt & Ropt (rate at Topt)
+5. Calculate interval (min, max, length)
+6. Plot
+7. Perform analyses
 
 ```{r}
 # load packages
@@ -56,7 +56,7 @@ To be included in development rate analyses, sets should have at least 4 tempera
 Ana$set2 <- Ana$set
 is_complete <- function(dat){
   dat <- dat[!is.na(dat$dr) & !is.na(dat$temp),] # Remove treatments with no dr data
- if(nrow(dat)>0 ){
+ if(nrow(dat) > 3 ){
   
    y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
   x_max <- dat[dat$dr == y_max, "temp"][[1]][1]# get temperature that maximizes dr 
@@ -81,7 +81,7 @@ is_complete <- function(dat){
     print("Incomplete")
   }
  } else{
-   print("No data")
+   print("Less than 4 data points")
  }
   
   
@@ -125,7 +125,7 @@ eggtoemergence_dr <- Ana_dr %>%
 ```
 There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))`species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
 
-3. Obtain curves for analysis using linear interpolation  
+3. Obtain predicted dr in the range from 0 to 40C using linear interpolation. 
 
 ```{r}
 #create curves: 1- Make interpolation function:
@@ -215,7 +215,7 @@ two_optima_table <- multiple %>%
 ```
 
 
-4. Calculate interval (min, max, length)
+5. Calculate interval (min, max, length)
 
 
 
@@ -249,4 +249,7 @@ output
 
 ```
 
-5. Perform analyses
+6. Plot
+
+
+7. Perform analyses
