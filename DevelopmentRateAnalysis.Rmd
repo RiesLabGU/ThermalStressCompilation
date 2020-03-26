@@ -125,10 +125,31 @@ eggtoemergence_dr <- Ana_dr %>%
 ```
 There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))`species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
 
-3. Calculate Topt & Ropt (rate at Topt)
+3. Obtain curves for analysis using linear interpolation  
+
+```{r}
+#create curves: 1- Make interpolation function:
+interpolate <- function(dat) {
+  out <- seq(from = 0, to = 40, by = 0.1)
+  as.data.frame(approx(x = dat$temp, y = dat$dr, xout = out, method = "linear", rule = 1))
+  
+}
+
+Predicted_Ana_dr <-  Ana_dr %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(predicted = map(data,interpolate)) %>% 
+  select(set, predicted) %>% 
+  unnest(cols = predicted)
+names(Predicted_Ana_dr) <- c("set", "temp", "dr")
+```
+
+
+
+4. Calculate Topt & Ropt (rate at Topt)
 ```{r}
 # function to get optimum
-dat <- filter(Ana_dr, set == 3)
+
 get_Dopt <- function(dat){
   dat <- dat[!is.na(dat$dr) & !is.na(dat$temp),] # Remove treatments with no dr data
    y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
@@ -143,15 +164,54 @@ get_Dopt <- function(dat){
                    Opt = "optimum")
   }
 } 
- set_w <- filter(Ana_dr, set == 3)
-get_Dopt(set_w) 
+
+
 # apply function to all sets
-Dopt <- Ana_dr %>% 
+Dopts <- Predicted_Ana_dr %>% 
   group_by(set) %>% 
   nest() %>% 
   mutate(Dopt = map(data,get_Dopt)) %>% 
   select(set, Dopt)
+# get a table with only one optimum temperature
+singles <- Dopts %>% 
+  unnest(cols = c(Dopt)) %>% 
+  filter(Opt == "optimum")
 
+
+# get a table with sets with multiple optima
+multiple <- Dopts %>% 
+  unnest(cols = c(Dopt)) %>% 
+  filter(Opt == "optima")
+
+# obtain minimum and maximum Dopt
+```
+
+There were ` r length(unique(singles$set))` sets with a single optimum temperature and ` r length(unique(multiple$set))` sets for which several temperatures allowed for development at optimum rates.
+
+
+```{r}
+# Function to create a table with : set, Dropt, maxTopt, minTopt from sets with multiple optima
+get_2_optima <- function(dat){
+  dr <- max(dat$Dropt)
+  maxTDopt <- max(dat$DTopt, na.rm = T)
+  minTDopt <- min(dat$DTopt, na.rm = T)
+  outpu <- tibble(dr = dr, 
+                  maxTDopt = maxTDopt,
+                  minTDopt = minTDopt)
+}
+
+
+```
+
+
+```{r}
+#Apply get_2_optima() to sets with multiple optimum temperatures
+two_optima_table <- multiple %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(Opt = map(data,get_2_optima)) %>% 
+  select(set, Opt) %>% 
+  unnest( cols = c(Opt))
 ```
 
 
