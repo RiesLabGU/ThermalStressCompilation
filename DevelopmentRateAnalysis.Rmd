@@ -6,7 +6,7 @@ output: html_notebook
 1. Import data
 2. Select sets with at least 4 data points and a complete curve (low, peak, high) for egg, larva, pupa, eggtoadult.
 3. Obtain predicted dr in the range from 0 to 40 C using linear interpolation
-4. Calculate Topt & Ropt (rate at Topt)
+4. Calculate Ropt (rate at Topt) and minTopt, maxTopt
 5. Calculate interval (min, max, length)
 6. Plot
 7. Perform analyses
@@ -146,7 +146,7 @@ names(Predicted_Ana_dr) <- c("set", "temp", "dr")
 
 
 
-4. Calculate Topt & Ropt (rate at Topt)
+4. Calculate Ropt (rate at Topt) and minTopt, maxTopt
 ```{r}
 # function to get optimum
 
@@ -172,6 +172,7 @@ Dopts <- Predicted_Ana_dr %>%
   nest() %>% 
   mutate(Dopt = map(data,get_Dopt)) %>% 
   select(set, Dopt)
+
 # get a table with only one optimum temperature
 singles <- Dopts %>% 
   unnest(cols = c(Dopt)) %>% 
@@ -186,7 +187,7 @@ multiple <- Dopts %>%
 # obtain minimum and maximum Dopt
 ```
 
-There were ` r length(unique(singles$set))` sets with a single optimum temperature and ` r length(unique(multiple$set))` sets for which several temperatures allowed for development at optimum rates.
+There were `r length(unique(singles$set))` sets with a single optimum temperature and `r length(unique(multiple$set))` sets for which several temperatures allowed for development at optimum rates.
 
 
 ```{r}
@@ -214,42 +215,103 @@ two_optima_table <- multiple %>%
   unnest( cols = c(Opt))
 ```
 
-
-5. Calculate interval (min, max, length)
-
-
-
 ```{r}
-# Returns values
-get_shape <- function(dat){
-y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
-x_max <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr
-cold <- filter(dat, temp < x_max)  
-hot <- filter(dat, temp > x_max)  
-c_lethal <- tail(filter(cold, dr == 0)[["temp"]],1)
-h_lethal <- head(filter(hot, dr == 0)[["temp"]],1)
-mincold <- filter(cold, dr > 0)
-minhot <- filter(hot, dr > 0)
-y_min_cold <- min(mincold$dr)
-x_min_cold <- mincold[mincold$dr == y_min_cold,"temp"][[1]]
-y_min_hot <- min(minhot$dr)
-x_min_hot <- minhot[minhot$dr == y_min_hot, "temp"][[1]]
+# minTopt (Topt for singles, minTopt for multiple)
+# 1- Get values from "singles" table:
+min_Topt_table1 <- singles %>% 
+  mutate(minTDopt = DTopt) %>% # minTDopt = DTopt in sets with a single optimum
+  select(set, Dropt, minTDopt) 
 
-output <- tibble(set = rep(unique(dat$set), 5),
-                 lifestage =rep(unique(dat$lifestage),5),
-                 variable = c("Dopt","minCold", "minHot", 
-                             "lethalCold","lethalHot"),
-                 temp = c(x_max, x_min_cold, x_min_hot, 
-                          c_lethal, h_lethal),
-                 dr = c(y_max, y_min_cold, y_min_hot,
-                        NA,NA))
-output
+min_Topt_table2 <- two_optima_table %>% 
+   mutate(Dropt = dr) %>%  # so columns have the same name in both tables
+  select(set, Dropt, minTDopt)  
 
-}
+min_Topt_table3 <- rbind(min_Topt_table1, min_Topt_table2)
+# Add columns for lifestage, lat, lon, population, sp and family for analyses
+
+add_info <- Ana_dr %>% 
+  select(set, sp, family, lifestage, lat, lon, locality, quality) %>% 
+  distinct()
+
+min_Topt_table <- inner_join(min_Topt_table3, add_info, by = "set")
 
 ```
 
+```{r}
+# maxTopt (Topt for singles, maxTopt for multiple)
+# 1- Get values from "singles" table:
+max_Topt_table1 <- singles %>% 
+  mutate(maxTDopt = DTopt) %>% # minTDopt = DTopt in sets with a single optimum
+  select(set, Dropt, maxTDopt) 
+
+max_Topt_table2 <- two_optima_table %>% 
+   mutate(Dropt = dr) %>%  # so columns have the same name in both tables
+  select(set, Dropt, maxTDopt)  
+
+max_Topt_table3 <- rbind(max_Topt_table1, max_Topt_table2)
+max_Topt_table <- inner_join(max_Topt_table3, add_info, by = "set")
+
+```
+
+5. Calculate interval (min 50% dr, max 50% dr, length)
+
+########## FIX THIS ############
+Add an if statement for cases in which predicted values are larger than 50% efficiency. (not really bounded sets)
+```{r}
+# Returns values
+get_interval <- function(dat){
+  y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
+  x_max <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr
+  cold <- filter(dat, temp < x_max)  
+  hot <- filter(dat, temp > x_max)  
+  y_mincold <- min(filter(cold, dr <= y_max/2)[["dr"]])
+  y_minhot <- min(filter(hot, dr <= y_max/2)[["dr"]])
+  x_min_cold <- min(filter(cold, dr <= y_max/2)[["temp"]])
+  x_min_hot <- min(filter(hot, dr <= y_max/2)[["temp"]])
+  output <- tibble(Imin = x_min_cold, 
+                   Imax = x_min_hot, 
+                   Ilength = Imax - Imin)
+  
+  
+}
+
+try <- get_interval(set_w)
+ggplot(set_w, aes(x = temp, y = dr))+
+  geom_point()
+
+# apply function to all sets
+Interval <- Predicted_Ana_dr %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(interval = map(data,get_interval)) %>% 
+  select(set, interval) %>% 
+  unnest(cols = interval)
+
+ggplot(Interval, aes(x = Imin, y = Ilength))+
+  geom_point()
+
+  
+```
+
+
+```{r}
+# Apply get interval to everything
+
+```
+
+
 6. Plot
 
+```{r}
+ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter()
+
+ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt, col = family, label = set))+
+  geom_jitter()+
+  geom_text()
+
+ggplot(filter(Ana_dr, set == 586), aes(x = temp, y = dr))+
+  geom_point()
+```
 
 7. Perform analyses
