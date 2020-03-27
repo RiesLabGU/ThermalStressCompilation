@@ -2,15 +2,16 @@
 title: "Development rate"
 output: html_notebook
 ---
-## Steps
+## Sections
 1. Import data
-2. Select sets with at least 4 data points and a complete curve (low, peak, high) for egg, larva, pupa, eggtoadult.
+2. Select sets with at least 4 data points and a complete curve (rise, peak, fall) for egg, larva, pupa, and egg to adult.
 3. Obtain predicted dr in the range from 0 to 40 C using linear interpolation
 4. Calculate Ropt (rate at Topt) and minTopt, maxTopt
 5. Calculate interval (min, max, length)
-6. Plot
-7. Perform analyses
+6. Plots
+7. Analyses
 
+We used r (tydiverse) for data wrangling, (ggplot2) for data visualization
 ```{r}
 # load packages
 library(tidyverse)
@@ -18,7 +19,7 @@ library(readxl)
 library(cowplot)
 ```
 
- Import data
+Import data 
 ```{r}
 # Mariana's desktop
 Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
@@ -45,8 +46,7 @@ Ana <- Ana %>%
 ```
 
 # 2. Select sets 
-To be included in development rate analyses, sets should have at least 4 temperature treatments reporting development time that form a complete curve (low 50%, peak, high 50%) for egg, larva, pupa or eggtoadult.
-
+To be included in development rate analyses, sets should have at least 4 temperature treatments reporting development time and form a complete curve (rise, peak, fall). We restricted analyses to four life stages: egg, larva, pupa and egg to adult.
 
 ```{r}
 # Function to determine whether a set is:
