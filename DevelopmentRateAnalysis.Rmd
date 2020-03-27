@@ -255,13 +255,13 @@ max_Topt_table <- inner_join(max_Topt_table3, add_info, by = "set")
 
 5. Calculate interval (min 50% dr, max 50% dr, length)
 
-########## FIX THIS ############
-Add an if statement for cases in which predicted values are larger than 50% efficiency. (not really bounded sets)
 ```{r}
-# Returns values
+
+
 get_interval <- function(dat){
-  y_max <- max(dat$dr, na.rm = T) # get maximum value for dr
-  x_max <- dat[dat$dr == y_max, "temp"][[1]]# get temperature that maximizes dr
+  dat <- dat[!is.na(dat$dr) & !is.na(dat$temp),] # Remove treatments with no dr data
+  y_max <- max(dat$dr) # get maximum value for dr
+  x_max <- dat[dat$dr == y_max, "temp"][[1]][[1]]# get temperature that maximizes dr
   cold <- filter(dat, temp < x_max)  
   hot <- filter(dat, temp > x_max)  
   limit <- y_max/2
@@ -269,35 +269,42 @@ get_interval <- function(dat){
     print("cold incomplete")
     y_mincold <- NA
     x_min_cold <- NA
+    grade_cold <- "incomplete"
   } else{
     y_mincold <- min(filter(cold, dr <= y_max/2)[["dr"]])
     x_min_cold <- min(filter(cold, dr <= y_max/2)[["temp"]])
+    grade_cold <- "complete"
   }
   
   if(min(hot$dr) > limit){
     print("heat incomplete")
     y_minhot <- NA
     x_min_hot <- NA 
-    
+    grade_hot <- "incomplete"
   } else {
     y_minhot <- min(filter(hot, dr <= y_max/2)[["dr"]])
     x_min_hot <- min(filter(hot, dr <= y_max/2)[["temp"]])
+    grade_hot <- "complete"
   }
   
-
+  
   output <- tibble(Imin = x_min_cold, 
                    Imax = x_min_hot, 
-                   Ilength = Imax - Imin)
+                   Ilength = Imax - Imin, 
+                   gradecold = grade_cold, 
+                   gradehot = grade_hot)
   
   
 }
 
-set_w <- filter(Ana_dr, set == 3)
 
-try <- get_interval(set_w)
-ggplot(set_w, aes(x = temp, y = dr))+
-  geom_point()
 
+
+```
+
+
+```{r}
+# Apply get interval to everything
 # apply function to all sets
 Interval <- Predicted_Ana_dr %>% 
   group_by(set) %>% 
@@ -305,15 +312,6 @@ Interval <- Predicted_Ana_dr %>%
   mutate(interval = map(data,get_interval)) %>% 
   select(set, interval) %>% 
   unnest(cols = interval)
-
-ggplot(Interval, aes(x = Imin, y = Ilength))+
-  geom_point()
-```
-
-
-```{r}
-# Apply get interval to everything
-
 ```
 
 
