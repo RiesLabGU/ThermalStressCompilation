@@ -312,21 +312,53 @@ Interval <- Predicted_Ana_dr %>%
   mutate(interval = map(data,get_interval)) %>% 
   select(set, interval) %>% 
   unnest(cols = interval)
+Interval_table <- inner_join(Interval, add_info, by = "set")
 ```
 
 
 6. Plot
 
 ```{r}
-ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt, col = family))+
-  geom_jitter()
+ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt))+
+  geom_boxplot()+
+  geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))
 
+
+
+
+```
+
+```{r}
 ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt, col = family, label = set))+
   geom_jitter()+
   geom_text()
 
+```
+
+```{r}
 ggplot(filter(Ana_dr, set == 586), aes(x = temp, y = dr))+
   geom_point()
+
+```
+
+```{r}
+ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt))+
+geom_boxplot()+
+geom_jitter(mapping = aes(x = lifestage, y = minTDopt, col = family))
+```
+
+```{r}
+ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
+  geom_boxplot()
+```
+```{r}
+ggplot(Interval_table, aes(x = lifestage, y = Imin))+
+  geom_boxplot()
+```
+
+```{r}
+ggplot(Interval_table, aes(x = lifestage, y = Imax))+
+  geom_boxplot()
 ```
 
 7. Perform analyses
