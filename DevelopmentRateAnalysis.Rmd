@@ -313,6 +313,7 @@ Interval <- Predicted_Ana_dr %>%
   select(set, interval) %>% 
   unnest(cols = interval)
 Interval_table <- inner_join(Interval, add_info, by = "set")
+Interval_table$lifestage <- factor(Interval_table$lifestage)
 ```
 
 
@@ -327,6 +328,17 @@ ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt))+
 
 
 ```
+Highest temperature that allows for development time at the optimum rate
+
+
+```{r}
+ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt))+
+geom_boxplot()+
+geom_jitter(mapping = aes(x = lifestage, y = minTDopt, col = family))
+```
+Minimum temperature that allows for optimum development rate
+
+
 
 ```{r}
 ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt, col = family, label = set))+
@@ -334,23 +346,32 @@ ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt, col = family, label = se
   geom_text()
 
 ```
-
+This is to check outliers (sets 586, 1005, 175). 586 is fine, 1005 is incomplete, 175 is fine.
 ```{r}
-ggplot(filter(Ana_dr, set == 586), aes(x = temp, y = dr))+
+ggplot(filter(Ana_dr, set == 175), aes(x = temp, y = dr))+
   geom_point()
 
-```
-
-```{r}
-ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt))+
-geom_boxplot()+
-geom_jitter(mapping = aes(x = lifestage, y = minTDopt, col = family))
 ```
 
 ```{r}
 ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
   geom_boxplot()
 ```
+```{r}
+# Summary statistics
+summary <-Interval_table %>% 
+  group_by(lifestage) %>% 
+  summarise(median = median(Ilength, na.rm = T)) 
+  #quantile((Ilength,0.25, na.rm = T))#, c(0.25, 0.5, 0.75), type = 1,na.rm = T))
+```
+ 
+ 
+ Median length of the favorable interval (allows for development to occur at 50% efficiency) was `r `
+ 
+
+
+
+
 ```{r}
 ggplot(Interval_table, aes(x = lifestage, y = Imin))+
   geom_boxplot()
