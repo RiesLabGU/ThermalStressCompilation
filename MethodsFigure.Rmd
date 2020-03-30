@@ -192,7 +192,11 @@ linear_predicted <-  tibble(temp = c(0:40),
   predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
 t0 <- t0table[[1]]
 Figure1B <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
+<<<<<<< HEAD
   geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = -Inf, ymax = Inf, fill = "grey66")+
+=======
+  geom_rect(xmin = t0-0.1, xmax = t0+0.1, ymin = -Inf, ymax = Inf, fill = "grey66")+
+>>>>>>> 8b842a3477b95edad89f7ee09bd52dbb733f1b7c
   geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
   geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
