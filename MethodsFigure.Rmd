@@ -61,7 +61,7 @@ Ana <- Ana %>%
 ```
 
 # Methods
-We compiled a database including records of development time and/or survival  of Lepidoptera growing at constant temperatures. The full table includes `r length(unique(Ana$set))` sets of `r length(unique(Ana$sp))` species from `r length(unique(Ana$family))` families from `r length(unique(Ana$locality))` localities. See supplementary information for a full list of species.
+We compiled a database including records of development time and/or survival  of Lepidoptera growing at constant temperatures. The full table includes `r length(unique(Ana$set))` sets of `r length(unique(Ana$sp))` species from `r length(unique(Ana$family))` families from `r length(unique(Ana$locality))` localities. See supplementary information for a full list of species. Temperature treatments ranged from `r min(Ana$temp, na.rm = T)` to `r max(Ana$temp, na.rm = T)`
 Using linear interppolation we calculated the following variables in all complete sets (curves including both a rise and a fall) for development rate (n = `r length(d_complete_sets$set)`) and for survival (n = `r length(s_complete_sets$set)`)
 
 dTopt: temperature that maximizes development rate
@@ -144,7 +144,9 @@ rm(hypofit, hyposu, dtpredicted, supredicted)
 
 ```{r}
 # Figure 1A: Development rate, sub and supra optimum breadth. 
- 
+d_opt <- max(set_w$dr) # optimum development rate
+dTopt <- filter(set_w, dr == d_opt)[["temp"]] # temperature that maximizes development rate
+
 d_50 <- d_opt/2 # value of development rate at 50% efficiency
 out <- seq(from = 0, to = 40, by = 0.1)
 interpolation <- as.data.frame(approx(x = set_w$temp, y = set_w$dr, xout = out, method = "linear", rule = 1))
@@ -180,8 +182,6 @@ Figure1A
 
 ```{r}
 # Figure 1B: development rate, linear regression and T0
-d_opt <- max(set_w$dr) # optimum development rate
-dTopt <- filter(set_w, dr == d_opt)[["temp"]] # temperature that maximizes development rate
 
 t0table <- get_t0(set_w)
 text <- tibble(temp = 7.5,
@@ -192,7 +192,7 @@ linear_predicted <-  tibble(temp = c(0:40),
   predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
 t0 <- t0table[[1]]
 Figure1B <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
-  geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, fill = "grey66")+
+  geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = -Inf, ymax = Inf, fill = "grey66")+
   geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
   geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
@@ -260,9 +260,9 @@ PoptPoint <- filter(Pinterpolation, P == P_opt)
 PlastPoint <- tail(filter(Pinterpolation, P > 0),1)[["P"]]
 Figure1D <- ggplot(data = set_w,aes(x = temp, y = P/0.4)) + 
   geom_line()+
-  geom_point(data = set_w, mapping = aes(x = temp, y = survival/100), shape = 2, col= "darkgrey")+
+  geom_point(data = set_w, mapping = aes(x = temp, y = survival/100), shape = 2, col= "grey39")+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr/0.4), col = "darkgrey")+
-  geom_line(data = set_w, mapping = aes(x = temp, y = survival/100), linetype = 2, col = "darkgrey")+
+  geom_line(data = set_w, mapping = aes(x = temp, y = survival/100), linetype = 2, col = "grey39")+
   geom_line(data = set_w, mapping = aes(x = temp, y = dr/0.4),linetype = 2, col = "darkgrey")+
   
   geom_segment(x = P_min, xend = PTopt, y = P50/0.4, yend = P50/0.4,linetype = 3)+
