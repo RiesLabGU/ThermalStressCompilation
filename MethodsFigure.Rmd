@@ -141,38 +141,9 @@ rm(hypofit, hyposu, dtpredicted, supredicted)
 
 ```
 
-```{r}
-# Figure 1A: development rate, linear regression and T0
-d_opt <- max(set_w$dr) # optimum development rate
-dTopt <- filter(set_w, dr == d_opt)[["temp"]] # temperature that maximizes development rate
-gs <- "grey66"
-t0table <- get_t0(set_w)
-text <- tibble(temp = 7.5,
-               dr = 0.02)
-linear_3 <- filter(set_w, temp <= dTopt, dr > 0)
-model <- lm(dr~temp, data = linear_3)
-linear_predicted <-  tibble(temp = c(0:40),
-  predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
-t0 <- t0table[[1]]
-Figure1A <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
-  geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, linetype = 3,alpha = 0.03, fill = gs)+
-  geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
-  geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
-  geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
-   geom_text(data = text, aes(x = temp+15, y = dr, label = paste("T0 =",round(t0, digits = 2), sep = " ")))+
-  #geom_hline(yintercept = 0, col = gs)+
-  
-  #geom_vline(xintercept  = 3.761635, linetype = 4)+
-  theme_cowplot()+
-   ylim(0, 0.35)+
-   xlim(5, 43)+
-  labs(x = "Temperature (°C)", y = "Development rate")
-Figure1A
-```
-Figure 1A. Development rate (1/development time) of  `r set_w$sp [[1]]` `r set_w$lifestage [[1]]`s kept at constant temperatures. Line indicates a linear regression including only the treatments in which development rate has a linear relationship with temperature (solid points). T0 is estimated as the x-intercept of this relationship (9.7 C). The shaded region indicates the interval of temperatures at which development is assumed to occur.
 
 ```{r}
-# Figure 1B: Development rate, sub and supra optimum breadth. 
+# Figure 1A: Development rate, sub and supra optimum breadth. 
  
 d_50 <- d_opt/2 # value of development rate at 50% efficiency
 out <- seq(from = 0, to = 40, by = 0.1)
@@ -183,25 +154,60 @@ d_sub_max <- tail(filter(interpolation, dr >= d_50), 1)[[1]]
 cd <- "#E69F00"
 gd <- "grey20"
 cs <- "#56B4E9"
+gs <- "grey66"
 label_text1 <- tibble(x = 25,
                     y = 0.12,
                 label = "Development interval")
 
-Figure1B <- ggplot(data = predicted, aes(x = temp, y = dr)) + 
-  geom_rect(ymin = -Inf, ymax = +Inf, xmin = d_sub_min, xmax = d_sub_max, alpha = 0.03, fill = gs)+
+Figure1A <- ggplot(data = predicted, aes(x = temp, y = dr)) + 
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = d_sub_min, xmax = d_sub_max, fill = "grey66")+
   geom_point(data = set_w, mapping = aes(x = temp, y = dr))+
   geom_line(data = set_w, mapping = aes(x = temp, y = dr))+
   geom_text(data = label_text1, aes(x = x + 7.5, y = y ,label ="D-interval"))+
   geom_segment(x = d_sub_min, xend = d_sub_max, y = d_50, yend = d_50, linetype = 3)+
   #geom_segment(x = dTopt, xend = sub_max, y = d_50, yend = d_50, linetype = 2)+
    ylim(0, 0.35)+
-  geom_text(data = label_text1, mapping = (aes(x = x+10, y = y + 0.29,label ="Dopt")))+
+  geom_text(data = label_text1, mapping = (aes(x = x+8, y = y + 0.21,label ="Dopt")))+
    xlim(5, 43)+
   theme_cowplot()+
   
   labs(x = "Temperature", y = "Development rate")
-Figure1B
+Figure1A
 ```
+
+
+
+
+```{r}
+# Figure 1B: development rate, linear regression and T0
+d_opt <- max(set_w$dr) # optimum development rate
+dTopt <- filter(set_w, dr == d_opt)[["temp"]] # temperature that maximizes development rate
+
+t0table <- get_t0(set_w)
+text <- tibble(temp = 7.5,
+               dr = 0.02)
+linear_3 <- filter(set_w, temp <= dTopt, dr > 0)
+model <- lm(dr~temp, data = linear_3)
+linear_predicted <-  tibble(temp = c(0:40),
+  predicted_dr = predict.lm(model, newdata = tibble(temp = c(0:40)), type = "response"))
+t0 <- t0table[[1]]
+Figure1B <- ggplot(data = linear_3, aes(x = temp, y = dr)) + 
+  geom_rect(xmin = t0, xmax = max(linear_3$temp), ymin = 0, ymax = Inf, fill = "grey66")+
+  geom_line(data = linear_predicted, aes(x = temp, y = predicted_dr))+
+  geom_point(data = linear_3, mapping = aes(x = temp, y = dr))+
+  geom_point(data = set_w, mapping = aes(x = temp, y = dr), shape = 1)+
+   geom_text(data = text, aes(x = temp+15, y = dr, label = paste("T0 =",round(t0, digits = 2), sep = " ")))+
+  #geom_hline(yintercept = 0, col = gs)+
+  ylim(0, 0.35)+
+   xlim(5, 43)+
+  #geom_vline(xintercept  = 3.761635, linetype = 4)+
+  theme_cowplot()+
+   
+  labs(x = "Temperature (°C)", y = "Development rate")
+Figure1B
+
+```
+Figure 1B. Development rate (1/development time) of  `r set_w$sp [[1]]` `r set_w$lifestage [[1]]`s kept at constant temperatures. Line indicates a linear regression including only the treatments in which development rate has a linear relationship with temperature (solid points). T0 is estimated as the x-intercept of this relationship (9.7 C). The shaded region indicates the interval of temperatures at which development is assumed to occur.
 Figure 1B. By linear interpolation we estimated the interval of temperatures that allow for development rate at 50% of the maximum efficiency `r d_opt` at `r dTopt` (0.22 at 32C)
 ```{r}
 # Figure 1C: Survival. Breadth and cold and hot optima
@@ -216,7 +222,7 @@ label_text <- tibble(x = 25,
                 label = "Survival interval")
 
 Figure1C <- ggplot(data = set_w,aes(x = temp, y = survival/100)) + 
-  geom_rect(ymin = -Inf, ymax = +Inf, xmin = su_min, xmax = su_max, alpha = 0.03, fill = gs)+
+  geom_rect(ymin = -Inf, ymax = +Inf, xmin = su_min, xmax = su_max, fill = "grey66")+
   geom_point(shape = 2)+
   geom_line(data = set_w, mapping = aes(x = temp, y = survival/100))+
   geom_segment(x = su_min, xend = su_max, y = 0.5, yend = 0.5, linetype = 3)+
@@ -269,7 +275,7 @@ Figure1D <- ggplot(data = set_w,aes(x = temp, y = P/0.4)) +
   theme_cowplot()+
   geom_rect(ymin = -Inf, ymax = +Inf, xmin = P_min, xmax = PTopt, alpha = 0.03, fill = gd)+
   geom_rect(ymin = -Inf, ymax = +Inf, xmin = PTopt, xmax = P_max, alpha = 0.06, fill = gd)+
-  geom_segment(x  = PTopt, xend  = PTopt, y = 0, yend = +Inf, linetype = 1, col = "darkgrey")+
+  #geom_segment(x  = PTopt, xend  = PTopt, y = 0, yend = +Inf, linetype = 1, col = "darkgrey")+
   
   geom_point(x  = PTopt, y = P_opt/0.4)+
   geom_text(data = PoptPoint-2, aes(x = temp-3, y = 0.75,label ="Popt"))+
@@ -285,7 +291,7 @@ Performance of `r unique(set_w$sp)` (`r unique(set_w$family)`), from `r unique(s
 
 ```{r}
 #Multiplot
-plot_grid(Figure1B, Figure1C, Figure1A,Figure1D,labels = c('A', 'B', 'C', 'D'))
+plot_grid(Figure1A, Figure1B, Figure1C,Figure1D,labels = c('A', 'B', 'C', 'D'))
 ```
 
 
