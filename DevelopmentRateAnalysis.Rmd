@@ -105,7 +105,7 @@ SetAssessment <- Ana %>%
 From a total of `r length(unique(Ana$set))`, only  `r nrow(filter(SetAssessment, curve == "Complete"))` had a complete curve for development rate.
 ```{r}
 # Select sets of life stages of interest: egg, larva, pupa, egg to emergence
-complete_sets<- SetAssessment %>% 
+complete_sets <- SetAssessment %>% 
   filter(curve == "Complete") 
 list_complete <- (unique(complete_sets$set))
 life_stages <- c("egg", "larva", "pupa", "eggtoemergence")
@@ -146,7 +146,7 @@ names(Predicted_Ana_dr) <- c("set", "temp", "dr")
 
 
 
-4. Calculate Ropt (rate at Topt) and minTopt, maxTopt
+4. Obtain Ropt (rate at Topt) and minTopt, maxTopt
 ```{r}
 # function to get optimum
 
@@ -234,7 +234,7 @@ add_info <- Ana_dr %>%
   distinct()
 
 min_Topt_table <- inner_join(min_Topt_table3, add_info, by = "set")
-
+rm(min_Topt_table1, min_Topt_table2, min_Topt_table3)
 ```
 
 ```{r}
@@ -250,6 +250,7 @@ max_Topt_table2 <- two_optima_table %>%
 
 max_Topt_table3 <- rbind(max_Topt_table1, max_Topt_table2)
 max_Topt_table <- inner_join(max_Topt_table3, add_info, by = "set")
+rm(max_Topt_table1, max_Topt_table2, max_Topt_table3)
 
 ```
 
@@ -313,11 +314,32 @@ Interval <- Predicted_Ana_dr %>%
   select(set, interval) %>% 
   unnest(cols = interval)
 Interval_table1 <- inner_join(Interval, add_info, by = "set")
-Interval_table1$lifestage <- factor(Interval_table$lifestage, levels = c("egg", "larva", "pupa", "eggtoemergence"))
+Interval_table1$lifestage <- factor(Interval_table1$lifestage, levels = c("egg", "larva", "pupa", "eggtoemergence"))
 Interval_table <- filter(Interval_table1, gradecold == "complete", gradehot == "complete")
-
+rm(Interval_table1)
 ```
 
+
+```{r}
+# clean-up so only relevant tables for analysis remain in workspace
+rm(add_info) # columns with sp, lifestage, and lat lon
+rm(comlete_sets) # list of sets thatare complete
+rm(Dopts) #list of set and otimum temperatures
+rm(Interval) # table missing columns relevant for analysis
+rm(multiple)
+rm(SetAssessment)
+rm(singles)
+rm(two_optima_table)
+rm(complete_sets)
+```
+Ana: original table
+Ana_dr: table with complete sets of relevant lifestages
+
+Interval_table: Imin, Imax and Ilength
+max_Topt_table: table of maximum temperatures that allow for development rate at maximum efficiency
+min_Topt_table: table of minimum temperatures that allow for development rate at maximum efficiency. There are two tables because in some cases there are several optima instead of one. plots for these tables are almost the same, so we should choose 1 (min_Topt_table) to focus but analyze both and report if results were the same or different
+
+Predicted_Ana_dr
 
 6. Plot
 
@@ -331,6 +353,14 @@ ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt))+
   
 ```
 Highest temperature that allows for development time at the optimum rate
+```{r}
+ggplot(max_Topt_table, aes(x = abs(lat), y = maxTDopt), col = "quality")+
+  geom_point()+
+  theme_cowplot()+
+  ylab("TDopt (max)")+
+  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  ylim(10,40)
+```
 
 
 ```{r}
@@ -343,6 +373,14 @@ geom_boxplot()+
   ylim(10,40)
 ```
 Minimum temperature that allows for optimum development rate
+```{r}
+ggplot(min_Topt_table, aes(x = abs(lat), y = minTDopt), col = "quality")+
+  geom_point()+
+  theme_cowplot()+
+  ylab("TDopt (min)")+
+  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  ylim(10,40)
+```
 
 
 
@@ -363,7 +401,7 @@ ggplot(filter(Ana_dr, set == 175), aes(x = temp, y = dr))+
 ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
   geom_boxplot()+
   theme_cowplot()+
-  ylab("TDopt (min)")+
+  ylab("D-interval length")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(10,40)
 
@@ -380,6 +418,16 @@ summary
  
  Median length of the favorable interval (allows for development to occur at 50% efficiency) was `r summary[summary$lifestage == "egg", "median"][[1]] `C for eggs (N = `r summary[summary$lifestage == "egg", "N"][[1]] `), `r summary[summary$lifestage == "larva", "median"][[1]] `C for larvae (N = `r summary[summary$lifestage == "egg", "median"][[1]] `), `r summary[summary$lifestage == "pupa", "N"][[1]] `C for pupae (N = `r summary[summary$lifestage == "egg", "N"][[1]] `), and `r summary[summary$lifestage == "eggtoemergence", "median"][[1]] ` for the whole lifecycle (egg to emergence, N = `r summary[summary$lifestage == "egg", "N"][[1]] `)
  
+```{r}
+
+ggplot(Interval_table, aes(x = abs(lat), y = Ilength), col = "quality")+
+  geom_point()+
+  theme_cowplot()+
+  ylab("Ilength")+
+  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  #ylim(10,40)+
+  facet_wrap(.~lifestage)
+```
 
 ```{r}
 ggplot(Interval_table, aes(x = lifestage, y = Imin))+
@@ -411,16 +459,16 @@ hist(max_Topt_table$maxTDopt)
 shapiro.test((max_Topt_table$maxTDopt))
 fit1 <- lmer(maxTDopt ~ lifestage + (1|sp) + (1|family), data = filter(max_Topt_table, lifestage != "eggtoemergence")) # 
 summary(fit1)
-shapiro.test(fit1$residuals)
+
 Anova(fit1) # 
 plot(fit1) #
 ```
 
 ```{r}
-Imin
+#Imin
 hist(Interval_table$Imin)
-shapiro.test((Interval_table$Imin))
-fit2 <- lmer(Imin ~ lifestage + (1|sp) + (1|family), data = Interval_table) # 
+shapiro.test(Interval_table$Imin)
+fit2 <- glmer(Imin ~ lifestage + (1|sp) + (1|family), data = Interval_table, family = Gamma(link = "inverse")) # 
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
