@@ -123,7 +123,7 @@ eggtoemergence_dr <- Ana_dr %>%
 
 Ana_dr$lifestage <- factor(Ana_dr$lifestage, levels = c("egg", "larva", "pupa", "eggtoemergence"))
 ```
-There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))`species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
+There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))` species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
 
 3. Obtain predicted dr in the range from 0 to 40C using linear interpolation. 
 
@@ -323,7 +323,6 @@ rm(Interval_table1)
 ```{r}
 # clean-up so only relevant tables for analysis remain in workspace
 rm(add_info) # columns with sp, lifestage, and lat lon
-rm(comlete_sets) # list of sets thatare complete
 rm(Dopts) #list of set and otimum temperatures
 rm(Interval) # table missing columns relevant for analysis
 rm(multiple)
@@ -347,19 +346,20 @@ Predicted_Ana_dr
 ggplot(max_Topt_table, aes(x = lifestage, y = maxTDopt))+
   geom_boxplot()+
   theme_cowplot()+
-  ylab("TDopt (max)")+
+  ylab("TDopt")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(10,40)
   
 ```
 Highest temperature that allows for development time at the optimum rate
 ```{r}
-ggplot(max_Topt_table, aes(x = abs(lat), y = maxTDopt), col = "quality")+
+ggplot(filter(max_Topt_table, quality != "inferred"), aes(x = abs(lat), y = maxTDopt))+
   geom_point()+
   theme_cowplot()+
-  ylab("TDopt (max)")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(10,40)
+  ylab("TDopt")+
+  xlab("Absolute latitude")+
+  #ylim(10,40)+
+  facet_wrap(.~lifestage)
 ```
 
 
@@ -379,14 +379,14 @@ ggplot(min_Topt_table, aes(x = abs(lat), y = minTDopt), col = "quality")+
   theme_cowplot()+
   ylab("TDopt (min)")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(10,40)
+   facet_wrap(.~lifestage)
 ```
-
+Same pattern as max,so not included in manuscript
 
 
 ```{r}
 ggplot(min_Topt_table, aes(x = lifestage, y = minTDopt, col = family, label = set))+
-  geom_jitter()+
+  #geom_jitter()+
   geom_text()
 
 ```
@@ -403,7 +403,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
   theme_cowplot()+
   ylab("D-interval length")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(10,40)
+  ylim(0,40)
 
 ```
 ```{r}
@@ -420,10 +420,10 @@ summary
  
 ```{r}
 
-ggplot(Interval_table, aes(x = abs(lat), y = Ilength), col = "quality")+
+ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Ilength), col = "quality")+
   geom_point()+
   theme_cowplot()+
-  ylab("Ilength")+
+  ylab("D-interval length")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   #ylim(10,40)+
   facet_wrap(.~lifestage)
@@ -433,19 +433,47 @@ ggplot(Interval_table, aes(x = abs(lat), y = Ilength), col = "quality")+
 ggplot(Interval_table, aes(x = lifestage, y = Imin))+
   geom_boxplot()+
   theme_cowplot()+
-  ylab("Imin (C)")+
+  ylab("D-interval minimum (C)")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(0,20)
 ```
+
+
+```{r}
+ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+  geom_point()+
+  theme_cowplot()+
+  ylab("D-interval minimum")+
+  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  #ylim(10,40)+
+  facet_wrap(.~lifestage)
+```
+
+
+
+
 
 ```{r}
 ggplot(Interval_table, aes(x = lifestage, y = Imax))+
  geom_boxplot()+
   theme_cowplot()+
-  ylab("Imax")+
+  ylab("D-interval max")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(10,40)
 ```
+
+
+```{r}
+ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+  geom_point()+
+  theme_cowplot()+
+  ylab("D-interval maximum")+
+  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  #ylim(10,40)+
+  facet_wrap(.~lifestage)
+```
+
+
 
 7. Perform analyses
 
