@@ -33,6 +33,13 @@ Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyData
 
 ```
 
+```{r}
+# Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
 
 ```{r}
 # Discard parasitoids and change character to factor 
