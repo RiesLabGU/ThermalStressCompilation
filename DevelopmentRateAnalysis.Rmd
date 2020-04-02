@@ -7,7 +7,11 @@ output: html_notebook
 2. Select sets with at least 4 data points and a complete curve (rise, peak, fall) for egg, larva, pupa, and egg to adult.
 3. Consolidate redundant sets
 4. Obtain predicted dr in the range from 0 to 40 C using linear interpolation
+<<<<<<< HEAD
 5. Calculate maximum development rate and Dopt (temperature that allows for it)
+=======
+5. Calculate Ropt (maximum development rate) and Topt (temperature that allows for Topt)
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 6. Calculate D-interval (min, max, length)
 7. Visualization
 8. Analyses
@@ -135,9 +139,14 @@ Ana_dr$lifestage <- factor(Ana_dr$lifestage, levels = c("egg", "larva", "pupa", 
 There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))` species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
 
 #3. Consolidate redundant sets
+<<<<<<< HEAD
 Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
 Consolidated sets kept the number (unique set identifier) of the first set they include.
 
+=======
+We considered measurements obtained at the same temperature, of the same species, locality, and ontogenetic stage that were also reported in the same publication, to be redundant and we obtained the geometric mean, for analyses. They kept the number of the first set they include, with the prefix "c" for consolidated.
+Redundant sets occur beacuse researchers varied experimental conditions such as: host plant, humidity and daylength, or because data were reported for males and females separately
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 ```{r}
 # make a new column that unifies redundant sets
@@ -236,7 +245,11 @@ multiple <- Dopts %>%
 # obtain minimum and maximum Dopt
 ```
 
+<<<<<<< HEAD
 There were `r length(unique(singles$set))` sets with a single optimum temperature and `r length(unique(multiple$set))` sets for which several temperatures allowed for development at optimum rates. I extracted both the minimum and maximum temperatures that allow for optimum development rate. Patterns are very simmilar.For analyses we kept the maximum temperature that allows for optimum development rate.
+=======
+There were `r length(unique(singles$set))` sets with a single optimum temperature and `r length(unique(multiple$set))` sets for which several temperatures allowed for development at optimum rates. I extracted both the minimum and maximum temperatures that allow for optimum development rate. Patterns are very simmilar.
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 
 ```{r}
@@ -387,9 +400,15 @@ Ana_dr: table with complete sets of relevant lifestages
 Interval_table: Imin, Imax and Ilength
 Topt_table: table of maximum temperatures that allow for development rate at maximum efficiency
 min_Topt_table: table of minimum temperatures that allow for development rate at maximum efficiency. There are two tables because in some cases there are several optima instead of one. plots for these tables are almost the same, so we should choose 1 (Topt_table) to focus but analyze both and report if results were the same or different
+<<<<<<< HEAD
 
 
 
+=======
+
+
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 # 7. Visualization
 ## T-Dopt
 Temperature that allows for development rate at maximum efficiency
@@ -398,19 +417,30 @@ Temperature that allows for development rate at maximum efficiency
 ggplot(Topt_table, aes(x = lifestage, y = maxTDopt))+
   geom_boxplot()+
   theme_cowplot()+
+<<<<<<< HEAD
   ylab("Dopt (C)")+
+=======
+  ylab("TDopt (C)")+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
   xlab("Life stage")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   #geom_text(mapping = aes(x = lifestage, y = maxTDopt, label = sp))+
   ylim(10,40)
   
 ```
+<<<<<<< HEAD
 
 Optimum development rates of all life stages occurred between `r min(Topt_table$maxTDopt, na.rm = T)` and `r max(Topt_table$maxTDopt, na.rm = T)`C. The mean tempeature allowing for optimum development was `r mean(Topt_table$maxTDopt, na.rm = T)` sd = `r sd(Topt_table$maxTDopt, na.rm = T)`. N = `r length(unique(Topt_table$set))` consolidated sets of `r length(unique(Topt_table$sp))` species.
 
 
 ```{r}
 # I'm exluding points where locality was not reported ("inferred" value in field quiality)
+=======
+Optimum development rates of all life stages occurred between `r min(Topt_table$maxTDopt, na.rm = T)` and `r max(Topt_table$maxTDopt, na.rm = T)`C. The mean tempeature allowing for optimum development was `r mean(Topt_table$maxTDopt, na.rm = T)` sd = `r sd(Topt_table$maxTDopt, na.rm = T)`. N = `r length(unique(Topt_table$set))` consolidated sets of `r length(unique(Topt_table$sp))` species.
+
+
+```{r}
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 ggplot(filter(Topt_table, quality != "inferred"), aes(x = abs(lat), y = maxTDopt, col = family))+
   geom_point()+
   theme_cowplot()+
@@ -465,7 +495,12 @@ ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
   ylim(0,40)
 
 ```
+<<<<<<< HEAD
 Lenght of the temperature interval that allows for development rates at >=50% efficincy.  
+=======
+The interval that allows for 
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 
 ```{r}
@@ -576,7 +611,11 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_point(data = ToptAnalysis, mapping = aes(x = abs(lat), y = maxTDopt, col =group ))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
+<<<<<<< HEAD
   ylab("Dopt")+
+=======
+  ylab("TDopt")+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
   xlab("Absolute latitude")+
   #ylim(15, 40)+
   theme_cowplot()#+
@@ -607,6 +646,10 @@ Absolute latitude, but not life stage explained variation in Imin
 
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 ```{r}
 
 library(effects)
@@ -629,8 +672,21 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 
 
 ```
+<<<<<<< HEAD
 Observed (points) and predicted (line, shaded interval) variation of the minimum temperature that allows for development at >= 50% efficiency according to latitude and lifestage using model:  lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis).
 This temperature is where D-interval starts
+=======
+
+
+
+
+
+
+
+
+
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 ```{r}
 # Imax
@@ -654,12 +710,20 @@ ggplot(IntervalAnalysis, aes(x = absLat, y = Imax, col = lifestage))+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(10,40)
 ```
+<<<<<<< HEAD
 Observed (points) variation of the maximum temperature that allows for development at >= 50% efficiency. Neither absolute latitude nor lifestage explained the observed variation.
 This temperature is where D-interval starts
+=======
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 ```{r}
 #Ilength
 hist(IntervalAnalysis$Ilength)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) # 
 summary(fit4)
 Anova(fit4) # 
@@ -678,7 +742,11 @@ ggplot(IntervalAnalysis, aes(x = absLat, y = Ilength, col = lifestage))+
   ylim(0,40)
 
 ```
+<<<<<<< HEAD
 Length of the interval of temperatures that allowed for development at >=50% efficiency. interval length varied from min `r min(IntervalAnalysis$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis$Ilength, na.rm = T)`
+=======
+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
 
 ```{r}
 Intervar <- select(IntervalAnalysis, set, Ilength, Imin, Imax)
@@ -687,7 +755,11 @@ allvalues <- full_join(Intervar,ToptAnalysis, by = "set")
 ggplot(allvalues, aes(x = absLat, y = Dropt, col = lifestage))+
  geom_point()+
   theme_cowplot()+
+<<<<<<< HEAD
   ylab("Maximum development rate")+
+=======
+  ylab("Dropt")+
+>>>>>>> 8981efe0f8f45626984c40d16321be596f23b557
   scale_color_viridis_d(alpha = 0.5)+
   xlab("Absolute latitude")
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
