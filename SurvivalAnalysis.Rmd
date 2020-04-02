@@ -5,18 +5,21 @@ output: html_notebook
 ## Sections
 1. Import data
 2. Select sets with at least 4 data points and a complete curve (rise, peak, fall) for egg, larva, pupa, and egg to adult.
-3. Obtain predicted survival in the range from 0 to 40 C using linear interpolation
-4. Calculate minSopt and maxSTopt
-5. Calculate interval (min, max, length)
-6. Plots
-7. Analyses
+3. Consolidate redundant sets.
+4. Obtain predicted survival in the range from 0 to 40 C using linear interpolation
+5. Calculate minSopt and maxSopt (min and max temperatures that maximize survival)
+6. Calculate S-interval (min, max, length)
+7. Visualization
+8. Analyses
 
-We used r (tydiverse) for data wrangling, (ggplot2) for data visualization
+We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean
+
 ```{r}
 # load packages
 library(tidyverse)
 library(readxl)
 library(cowplot)
+library(psych)
 ```
 
 Import data 
@@ -29,6 +32,14 @@ Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/
 ```{r}
 # Mariana's laptop
 Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
                   sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
@@ -125,7 +136,46 @@ Ana_survival$lifestage <- factor(Ana_survival$lifestage, levels = c("egg", "larv
 ```
 There are `r length(unique(Ana_survival$set))` sets of the relevant lifestages (`r length(unique(Ana_survival$sp))` species). Of those, `r length(unique(egg_survival$set))` correspond to egg (N = `r length(unique(egg_survival$sp))` species), `r length(unique(larva_survival$set))` to larva (N = `r length(unique(larva_survival$sp))` species), `r length(unique(pupa_survival$set))`to pupa (N = `r length(unique(pupa_survival$sp))` species) and `r length(unique(eggtoemergence_survival$set))` to eggtoadult (N = `r length(unique(eggtoemergence_survival$sp))`)
 
-3. Obtain predicted survival in the range from 0 to 40C using linear interpolation. 
+3. Consolidate redundant sets
+Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
+Consolidated sets kept the number (unique set identifier) of the first set they include.
+
+
+```{r}
+# make a new column that unifies redundant sets
+Ana_survival <- Ana_survival %>% 
+  mutate(redundancy_id = as.numeric(factor(paste(sp, locality, lifestage, id))))
+
+#length(unique(Ana_survival$set)) # there were 156 sets
+#length(unique(Ana_survival$redundancy_id)) # there were 137 non-redundant sets
+
+# Function to get the geometric mean of development rate (dr_c), and mean (dr2)
+mean_redundant <- function(dat){
+newset <- dat$set [[1]]
+dat %>%
+  select(temp, sp, survival) %>% 
+  group_by(temp) %>% 
+  summarise(survival_c = geometric.mean(survival),
+            survival2 = mean(survival), 
+            newset = newset,
+            n_sets = length(survival)) 
+}
+
+# Apply function to Ana_survival
+
+Ana_survival_consolidated <- Ana_survival %>% 
+  group_by(redundancy_id) %>% 
+  nest() %>% 
+  mutate(consolidated = map(data, mean_redundant)) %>% 
+  select(redundancy_id, consolidated) %>% 
+  unnest(col = consolidated)# Function
+
+# re-name variables. Note that consolidated sets summarize multiple sets and got assigned the number (set id value) of the first set.
+names(Ana_survival_consolidated) <- c("redundancy_id", "temp", "survival", "survival2", "set", "n_sets")
+```
+
+
+4. Obtain predicted survival in the range from 0 to 40C using linear interpolation. 
 
 ```{r}
 #create curves: 1- Make interpolation function:
@@ -135,7 +185,7 @@ interpolate <- function(dat) {
   
 }
 
-Predicted_Ana_survival <-  Ana_survival %>% 
+Predicted_Ana_survival <-  Ana_survival_consolidated %>% 
   group_by(set) %>% 
   nest() %>% 
   mutate(predicted = map(data,interpolate)) %>% 
@@ -145,8 +195,7 @@ names(Predicted_Ana_survival) <- c("set", "temp", "survival")
 ```
 
 
-
-4. Obtain minSopt and  maxSopt
+5. Calculate minSopt and  maxSopt
 ```{r}
 # function to get optimum
 dat <- filter(Ana_survival, set == 3)
@@ -178,20 +227,7 @@ Sopts_table <- inner_join(Sopts, add_info, by = "set")
 
 ```
 
-
-
-
-```{r}
-#Apply get_2_optima() to sets with multiple optimum temperatures
-two_optima_table <- multiple %>% 
-  group_by(set) %>% 
-  nest() %>% 
-  mutate(Opt = map(data,get_2_optima)) %>% 
-  select(set, Opt) %>% 
-  unnest( cols = c(Opt))
-```
-
-5. Calculate interval (min 50% dr, max 50% dr, length)
+6. Calculate interval (min 50% dr, max 50% dr, length)
 
 ```{r}
 
@@ -239,7 +275,7 @@ get_interval <- function(dat){
 
 
 ```{r}
-# Apply get interval to everything
+
 # apply function to all sets
 
 Interval <- Predicted_Ana_survival %>% 
@@ -287,7 +323,8 @@ ggplot(Sopts_table, aes(x = lifestage, y = maxSopt))+
   ylim(0,40)
   
 ```
-Highest temperature that allows for development time at the optimum rate
+Highest temperature that allows for optimum survival by lifestage
+
 ```{r}
 ggplot(filter(Sopts_table, quality != "inferred"), aes(x = abs(lat), y = maxSopt))+
   geom_point()+
@@ -297,7 +334,7 @@ ggplot(filter(Sopts_table, quality != "inferred"), aes(x = abs(lat), y = maxSopt
   #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
-
+Highest temperature that allows for optimum survival by absolute latitude
 
 ```{r}
 ggplot(Sopts_table, aes(x = lifestage, y = minSopt))+
@@ -308,23 +345,13 @@ ggplot(Sopts_table, aes(x = lifestage, y = minSopt))+
   ylim(0,40)
   
 ```
-Minimum temperature that 
-```{r}
-ggplot(min_Topt_table, aes(x = abs(lat), y = minTDopt), col = "quality")+
-  geom_point()+
-  theme_cowplot()+
-  ylab("TDopt (min)")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-   facet_wrap(.~lifestage)
-```
-
-
+Minimum temperature that allows for optimum survival by life stage
 
 ```{r}
 ggplot(filter(Sopts_table, quality != "inferred"), aes(x = abs(lat), y = minSopt))+
   geom_point()+
   theme_cowplot()+
-  ylab("maxSopt")+
+  ylab("minSopt")+
   xlab("Absolute latitude")+
   #ylim(10,40)+
   facet_wrap(.~lifestage)
@@ -339,7 +366,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
   ylim(0,40)
 
 ```
-
+Length of the temperature interval that allows for >= 50% survival by life stage
 
 
 ```{r}
@@ -364,6 +391,7 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Ilen
   #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
+Length of the temperature interval that allows for >= 50% survival by absolute latitude
 
 ```{r}
 ggplot(Interval_table, aes(x = lifestage, y = Imin))+
@@ -373,7 +401,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Imin))+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(0,40)
 ```
-
+lowest temperature that allows for 50% survival by lifestage
 
 ```{r}
 ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
@@ -385,7 +413,7 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin
   facet_wrap(.~lifestage)
 ```
 
-
+Lowest temperature that allows for >=50% survival by absolute latitude
 
 
 
@@ -398,6 +426,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Imax))+
   ylim(10,40)
 ```
 
+Highest temperature that allows for 50% survival by lifestage
 
 ```{r}
 ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
@@ -408,53 +437,178 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin
   #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
+Highest temperature that allows for 50% survival by absolute latitude
 
 
 
-7. Perform analyses
-
-1Remove all objects without relevant data
-Tables with relevant data: max_Topt_table, min_Topt_table, Interval_table
-Dtopt
+8. Analyses
+Sopts_table
+Interval_table
 ```{r}
 library(lme4)
 library(car)
-hist(Sopts_table$maxSopt)
 
-fit1 <- lmer(maxSopt ~ lifestage + (1|sp) + (1|family), data = filter(Sopts_table, lifestage != "eggtoemergence")) # 
+hist(Topt_table$maxTDopt)
+shapiro.test((Topt_table$maxTDopt))
+SoptsAnalysis <- filter(Sopts_table, lifestage != "eggtoemergence", quality!= "inferred")
+
+SoptsAnalysis$absLat <- abs(SoptsAnalysis$lat)
+
+fit1 <- lmer(maxSopt ~ lifestage + absLat + (1|sp) + (1|family), data = SoptsAnalysis) #
 summary(fit1)
-
 Anova(fit1) # 
 plot(fit1) #
 ```
 
+Lifestage and absolute latitude explained variation in maxSopt
+
 ```{r}
-#Imin
-hist(Interval_table$Imin)
-shapiro.test(Interval_table$Imin)
-fit2 <- glmer(Imin ~ lifestage + (1|sp) + (1|family), data = Interval_table, family = Gamma(link = "inverse")) # 
+library(effects)
+library(ggeffects)
+SoptsAnalysis$group <- SoptsAnalysis$lifestage
+pred <- ggpredict(fit1, terms = c("absLat","lifestage"))
+
+#plot(pred2)
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  geom_point(data = SoptsAnalysis, mapping = aes(x = abs(lat), y = maxSopt, col =group ))+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("maxSopt")+
+  xlab("Absolute latitude")+
+  ylim(10, 35)+
+  theme_cowplot()#+
+  #facet_grid(.~group)
+```
+
+
+
+```{r}
+#minSopt
+
+hist(SoptsAnalysis$minSopt)
+shapiro.test(SoptsAnalysis$minSopt)
+
+fit2 <- lmer(minSopt ~ lifestage + absLat + (1|sp) + (1|family), data = SoptsAnalysis) #
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
 ```
 
+Lifestage and absolute latitude explained variation in minSopt
+
 ```{r}
-# Imax
-hist(Interval_table$Imax)
-shapiro.test((Interval_table$Imax))
-fit3 <- lmer(Imax ~ lifestage + (1|sp) + (1|family), data = Interval_table) # 
+
+pred <- ggpredict(fit2, terms = c("absLat","lifestage"))
+
+#plot(pred2)
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  geom_point(data = SoptsAnalysis, mapping = aes(x = abs(lat), y = minSopt, col =group ))+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("minSopt")+
+  xlab("Absolute latitude")+
+  ylim(10, 35)+
+  theme_cowplot()#+
+  #facet_grid(.~group)
+```
+
+
+
+```{r}
+#Imin
+IntervalAnalysis <- filter(Interval_table, lifestage != "eggtoemergence", quality!= "inferred")
+
+IntervalAnalysis$absLat <- abs(IntervalAnalysis$lat)
+IntervalAnalysis$group <- IntervalAnalysis$lifestage
+hist(IntervalAnalysis$Imin)
+shapiro.test(IntervalAnalysis$Imin)
+fit3 <- lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) #
 summary(fit3)
 Anova(fit3) # 
 plot(fit3) #
 ```
+Absolute latitude, but not lifestage affected Imin
+
 
 ```{r}
-#Ilength
-hist(Interval_table$Ilength)
-shapiro.test((Interval_table$Ilength))
-fit4 <- lmer(Ilength ~ lifestage + (1|sp),data = Interval_table) # 
+pred <- ggpredict(fit3, terms = c("absLat","lifestage"))
+
+#plot(pred2)
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imin, col =group ))+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Imin")+
+  xlab("Absolute latitude")+
+  #ylim(10, 35)+
+  theme_cowplot()#+
+  #facet_grid(.~group)
+```
+
+
+
+```{r}
+# Imax
+hist(Interval_table$Imax)
+shapiro.test((Interval_table$Imax))
+fit4 <- lmer(Imax ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) # 
 summary(fit4)
 Anova(fit4) # 
 plot(fit4) #
 ```
 
+Absolute latitude, but not lifestage affected variation in Imin
+```{r}
+pred <- ggpredict(fit4, terms = c("absLat","lifestage"))
+
+#plot(pred2)
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imax, col =group ))+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Imax")+
+  xlab("Absolute latitude")+
+  #ylim(10, 35)+
+  theme_cowplot()#+
+  #facet_grid(.~group)
+```
+
+
+```{r}
+#Ilength
+hist(Interval_table$Ilength)
+shapiro.test((Interval_table$Ilength))
+fit5 <- lmer(Ilength ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis)# 
+summary(fit5)
+Anova(fit5) # 
+plot(fit5) #
+```
+
+```{r}
+pred <- ggpredict(fit5, terms = c("absLat","lifestage"))
+
+#plot(pred2)
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  #geom_line()+
+  #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Ilength, col =group ))+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Ilength")+
+  xlab("Absolute latitude")+
+  #ylim(10, 35)+
+  theme_cowplot()#+
+  #facet_grid(.~group)
+```
+
+Neither absolute latitude or life stage explained variation in the length of the interval of temperatures that allow for >=50% survival.
+
+Length of the interval of temperatures that allowed for >=50% survival. interval length varied from min `r min(IntervalAnalysis$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis$Ilength, na.rm = T)`
