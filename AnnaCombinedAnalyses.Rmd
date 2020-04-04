@@ -15,7 +15,9 @@ This script is working with the subsetted dataset that contains only those sets 
 4. Copy Mariana's functions to calculate metrics
 5. Apply to all sets
 6. Calculate difference in midpoint of favorable intervals for each set 
-7. Graph metrics for all sets
+7. Find "p" metric for all sets, its max, and its favorable interval
+8. Find the percentage of the p favorable interval that lies below the maximum and above the maximum
+9. Graph metrics for all sets
 
 ## 1. Load in the Data
 
@@ -23,6 +25,7 @@ This script is working with the subsetted dataset that contains only those sets 
 library(tidyverse)
 library(readxl)
 library(cowplot)
+library(data.table)
 ```
 
 ```{r}
@@ -436,7 +439,91 @@ which(set_data$midDiff < 0) # all other sets
 
 Interestingly, the midpoint of the favorable interval for survival is almost always lower than the midpoint of the favorable interval for scaled development rate.  
 
-## 7. Graph metrics for all sets
+## 7. Getting p-metric (survival * dev rate)
+
+Making the appropriate changes to the main dataset:
+
+Scaling survival:
+
+```{r}
+inter$s_survival <- inter$survival / 100
+```
+
+Creating a p column:
+```{r}
+inter$p <- inter$s_dr * inter$s_survival
+```
+
+```{r}
+which.max(inter$p)
+```
+
+
+Copying the same loop, basically, for survival and dev rate. 
+
+```{r}
+p_range_vals <- data.frame(set = numeric(), minTemp = numeric(), maxTemp = numeric(), pMaxTemp = numeric(), favIntWidth = numeric(), favIntMidTemp = numeric(), belowpMax = numeric(), abovepMax = numeric())
+
+p_range <- function(table){
+
+  #1
+  for (i in 1:length(setvals[, 1])){
+    set <- filter(table, set == setvals[i, 1])
+    set <- set[complete.cases(set$p), ]
+    max <- max(set$p)
+    min <- min(set$p)
+    mid <- ((max - min)/2) + min
+  
+  #2  
+    interpol <- approx(x = set$temp, y = set$p, method = "linear", rule = 1, n = 1000)
+    interpol <- as.data.frame(interpol)
+    
+    interpol_temps <- data.frame(temp = character())
+
+  #3
+    for (j in 1:length(interpol$x)){
+      if (interpol[j, 2] >= mid){
+      interpol_temps <- rbind(interpol_temps, interpol[j, 1]) 
+        
+      }
+    
+    } 
+    
+  #4  
+    min_interpol <- min(interpol_temps)
+    max_interpol <- max(interpol_temps)
+    
+    pMaxrow <- set[which.max(set$p), ]
+    #pMaxrow <- aggregate(set$temp, by = p, set, max)
+    #print(pMaxrow)
+    pMaxtemp <- pMaxrow$temp
+      
+  #5  
+    new_row <- c(setvals[i, 1], min_interpol, max_interpol, pMaxtemp, max_interpol - min_interpol,
+                 min_interpol + ((max_interpol - min_interpol)/2), 
+                 ((pMaxtemp - min_interpol)/(max_interpol - min_interpol)), 
+                 ((max_interpol - pMaxtemp)/(max_interpol - min_interpol)) )
+    p_range_vals <- rbind(p_range_vals, new_row)
+  } 
+  p_range_vals <- setNames(p_range_vals, c("set", "minTemp", "maxTemp", "pMaxTemp", "favIntWidth",
+                                           "favIntMidTemp", "belowpMax", "abovepMax"))
+  return(p_range_vals)
+}
+
+p_range_inter <- p_range(inter)
+
+p_range_inter
+```
+
+## 8. Calculate what proportion of each p favorable interval lies above and below the maximum
+
+```{r}
+
+```
+
+
+
+## 9. Graph metrics for all sets
 
 Use a loop to make a graph like this one for each set? Print those graphs out into png images? Yes! 
 
@@ -470,10 +557,6 @@ Mariana's code to base my plots off of:
 ```
 
 Creating my huge horrible loop:
-
-```{r}
-inter$s_survival <- inter$survival / 100
-```
 
 ```{r}
 graphing <- function(table){
