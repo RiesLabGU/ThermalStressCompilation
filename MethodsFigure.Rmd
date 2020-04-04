@@ -81,8 +81,9 @@ Popt: temperature that maximizes performance
 
 ```{r}
 # Woring set and functions
-
-set_w <- filter(Ana, set == 208) # working set
+#208 good options :460
+#no: 179
+set_w <- filter(Ana, set == 722) # working set
 
 # Functions to make a smooth curve 
 # 1 Development rate
