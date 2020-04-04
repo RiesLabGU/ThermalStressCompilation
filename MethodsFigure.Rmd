@@ -66,7 +66,6 @@ We compiled a database including records of development time and/or survival  of
 Using linear interppolation we calculated the following variables in all complete sets (curves including both a rise and a fall) for development rate (n = `r length(d_complete_sets$set)`) and for survival (n = `r length(s_complete_sets$set)`)
 
 Dopt: temperature that maximizes development rate
-<<<<<<< HEAD
 
 maxSopt: maximum temperature that maximizes survival, 
 
