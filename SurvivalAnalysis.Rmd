@@ -448,8 +448,8 @@ Interval_table
 library(lme4)
 library(car)
 
-hist(Topt_table$maxTDopt)
-shapiro.test((Topt_table$maxTDopt))
+hist(Sopts_table$maxSopt)
+shapiro.test((Sopts_table$maxSopt))
 SoptsAnalysis <- filter(Sopts_table, lifestage != "eggtoemergence", quality!= "inferred")
 
 SoptsAnalysis$absLat <- abs(SoptsAnalysis$lat)
@@ -461,6 +461,8 @@ plot(fit1) #
 ```
 
 Lifestage and absolute latitude explained variation in maxSopt
+
+
 
 ```{r}
 library(effects)
@@ -544,7 +546,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imin, col =group ))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("Imin")+
+  ylab("S-interval min")+
   xlab("Absolute latitude")+
   #ylim(10, 35)+
   theme_cowplot()#+
@@ -574,7 +576,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imax, col =group ))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("Imax")+
+  ylab("S-Interval, max")+
   xlab("Absolute latitude")+
   #ylim(10, 35)+
   theme_cowplot()#+
@@ -602,7 +604,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Ilength, col =group ))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("Ilength")+
+  ylab("S-Interval length")+
   xlab("Absolute latitude")+
   #ylim(10, 35)+
   theme_cowplot()#+
