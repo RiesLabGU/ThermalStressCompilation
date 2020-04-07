@@ -332,7 +332,7 @@ get_interval <- function(dat){
     grade_hot <- "incomplete"
   } else {
     y_minhot <- min(filter(hot, dr >= y_max/2)[["dr"]])
-    x_min_hot <- min(filter(hot, dr >= y_max/2)[["temp"]])
+    x_min_hot <- max(filter(hot, dr >= y_max/2)[["temp"]])
     grade_hot <- "complete"
   }
   
