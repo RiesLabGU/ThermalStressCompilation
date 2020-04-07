@@ -59,8 +59,8 @@ To be included in development rate analyses, sets should have at least 4 tempera
 
 ```{r}
 # Function to determine whether a set is:
-# "Complete" (has low, peak and high values)
-# "Incomplete" (only low and peak)
+# "Complete" (has rise, peak, fall)
+# "Incomplete" 
 # "No data" (no development rate data available)
 Ana$set2 <- Ana$set
 is_complete <- function(dat){
@@ -654,6 +654,7 @@ The upper limit of D- interval (maximum temperature that allowed for development
 
 ```{r}
 
+
 ggplot(IntervalAnalysis_hot, aes(x = absLat, y = Imax, col = lifestage))+
  geom_point()+
   theme_cowplot()+
@@ -671,8 +672,8 @@ This temperature is where D-interval starts
 #Ilength
 IntervalAnalysis_both <- filter(Interval_table_both, lifestage != "eggtoemergence", quality!= "inferred")
 IntervalAnalysis_both$absLat <- abs(IntervalAnalysis_both$lat)
-hist(IntervalAnalysis$Ilength)
-fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_both) # 
+hist(IntervalAnalysis_both$Ilength)
+fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_both) # 
 summary(fit4)
 Anova(fit4) # 
 plot(fit4) #
