@@ -74,10 +74,10 @@ is_complete <- function(dat){
   lifestage <- unique(dat$lifestage)
   seti <- unique(dat$set2)
   print(paste("set:",seti))
-  print(species)
-  print(lifestage)
-  print(x_max)
-  print(y_max)
+  #print(species)
+  #print(lifestage)
+  #print(x_max)
+  #print(y_max)
   cold <- filter(dat, temp < x_max)  
   hot <- filter(dat, temp > x_max)  
   # if(sum(cold$dr >=0) && sum(hot$dr >=0)){
@@ -320,8 +320,8 @@ get_interval <- function(dat){
     x_min_cold <- NA
     grade_cold <- "incomplete"
   } else{
-    y_mincold <- min(filter(cold, dr <= y_max/2)[["dr"]])
-    x_min_cold <- min(filter(cold, dr <= y_max/2)[["temp"]])
+    y_mincold <- min(filter(cold, dr >= y_max/2)[["dr"]])
+    x_min_cold <- min(filter(cold, dr >= y_max/2)[["temp"]])
     grade_cold <- "complete"
   }
   
@@ -331,8 +331,8 @@ get_interval <- function(dat){
     x_min_hot <- NA 
     grade_hot <- "incomplete"
   } else {
-    y_minhot <- min(filter(hot, dr <= y_max/2)[["dr"]])
-    x_min_hot <- min(filter(hot, dr <= y_max/2)[["temp"]])
+    y_minhot <- min(filter(hot, dr >= y_max/2)[["dr"]])
+    x_min_hot <- min(filter(hot, dr >= y_max/2)[["temp"]])
     grade_hot <- "complete"
   }
   
@@ -363,7 +363,9 @@ Interval <- Predicted_Ana_dr %>%
   unnest(cols = interval)
 Interval_table1 <- inner_join(Interval, add_info, by = "set")
 Interval_table1$lifestage <- factor(Interval_table1$lifestage, levels = c("egg", "larva", "pupa", "eggtoemergence"))
-Interval_table <- filter(Interval_table1, gradecold == "complete", gradehot == "complete")
+Interval_table_cold <- filter(Interval_table1, gradecold == "complete")
+Interval_table_hot <- filter(Interval_table1, gradehot == "complete")
+Interval_table_both <- filter(Interval_table1, gradecold == "complete", gradehot == "complete")
 rm(Interval_table1)
 ```
 
@@ -383,7 +385,9 @@ rm(Interval_table1)
 Description of tables relevant for analysis
 Ana: original table
 Ana_dr: table with complete sets of relevant lifestages
-Interval_table: Imin, Imax and Ilength
+Interval_table_cold: Imin
+Interval_table_hot: Imax 
+Interval_table_both: Ilength
 Topt_table: table of maximum temperatures that allow for development rate at maximum efficiency
 min_Topt_table: table of minimum temperatures that allow for development rate at maximum efficiency. There are two tables because in some cases there are several optima instead of one. plots for these tables are almost the same, so we should choose 1 (Topt_table) to focus but analyze both and report if results were the same or different
 
@@ -457,7 +461,7 @@ ggplot(filter(Ana_dr, set == 1005), aes(x = temp, y = dr))+
 ```
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
+ggplot(Interval_table_both, aes(x = lifestage, y = Ilength))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("D-interval length")+
@@ -471,7 +475,7 @@ Lenght of the temperature interval that allows for development rates at >=50% ef
 
 ```{r}
 # Summary statistics
-summary <-Interval_table %>% 
+summary <-Interval_table_both %>% 
   group_by(lifestage) %>% 
   summarise(median = median(Ilength, na.rm = T), q0.25 =quantile(Ilength,probs =0.25, na.rm = T), q0.75 =quantile(Ilength,probs =0.75, na.rm = T), N = n())#, c(0.25, 0.5, 0.75), type = 1,na.rm = T))
 
@@ -483,7 +487,7 @@ summary
  
 ```{r}
 
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Ilength, col = family))+
+ggplot(filter(Interval_table_both, quality != "inferred"), aes(x = abs(lat), y = Ilength, col = family))+
   geom_point()+
   theme_cowplot()+
   ylab("D-interval length")+
@@ -493,7 +497,7 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Ilen
 ```
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Imin))+
+ggplot(Interval_table_cold, aes(x = lifestage, y = Imin))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("D-interval minimum (C)")+
@@ -503,7 +507,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Imin))+
 Minimum temperature that allows for development at >= 50% efficiency
 
 ```{r}
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+ggplot(filter(Interval_table_cold, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
   geom_point()+
   theme_cowplot()+
   ylab("D-interval minimum")+
@@ -517,7 +521,7 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin
 
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Imax))+
+ggplot(Interval_table_hot, aes(x = lifestage, y = Imax))+
  geom_boxplot()+
   theme_cowplot()+
   ylab("D-interval max")+
@@ -527,7 +531,7 @@ ggplot(Interval_table, aes(x = lifestage, y = Imax))+
 Maximum temperature that allows for development at >= 50% efficiency.
 
 ```{r}
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+ggplot(filter(Interval_table_hot, quality != "inferred"), aes(x = abs(lat), y = Imax), col = "quality")+
   geom_point()+
   theme_cowplot()+
   ylab("D-interval maximum")+
@@ -574,7 +578,7 @@ pred2 <- Effect(c("absLat","lifestage"),fit1)
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  geom_point(data = ToptAnalysis, mapping = aes(x = abs(lat), y = maxTDopt, col =group ))+
+  geom_point(data = ToptAnalysis, mapping = aes(x = abs(lat), y = maxTDopt, col =group, alpha = 0.1))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   ylab("Dopt")+
@@ -593,11 +597,11 @@ Observed (points) and predicted (line, shaded interval) variation of Dopt (tempe
 
 ```{r}
 #Imin
-IntervalAnalysis <- filter(Interval_table, lifestage != "eggtoemergence", quality!= "inferred")
-IntervalAnalysis$absLat <- abs(IntervalAnalysis$lat)
+IntervalAnalysis_cold <- filter(Interval_table_cold, lifestage != "eggtoemergence", quality!= "inferred")
+IntervalAnalysis_cold$absLat <- abs(IntervalAnalysis_cold$lat)
 
 
-fit2 <- lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) # 
+fit2 <- lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_cold) # 
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
@@ -612,17 +616,17 @@ Absolute latitude, but not life stage explained variation in Imin
 library(effects)
 library(ggeffects)
 pred <- ggpredict(fit2, terms = c("absLat","lifestage"))
-IntervalAnalysis$group <- IntervalAnalysis$lifestage
+IntervalAnalysis_cold$group <- IntervalAnalysis_cold$lifestage
 
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("Imin")+
+  ylab("D-interval lower limit")+
   xlab("Absolute latitude")+
  # ylim(5, 20)+
-  geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imin, col =group ), alpha = 0.4)+
+  geom_point(data = IntervalAnalysis_cold, mapping = aes(x = abs(lat), y = Imin, col =group ), alpha = 0.4)+
   theme_cowplot()
 
 
@@ -631,25 +635,29 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 ```
 
 Observed (points) and predicted (line, shaded interval) variation of the minimum temperature that allows for development at >= 50% efficiency according to latitude and lifestage using model:  lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis).
-This temperature is where D-interval starts
+The lower limit of D- interval (minimum temperature that allowed for development at 50% efficiency or higher) ranged from `r min(IntervalAnalysis_cold$Imin)`ºC to `r max(IntervalAnalysis_cold$Imin)`ºC, and the mean was `r mean(IntervalAnalysis_cold$Imin)` ± `r sd(IntervalAnalysis_cold$Imin)` (mean ± SD, N = `r length(unique(IntervalAnalysis_cold$set))` sets from `r length(unique(IntervalAnalysis_cold$sp))` species).
+
 
 ```{r}
 # Imax
-hist(Interval_table$Imax)
-shapiro.test((Interval_table$Imax))
-fit3 <- lmer(Imax ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) # 
+IntervalAnalysis_hot <- filter(Interval_table_hot, lifestage != "eggtoemergence", quality!= "inferred")
+IntervalAnalysis_hot$absLat <- abs(IntervalAnalysis_hot$lat)
+hist(Interval_table_hot$Imax)
+shapiro.test((Interval_table_hot$Imax))
+fit3 <- lmer(Imax ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_hot) # 
 summary(fit3)
 Anova(fit3) # 
 plot(fit3) #
 ```
 
-The maximum temperature did not vary across latitudes, or lifestages.
+The upper limit of D- interval (maximum temperature that allowed for development at 50% efficiency or higher) ranged from `r min(IntervalAnalysis_hot$Imax, na.rm = T)`ºC to `r max(IntervalAnalysis_hot$Imax, na.rm = T)`ºC, and the mean was `r mean(IntervalAnalysis_hot$Imax, na.rm = T)` ± `r sd(IntervalAnalysis_hot$Imax, na.rm = T)` (mean ± SD, N = `r length(unique(IntervalAnalysis_hot$set))` sets from `r length(unique(IntervalAnalysis_hot$sp))` species).The maximum temperature did not vary across latitudes, or lifestages.
 
 ```{r}
-ggplot(IntervalAnalysis, aes(x = absLat, y = Imax, col = lifestage))+
+
+ggplot(IntervalAnalysis_hot, aes(x = absLat, y = Imax, col = lifestage))+
  geom_point()+
   theme_cowplot()+
-  ylab("D-interval max")+
+  ylab("D-interval upper limit")+
   scale_color_viridis_d(alpha = 0.5)+
   xlab("Absolute latitude")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
@@ -661,8 +669,10 @@ This temperature is where D-interval starts
 
 ```{r}
 #Ilength
+IntervalAnalysis_both <- filter(Interval_table_both, lifestage != "eggtoemergence", quality!= "inferred")
+IntervalAnalysis_both$absLat <- abs(IntervalAnalysis_both$lat)
 hist(IntervalAnalysis$Ilength)
-fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis) # 
+fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_both) # 
 summary(fit4)
 Anova(fit4) # 
 plot(fit4) #
@@ -670,22 +680,22 @@ plot(fit4) #
 
 ```{r}
 
-ggplot(IntervalAnalysis, aes(x = absLat, y = Ilength, col = lifestage))+
+ggplot(IntervalAnalysis_both, aes(x = absLat, y = Ilength, col = lifestage))+
  geom_point()+
   theme_cowplot()+
   ylab("D-interval length")+
   scale_color_viridis_d(alpha = 0.5)+
   xlab("Absolute latitude")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(0,40)
+  ylim(0,20)
 
 ```
 
-Length of the interval of temperatures that allowed for development at >=50% efficiency. interval length varied from min `r min(IntervalAnalysis$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis$Ilength, na.rm = T)`
+Length of the interval of temperatures that allowed for development at >=50% efficiency. interval length varied from  `r min(IntervalAnalysis_both$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis_both$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis_both$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis_both$Ilength, na.rm = T)`, N = `r length(unique(IntervalAnalysis_both$set))` sets from `r length(unique(IntervalAnalysis_both$sp))` species).
 
 
 ```{r}
-Intervar <- select(IntervalAnalysis, set, Ilength, Imin, Imax)
+Intervar <- select(IntervalAnalysis_both, set, Ilength, Imin, Imax)
 
 allvalues <- full_join(Intervar,ToptAnalysis, by = "set")
 ggplot(allvalues, aes(x = absLat, y = Dropt, col = lifestage))+
