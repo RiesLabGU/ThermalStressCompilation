@@ -59,8 +59,8 @@ To be included in development rate analyses, sets should have at least 4 tempera
 
 ```{r}
 # Function to determine whether a set is:
-# "Complete" (has low, peak and high values)
-# "Incomplete" (only low and peak)
+# "Complete" (has rise, peak, fall)
+# "Incomplete" 
 # "No data" (no development rate data available)
 Ana$set2 <- Ana$set
 is_complete <- function(dat){
@@ -653,6 +653,7 @@ plot(fit3) #
 The upper limit of D- interval (maximum temperature that allowed for development at 50% efficiency or higher) ranged from `r min(IntervalAnalysis_hot$Imax, na.rm = T)`ºC to `r max(IntervalAnalysis_hot$Imax, na.rm = T)`ºC, and the mean was `r mean(IntervalAnalysis_hot$Imax, na.rm = T)` ± `r sd(IntervalAnalysis_hot$Imax, na.rm = T)` (mean ± SD, N = `r length(unique(IntervalAnalysis_hot$set))` sets from `r length(unique(IntervalAnalysis_hot$sp))` species).The maximum temperature did not vary across latitudes, or lifestages.
 
 ```{r}
+
 
 ggplot(IntervalAnalysis_hot, aes(x = absLat, y = Imax, col = lifestage))+
  geom_point()+
