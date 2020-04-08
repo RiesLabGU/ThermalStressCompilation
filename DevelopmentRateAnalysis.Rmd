@@ -12,7 +12,7 @@ output: html_notebook
 7. Visualization
 8. Analyses
 
-We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean
+We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean, (readxl) to import excel file, (cowplot) to format ggplots
 ```{r}
 # load packages
 library(tidyverse)
@@ -55,7 +55,7 @@ Ana <- Ana %>%
 ```
 
 # 2. Select sets 
-To be included in development rate analyses, sets should have at least 4 temperature treatments reporting development time and form a complete curve (rise, peak, fall). We restricted analyses to four life stages: egg, larva, pupa and egg to adult.
+To be included in development rate analyses, sets should have at least 4 temperature treatments reporting development time and form a complete curve (rise, peak, fall). We restricted analyses to four life stages: egg, larva, pupa, and egg to adult.
 
 ```{r}
 # Function to determine whether a set is:
@@ -400,9 +400,8 @@ ggplot(Topt_table, aes(x = lifestage, y = maxTDopt))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("Dopt (C)")+
-  ylab("TDopt (C)")+
   xlab("Life stage")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   #geom_text(mapping = aes(x = lifestage, y = maxTDopt, label = sp))+
   ylim(10,40)
   
@@ -413,12 +412,12 @@ Optimum development rates of all life stages occurred between `r min(Topt_table$
 
 
 ```{r}
-# I'm exluding points where locality was not reported ("inferred" value in field quiality)
+# I'm exluding points where locality was not reported ("inferred" value in field "quality"")
 
 ggplot(filter(Topt_table, quality != "inferred"), aes(x = abs(lat), y = maxTDopt, col = family))+
   geom_point()+
   theme_cowplot()+
-  ylab("TDopt")+
+  ylab("Topt")+
   xlab("Absolute latitude")+
   #geom_text(data = filter(max_Topt_table, sp == "Pteroma pendula"), mapping = aes(x = abs(lat), y = maxTDopt, label = sp))+
   facet_wrap(.~lifestage)
@@ -453,10 +452,11 @@ Same patters if instead of using the max value for TDopt we use the minimum for 
 #   geom_text()
 
 ```
-This is to check outliers (sets 1005, 175).1005 is incomplete, 175 is fine.
+
 ```{r}
-ggplot(filter(Ana_dr, set == 1005), aes(x = temp, y = dr))+
-  geom_point()
+#This is to check outliers (sets 1005, 175).1005 is incomplete, 175 is fine.
+# ggplot(filter(Ana_dr, set == 1005), aes(x = temp, y = dr))+
+#   geom_point()
 
 ```
 
@@ -465,12 +465,12 @@ ggplot(Interval_table_both, aes(x = lifestage, y = Ilength))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("D-interval length")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = Ilength, col = family))+
   ylim(0,40)
 
 ```
 
-Lenght of the temperature interval that allows for development rates at >=50% efficiency.  
+Length of the temperature interval that allows for development rates at >=50% efficiency.  
 
 
 ```{r}
@@ -486,13 +486,10 @@ summary
  Median length of the favorable interval (allows for development to occur at 50% efficiency) was `r summary[summary$lifestage == "egg", "median"][[1]] `C for eggs (N = `r summary[summary$lifestage == "egg", "N"][[1]] `), `r summary[summary$lifestage == "larva", "median"][[1]] `C for larvae (N = `r summary[summary$lifestage == "egg", "median"][[1]] `), `r summary[summary$lifestage == "pupa", "N"][[1]] `C for pupae (N = `r summary[summary$lifestage == "egg", "N"][[1]] `), and `r summary[summary$lifestage == "eggtoemergence", "median"][[1]] ` for the whole lifecycle (egg to emergence, N = `r summary[summary$lifestage == "egg", "N"][[1]] `)
  
 ```{r}
-
 ggplot(filter(Interval_table_both, quality != "inferred"), aes(x = abs(lat), y = Ilength, col = family))+
   geom_point()+
   theme_cowplot()+
   ylab("D-interval length")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
 
@@ -500,9 +497,8 @@ ggplot(filter(Interval_table_both, quality != "inferred"), aes(x = abs(lat), y =
 ggplot(Interval_table_cold, aes(x = lifestage, y = Imin))+
   geom_boxplot()+
   theme_cowplot()+
-  ylab("D-interval minimum (C)")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(0,20)
+  ylab("D-interval lower limit (C)")+
+  geom_jitter(mapping = aes(x = lifestage, y = Imin, col = family))
 ```
 Minimum temperature that allows for development at >= 50% efficiency
 
@@ -510,9 +506,8 @@ Minimum temperature that allows for development at >= 50% efficiency
 ggplot(filter(Interval_table_cold, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
   geom_point()+
   theme_cowplot()+
-  ylab("D-interval minimum")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  #ylim(10,40)+
+  ylab("D-interval lower limit")+
+  
   facet_wrap(.~lifestage)
 ```
 
@@ -524,9 +519,9 @@ ggplot(filter(Interval_table_cold, quality != "inferred"), aes(x = abs(lat), y =
 ggplot(Interval_table_hot, aes(x = lifestage, y = Imax))+
  geom_boxplot()+
   theme_cowplot()+
-  ylab("D-interval max")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(10,40)
+  ylab("D-interval upper limit")+
+  geom_jitter(mapping = aes(x = lifestage, y = Imax, col = family))
+  
 ```
 Maximum temperature that allows for development at >= 50% efficiency.
 
@@ -534,9 +529,7 @@ Maximum temperature that allows for development at >= 50% efficiency.
 ggplot(filter(Interval_table_hot, quality != "inferred"), aes(x = abs(lat), y = Imax), col = "quality")+
   geom_point()+
   theme_cowplot()+
-  ylab("D-interval maximum")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  #ylim(10,40)+
+  ylab("D-interval upper limit")+
   facet_wrap(.~lifestage)
 ```
 
@@ -564,7 +557,7 @@ plot(fit1) #
 
 Optimum development rates of all life stages occurred between `r min(ToptAnalysis$maxTDopt, na.rm = T)` and `r max(ToptAnalysis$maxTDopt, na.rm = T)`C. The mean tempeature allowing for optimum development was `r mean(ToptAnalysis$maxTDopt, na.rm = T)` sd = `r sd(ToptAnalysis$maxTDopt, na.rm = T)`. N = `r length(unique(ToptAnalysis$set))` consolidated sets of `r length(unique(ToptAnalysis$sp))` species.
 
-Absoulte latitude, but not lifestage explained variation in TDopt.
+Absoulte latitude, but not lifestage explained variation in Dopt.
 
 
 ```{r}
@@ -578,7 +571,7 @@ pred2 <- Effect(c("absLat","lifestage"),fit1)
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  geom_point(data = ToptAnalysis, mapping = aes(x = abs(lat), y = maxTDopt, col =group, alpha = 0.1))+
+  geom_point(data = ToptAnalysis, mapping = aes(x = abs(lat), y = maxTDopt, col =group ),alpha = 0.6)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   ylab("Dopt")+
@@ -601,13 +594,13 @@ IntervalAnalysis_cold <- filter(Interval_table_cold, lifestage != "eggtoemergenc
 IntervalAnalysis_cold$absLat <- abs(IntervalAnalysis_cold$lat)
 
 
-fit2 <- lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_cold) # 
+fit2 <- lmer(Imin ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_cold) # 
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
 ```
 
-Absolute latitude, but not life stage explained variation in Imin
+Absolute latitude and life stage explained variation in Imin
 
 
 
@@ -626,7 +619,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   ylab("D-interval lower limit")+
   xlab("Absolute latitude")+
  # ylim(5, 20)+
-  geom_point(data = IntervalAnalysis_cold, mapping = aes(x = abs(lat), y = Imin, col =group ), alpha = 0.4)+
+  geom_point(data = IntervalAnalysis_cold, mapping = aes(x = abs(lat), y = Imin, col =group ), alpha = 0.6)+
   theme_cowplot()
 
 
@@ -634,7 +627,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 
 ```
 
-Observed (points) and predicted (line, shaded interval) variation of the minimum temperature that allows for development at >= 50% efficiency according to latitude and lifestage using model:  lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis).
+Observed (points) and predicted (line, shaded interval) variation of the minimum temperature that allows for development at >= 50% efficiency according to latitude and lifestage using model:  lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_cold).
 The lower limit of D- interval (minimum temperature that allowed for development at 50% efficiency or higher) ranged from `r min(IntervalAnalysis_cold$Imin)`ºC to `r max(IntervalAnalysis_cold$Imin)`ºC, and the mean was `r mean(IntervalAnalysis_cold$Imin)` ± `r sd(IntervalAnalysis_cold$Imin)` (mean ± SD, N = `r length(unique(IntervalAnalysis_cold$set))` sets from `r length(unique(IntervalAnalysis_cold$sp))` species).
 
 
@@ -644,7 +637,7 @@ IntervalAnalysis_hot <- filter(Interval_table_hot, lifestage != "eggtoemergence"
 IntervalAnalysis_hot$absLat <- abs(IntervalAnalysis_hot$lat)
 hist(Interval_table_hot$Imax)
 shapiro.test((Interval_table_hot$Imax))
-fit3 <- lmer(Imax ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_hot) # 
+fit3 <- lmer(Imax ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_hot) # 
 summary(fit3)
 Anova(fit3) # 
 plot(fit3) #
@@ -659,14 +652,14 @@ ggplot(IntervalAnalysis_hot, aes(x = absLat, y = Imax, col = lifestage))+
  geom_point()+
   theme_cowplot()+
   ylab("D-interval upper limit")+
-  scale_color_viridis_d(alpha = 0.5)+
+  scale_color_viridis_d(alpha = 0.6)+
   xlab("Absolute latitude")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
-  ylim(10,40)
+  ylim(10,45)
 ```
 
 Observed (points) variation of the maximum temperature that allows for development at >= 50% efficiency. Neither absolute latitude nor lifestage explained the observed variation.
-This temperature is where D-interval starts
+
 
 ```{r}
 #Ilength
@@ -687,7 +680,6 @@ ggplot(IntervalAnalysis_both, aes(x = absLat, y = Ilength, col = lifestage))+
   ylab("D-interval length")+
   scale_color_viridis_d(alpha = 0.5)+
   xlab("Absolute latitude")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(0,20)
 
 ```
@@ -703,7 +695,7 @@ ggplot(allvalues, aes(x = absLat, y = Dropt, col = lifestage))+
  geom_point()+
   theme_cowplot()+
   ylab("Maximum development rate")+
-  scale_color_viridis_d(alpha = 0.5)+
+  scale_color_viridis_d(alpha = 0.6)+
   xlab("Absolute latitude")
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   
