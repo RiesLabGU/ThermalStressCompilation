@@ -12,7 +12,7 @@ output: html_notebook
 7. Visualization
 8. Analyses
 
-We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean
+We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean, (readxl) to import data and (cowplot) to format ggplots.
 
 ```{r}
 # load packages
@@ -113,7 +113,8 @@ SetAssessment <- Ana %>%
 
 ```
 
-From a total of `r length(unique(Ana$set))`, only  `r nrow(filter(SetAssessment, curve == "Complete"))` had a complete curve for development rate.
+From a total of `r length(unique(Ana$set))`, only  `r nrow(filter(SetAssessment, curve == "Complete"))` had a complete curve for survival.
+
 ```{r}
 # Select sets of life stages of interest: egg, larva, pupa, egg to emergence
 complete_sets <- SetAssessment %>% 
@@ -121,8 +122,8 @@ complete_sets <- SetAssessment %>%
 list_complete <- (unique(complete_sets$set))
 life_stages <- c("egg", "larva", "pupa", "eggtoemergence")
 Ana_survival <- Ana %>% 
-  filter(set %in% list_complete) %>% 
-  filter(lifestage %in% life_stages)
+  filter(set %in% list_complete) %>%  # this is to get only complete sets
+  filter(lifestage %in% life_stages) # and only the life stages of interest
 egg_survival <- Ana_survival %>%
   filter(lifestage == "egg")
 larva_survival <- Ana_survival %>%
@@ -295,7 +296,7 @@ Interval_table_hot <- filter(Interval_table1, gradehot == "complete")
 Interval_table_both <- filter(Interval_table1, gradecold == "complete", gradehot == "complete")
 rm(Interval_table1)
 ```
-Interval_table_cold: table with values for the lower end of S-Interval (some incomplete curves)
+Note there are three "Interval tables": Interval_table_cold: table with values for the lower end of S-Interval (some incomplete curves)
 Interval_table_hot: table with values for the upper end of S-Interval (some incomplete curves)
 Interval_table_both: table with values for both lower and upper ends of S-Interval (only sets with complete curves)
 
@@ -310,11 +311,13 @@ Interval_table_both: table with values for both lower and upper ends of S-Interv
 # rm(two_optima_table)
 # rm(complete_sets)
 ```
+Relevant tables:
 Ana: original table
 Ana_survival: table with complete sets of relevant lifestages
-
-Interval_table: Imin, Imax and Ilength
-
+Sopts_table: maxSopt, minSopt
+Interval_table_cold: table with values for the lower end of S-Interval (some incomplete curves)
+Interval_table_hot: table with values for the upper end of S-Interval (some incomplete curves)
+Interval_table_both: table with values for both lower and upper ends of S-Interval (only sets with complete curves)
 
 6. Plot
 
@@ -323,7 +326,7 @@ ggplot(Sopts_table, aes(x = lifestage, y = maxSopt))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("maxSopt")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = maxSopt, col = family))+
   ylim(0,40)
   
 ```
@@ -345,7 +348,7 @@ ggplot(Sopts_table, aes(x = lifestage, y = minSopt))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("minSopt")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = minSopt, col = family))+
   ylim(0,40)
   
 ```
@@ -362,11 +365,11 @@ ggplot(filter(Sopts_table, quality != "inferred"), aes(x = abs(lat), y = minSopt
 ```
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Ilength))+
+ggplot(Interval_table_both, aes(x = lifestage, y = Ilength))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("S-interval length")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = Ilength, col = family))+
   ylim(0,40)
 
 ```
@@ -387,32 +390,30 @@ summary
  
 ```{r}
 
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Ilength), col = "quality")+
+ggplot(filter(Interval_table_both, quality != "inferred"), aes(x = abs(lat), y = Ilength), col = "quality")+
   geom_point()+
   theme_cowplot()+
   ylab("S-interval length")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
 Length of the temperature interval that allows for >= 50% survival by absolute latitude
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Imin))+
+ggplot(Interval_table_cold, aes(x = lifestage, y = Imin))+
   geom_boxplot()+
   theme_cowplot()+
   ylab("S-interval minimum (C)")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = Imin, col = family))+
   ylim(0,40)
 ```
 lowest temperature that allows for 50% survival by lifestage
 
 ```{r}
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+ggplot(filter(Interval_table_cold, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
   geom_point()+
   theme_cowplot()+
   ylab("S-interval minimum")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   #ylim(10,40)+
   facet_wrap(.~lifestage)
 ```
@@ -422,18 +423,18 @@ Lowest temperature that allows for >=50% survival by absolute latitude
 
 
 ```{r}
-ggplot(Interval_table, aes(x = lifestage, y = Imax))+
+ggplot(Interval_table_hot, aes(x = lifestage, y = Imax))+
  geom_boxplot()+
   theme_cowplot()+
   ylab("S-interval max")+
-  #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
+  geom_jitter(mapping = aes(x = lifestage, y = Imax, col = family))+
   ylim(10,40)
 ```
 
 Highest temperature that allows for 50% survival by lifestage
 
 ```{r}
-ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
+ggplot(filter(Interval_table_cold, quality != "inferred"), aes(x = abs(lat), y = Imin), col = "quality")+
   geom_point()+
   theme_cowplot()+
   ylab("S-interval maximum")+
@@ -442,7 +443,6 @@ ggplot(filter(Interval_table, quality != "inferred"), aes(x = abs(lat), y = Imin
   facet_wrap(.~lifestage)
 ```
 Highest temperature that allows for 50% survival by absolute latitude
-
 
 
 8. Analyses
@@ -496,7 +496,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 hist(SoptsAnalysis$minSopt)
 shapiro.test(SoptsAnalysis$minSopt)
 
-fit2 <- lmer(minSopt ~ lifestage + absLat + (1|sp) + (1|family), data = SoptsAnalysis) #
+fit2 <- lmer(minSopt ~ lifestage + absLat + (1|sp), data = SoptsAnalysis) #
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
@@ -533,14 +533,14 @@ IntervalAnalysis_cold$absLat <- abs(IntervalAnalysis_cold$lat)
 IntervalAnalysis_cold$group <- IntervalAnalysis_cold$lifestage
 hist(IntervalAnalysis_cold$Imin)
 shapiro.test(IntervalAnalysis_cold$Imin)
-fit3 <- lmer(Imin ~ lifestage + absLat + (1|sp) + (1|family), data = IntervalAnalysis_cold) #
+fit3 <- lmer(Imin ~ lifestage * absLat + (1|sp), data = IntervalAnalysis_cold) #
 summary(fit3)
 Anova(fit3) # 
 plot(fit3) #
 ```
-The lower limit of S-interval (interval of temperatures that allows for at least 50% survival) ranged from   `r min(IntervalAnalysis_cold$Imin, na.rm = T)`  to max `r max(IntervalAnalysis_cold$Imin, na.rm = T)`, mean = `r mean(IntervalAnalysis_cold$Imin, na.rm = T)`, SD = `r sd(IntervalAnalysis_cold$Imin, na.rm = T)`, N = `r length(unique(IntervalAnalysis_cold$set))` sets from `r length(unique(IntervalAnalysis_cold$sp))` species).Lifestage and absolute latitude explained variation in minSoptAbsolute latitude, but not lifestage affected Imin
+The lower limit of S-interval (interval of temperatures that allows for at least 50% survival) ranged from   `r min(IntervalAnalysis_cold$Imin, na.rm = T)`  to max `r max(IntervalAnalysis_cold$Imin, na.rm = T)`, mean = `r mean(IntervalAnalysis_cold$Imin, na.rm = T)`, SD = `r sd(IntervalAnalysis_cold$Imin, na.rm = T)`, N = `r length(unique(IntervalAnalysis_cold$set))` sets from `r length(unique(IntervalAnalysis_cold$sp))` species).
 
-
+Lifestage, absolute latitude and their interaction explained variation in the lower limit of Imin
 ```{r}
 pred <- ggpredict(fit3, terms = c("absLat","lifestage"))
 
@@ -548,7 +548,7 @@ pred <- ggpredict(fit3, terms = c("absLat","lifestage"))
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  geom_point(data = IntervalAnalysis, mapping = aes(x = abs(lat), y = Imin, col =group ))+
+  geom_point(data = IntervalAnalysis_cold, mapping = aes(x = abs(lat), y = Imin, col =group ))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   ylab("S-interval lower limit")+
@@ -582,7 +582,7 @@ pred <- ggpredict(fit4, terms = c("absLat","lifestage"))
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  geom_point(data = IntervalAnalysis_hot, mapping = aes(x = abs(lat), y = Imax, col =group ))+
+  geom_point(data = IntervalAnalysis_hot, mapping = aes(x = abs(lat), y = Imax, col =group ), alpha = 0.6)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   ylab("S-Interval upper limit")+
@@ -614,7 +614,7 @@ pred <- ggpredict(fit5, terms = c("absLat","lifestage"))
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  geom_point(data = IntervalAnalysis_both, mapping = aes(x = abs(lat), y = Ilength, col =group ), alpha = 0.3)+
+  geom_point(data = IntervalAnalysis_both, mapping = aes(x = abs(lat), y = Ilength, col =group ), alpha = 0.6)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   ylab("S-Interval length")+
@@ -624,6 +624,6 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   #facet_grid(.~group)
 ```
 
-Neither absolute latitude or life stage explained variation in the length of the interval of temperatures that allow for >=50% survival.
+Absolute latitude but not life stage explained variation in the length of the interval of temperatures that allow for >=50% survival.
 
-Length of the interval of temperatures that allowed for >=50% survival. interval length varied from min `r min(IntervalAnalysis_both$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis_both$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis_both$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis$Ilength, na.rm = T)`
+The length of the interval of temperatures that allowed for >=50% survival varied from min `r min(IntervalAnalysis_both$Ilength, na.rm = T)`  to max `r max(IntervalAnalysis_both$Ilength, na.rm = T)`, mean = `r mean(IntervalAnalysis_both$Ilength, na.rm = T)`, SD = `r sd(IntervalAnalysis_both$Ilength, na.rm = T)`
