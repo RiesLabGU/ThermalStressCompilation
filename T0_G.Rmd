@@ -4,6 +4,48 @@ output: html_notebook
 ---
 
 
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych)
+```
+
+Import data 
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", ""))
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Discard parasitoids and change character to factor 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
 Function to calculate T0
 ```{r}
 set_944 <- filter(Ana, set == 944)
@@ -18,7 +60,7 @@ set_944 <- filter(Ana, set == 944)
 ```{r}
 get_t0 <- function(Data){
   d_opt <- max(Data$dr) # maximum development rate value
-  dTopt <- filter(Data, dr == d_opt)[[1]] 
+  dTopt <- filter(Data, dr == d_opt)[["temp"]] 
   Data <- filter(Data, temp <= dTopt, dr > 0)
 	  fit <- lm(dr ~ temp, data = Data) # linear regression
     T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
