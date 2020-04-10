@@ -4,6 +4,48 @@ output: html_notebook
 ---
 
 
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych)
+```
+
+Import data 
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", ""))
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Discard parasitoids and change character to factor 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
 Function to calculate T0
 ```{r}
 set_944 <- filter(Ana, set == 944)
