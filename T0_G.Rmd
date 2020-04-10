@@ -59,31 +59,55 @@ set_944 <- filter(Ana, set == 944)
 
 ```{r}
 get_t0 <- function(Data){
+  Data <- Data[!is.na(Data$dr) & !is.na(Data$temp),] # Remove treatments with no dr data
+  if(nrow(Data) > 2 ){
+    print(Data$set2[1])
   d_opt <- max(Data$dr) # maximum development rate value
   dTopt <- filter(Data, dr == d_opt)[["temp"]] 
   Data <- filter(Data, temp <= dTopt, dr > 0)
-	  fit <- lm(dr ~ temp, data = Data) # linear regression
-    T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
-    slope_f <- as.numeric(coef(fit)[2])
-    R2 <- as.numeric(summary(fit)$r.squared) #extract r2
-    P <- as.numeric(summary(fit)$coefficients[2, 4]) #extract P
-    shap <- as.numeric(shapiro.test(fit$residuals)[2])
-    Data$G <- Data$dt * (Data$temp - as.numeric(as.character(T0)))
-    mean_G <- mean(Data$G, na.rm = T)
-    mean_temp <- mean(Data$temp, na.rm = T)
-    Output <- tibble(T0 = T0, 
-                     slope = slope_f, 
-                     N_temp = nrow(Data),
-                     spread = max(Data$temp) - min(Data$temp),
-                     r2= R2, P = P, shapiro_testP = shap, G = mean_G, 
-                  meantemp = mean_temp) 
-                  #plot = plot(dr~temp, data = Data, main = paste(Data$sp[1], Data$set[1]))
-    
+  fit <- lm(dr ~ temp, data = Data) # linear regression
+  T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
+  slope_f <- as.numeric(coef(fit)[2])
+  R2 <- as.numeric(summary(fit)$r.squared) #extract r2
+  P <- as.numeric(summary(fit)$coefficients[2, 4]) #extract P
+  shap <- as.numeric(shapiro.test(fit$residuals)[2])
+  Data$G <- Data$dt * (Data$temp - as.numeric(as.character(T0)))
+  mean_G <- mean(Data$G, na.rm = T)
+  mean_temp <- mean(Data$temp, na.rm = T)
+  Output <- tibble(T0 = T0, 
+                   slope = slope_f, 
+                   N_temp = nrow(Data),
+                   spread = max(Data$temp) - min(Data$temp),
+                   r2= R2, P = P, shapiro_testP = shap, G = mean_G, 
+                   meantemp = mean_temp) 
+  #plot = plot(dr~temp, data = Data, main = paste(Data$sp[1], Data$set[1]))
+  } else{ print("less than 3 data points")}
 }
 
 
 ```
 
+
+```{r}
+# apply get_t0 to all sets
+
+T0table <- Ana %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(Threshold = map(data,get_t0)) %>% 
+  select(set, Threshold) %>% 
+  unnest(cols = Threshold) 
+
+
+T0table <- trial %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(Threshold = map(data,get_t0)) %>% 
+  select(set, Threshold) %>% 
+  unnest(cols = Threshold) 
+
+
+```
 
 
 ```{r}
