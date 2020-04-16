@@ -553,6 +553,10 @@ summary(fit1)
 Anova(fit1) # 
 plot(fit1) #
 
+# Calculate effect sizes
+library(effectsize)
+fit1EffectSize <- effectsize(fit1)
+
 ```
 
 Optimum development rates of all life stages occurred between `r min(ToptAnalysis$maxTDopt, na.rm = T)` and `r max(ToptAnalysis$maxTDopt, na.rm = T)`C. The mean tempeature allowing for optimum development was `r mean(ToptAnalysis$maxTDopt, na.rm = T)` sd = `r sd(ToptAnalysis$maxTDopt, na.rm = T)`. N = `r length(unique(ToptAnalysis$set))` consolidated sets of `r length(unique(ToptAnalysis$sp))` species.
@@ -586,6 +590,13 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 ```
 Observed (points) and predicted (line, shaded interval) variation of Dopt (temperature that allows for optimum development rate) according to latitude and lifestage using model:  lmer(maxTDopt ~ lifestage + absLat + (1|sp), data = ToptAnalysis)
 
+```{r}
+#
+ggplot(fit1EffectSize, aes(x = factor(Parameter), y = Std_Coefficient))+
+  geom_point()+
+  theme_cowplot()+
+  ylim(-0.3, 0.3)
+```
 
 
 ```{r}
