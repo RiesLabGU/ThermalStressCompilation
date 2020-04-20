@@ -10,6 +10,7 @@ library(tidyverse)
 library(readxl)
 library(cowplot)
 library(psych)
+library(janitor)
 ```
 
 Import data 
@@ -55,13 +56,94 @@ set_944 <- filter(Ana, set == 944)
  Data <- set_944
 ```
 
+Identify "rise" intervals
+```{r}
+Data <- set_70
+get_rise_intervals <- function(Data){
+  Data <- Data[!is.na(Data$dr) & !is.na(Data$temp),] # Remove treatments with no dr data
+  if(nrow(Data) > 2 ){
+np <- nrow(Data)# extract number of points
+nl <- np # guess number of lists
+mat <- matrix(list(), nrow = round(sqrt(nl)+1), ncol = np) # ouptput list
+nums <- data.frame()
+i <- 1
+xpre <- Data[1,"temp"][[1]]
+ypre <- Data[1, "dr"][[1]]
+phase <- 0
+j <- 1
+for (index in 2:np) {
+  x <- Data[index,"temp"][[1]]
+  y <- Data[index, "dr"][[1]]
+  #print(paste("<", xpre, ", ", ypre,"> vs", "<",x,", ",y,">"))
+  if (y > ypre)
+  {
+    phase <- 1
+    mat[[i,j]] <- c(xpre,ypre)
+    #print(paste("    added <", xpre, ", ", ypre,">"))
+    if(index == np){
+      mat[[i,j]] <- c(x,y)
+     # print(paste("    added <", x, ", ", y,">"))
+    }
+    j = j + 1
+  }
+  
+  if( (y <= ypre) && (phase == 1)){
+    mat[[i,j]] <- c(xpre,ypre)
+    #print(paste("    added <", xpre, ", ", ypre,">"))
+    nums <- rbind(nums,j)
+    j = 1
+    i = i + 1
+    phase = 0
+  }
+  xpre = x
+  ypre = y
+}
+
+}
+numLists <- i-1
+
+intervals <- tibble()
+for(i in 1:numLists){
+  for(j in 1:nums[i,1]){
+    (rowData <- tibble(intervalId=i, temp=mat[[i,j]][1], dr=mat[[i,j]][2]) )
+    (intervals <- rbind(intervals,rowData))
+  }
+}
+(intervals)
+}
+
+
+
+```
+
+```{r}
+get_rise_intervals(set_70)
+
+```
+
+Get rise intervals from all sets
+```{r}
+RiseIntervals <- trial %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(riseI = map(data,get_rise_intervals)) %>% 
+  select(set, riseI) %>% 
+  unnest(cols = riseI) 
+```
+
+
+
+
+
+
+
 
 
 ```{r}
 get_t0 <- function(Data){
   Data <- Data[!is.na(Data$dr) & !is.na(Data$temp),] # Remove treatments with no dr data
   if(nrow(Data) > 2 ){
-    print(Data$set2[1])
+    #print(Data$set2[1])
   d_opt <- max(Data$dr) # maximum development rate value
   dTopt <- filter(Data, dr == d_opt)[["temp"]] 
   Data <- filter(Data, temp <= dTopt, dr > 0)
