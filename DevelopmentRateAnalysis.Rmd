@@ -538,26 +538,106 @@ ggplot(filter(Interval_table_hot, quality != "inferred"), aes(x = abs(lat), y = 
 7. Perform analyses
 
 Dopt. For analysis I discarded "eggtoemergence" because it integrates patterns of eggs, larvae and pupae. I also discarded sets in which the locality was "inferred" instead of reported by authors.
-
+load packages
 ```{r}
 library(lme4)
 library(car)
-hist(Topt_table$maxTDopt)
-shapiro.test((Topt_table$maxTDopt))
+library("dotwhisker")  # to make coefficient plots
+```
+
+
+# Model Topt ~ life stage & absolute latitude
+
+## 1. Rescaling variables
+Transform continuous variables to standard deviation units
+```{r}
+# discard non-pertinent data
 ToptAnalysis <- filter(Topt_table, lifestage != "eggtoemergence", quality!= "inferred")
-
 ToptAnalysis$absLat <- abs(ToptAnalysis$lat)
-
-fit1 <- lmer(maxTDopt ~ lifestage + absLat + (1|sp), data = ToptAnalysis) #
-summary(fit1)
-Anova(fit1) # 
-plot(fit1) #
-
-# Calculate effect sizes
-library(effectsize)
-fit1EffectSize <- effectsize(fit1)
+# scale continuous variables
+ToptAnalysis$Topt_s <- scale(ToptAnalysis$maxTDopt)[,1]
+ToptAnalysis$absLat_s <- scale(ToptAnalysis$absLat)[,1]
 
 ```
+Topt ranges from `r min(ToptAnalysis$maxTDopt)` to `r max(ToptAnalysis$maxTDopt)`, 
+latitude ranges from `r min(ToptAnalysis$absLat, na.rm = T)` to `r max(ToptAnalysis$absLat, na.rm = T)`
+
+
+```{r}
+
+# discard non-pertinent data
+ToptAnalysis <- filter(Topt_table, lifestage != "eggtoemergence", quality!= "inferred")
+ToptAnalysis$absLat <- abs(ToptAnalysis$lat)
+ToptAnalysis$lifestage <- factor(ToptAnalysis$lifestage, levels = c("pupa","egg", "larva"))
+
+fit1_scaled <- lmer(Topt_s ~ lifestage + absLat_s + (1|sp), data = ToptAnalysis) #
+fitlinear <- lm(Topt_s ~ lifestage + absLat_s, data = ToptAnalysis)
+summary(fit1_scaled)
+summary(fitlinear)
+anova(fitlinear)
+Anova(fitlinear)
+
+library(broom)
+output <- tidy(fit1_scaled)
+
+Anova(fit1_scaled)
+anova(fit1_scaled)# 
+plot(fit1_scaled) #
+
+# Calculate effect sizes
+# library(effectsize)
+# fit1EffectSize <- effectsize(fit1)
+
+
+
+dw_plot(fit1_scaled)+geom_vline(xintercept=0,lty=2)
+```
+
+
+Troubleshooting plot.design()
+```{r}
+pl <- select(ToptAnalysis, Topt_s, lifestage, absLat_s)
+plot.design(Topt_s~ lifestage+ absLat_s, data = pl)
+```
+
+
+```{r}
+
+ToptAnalysis$absLat_scaled <- abs(ToptAnalysis$lat)*100
+
+
+fit1i <- lmer(maxTDopt ~ lifestage * absLat + (1|sp), data = ToptAnalysis) #
+fit1 <- lmer(maxTDopt ~ lifestage +  absLat + (1|sp), data = ToptAnalysis) #
+fit1_e <- lmer(maxTDopt ~ lifestage * absLat_scaled + (1|sp), data = ToptAnalysis) #
+summary(fit1_e)
+summary(fit1i)
+summary(fit1)
+Anova(fit1)
+anova(fit1i)# 
+plot(fit1) #
+
+dw_plot(fit1)+geom_vline(xintercept=0,lty=2)
+plot.design(fit1_scaled)
+dw_plot(fit1_scaled)+geom_vline(xintercept=0,lty=2)
+plot.design(fit1_scaled)
+library(sjPlot)
+library(sjmisc)
+library(lme4)
+
+plot_model(fit1_scaled, y.offset = .4)
+plot_model(fit1_scaled,
+         facet.grid = FALSE,
+         sort.est = "sort.all",
+         y.offset = .4)
+plot_model(fit1_scaled, type = "eff")
+plot_model(fit1_scaled, type = "int")
+
+```
+
+
+
+
+
 
 Optimum development rates of all life stages occurred between `r min(ToptAnalysis$maxTDopt, na.rm = T)` and `r max(ToptAnalysis$maxTDopt, na.rm = T)`C. The mean tempeature allowing for optimum development was `r mean(ToptAnalysis$maxTDopt, na.rm = T)` sd = `r sd(ToptAnalysis$maxTDopt, na.rm = T)`. N = `r length(unique(ToptAnalysis$set))` consolidated sets of `r length(unique(ToptAnalysis$sp))` species.
 
@@ -590,14 +670,6 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 ```
 Observed (points) and predicted (line, shaded interval) variation of Dopt (temperature that allows for optimum development rate) according to latitude and lifestage using model:  lmer(maxTDopt ~ lifestage + absLat + (1|sp), data = ToptAnalysis)
 
-```{r}
-#
-ggplot(fit1EffectSize, aes(x = factor(Parameter), y = Std_Coefficient))+
-  geom_point()+
-  theme_cowplot()+
-  ylim(-0.3, 0.3)
-```
-
 
 ```{r}
 #Imin
@@ -605,7 +677,7 @@ IntervalAnalysis_cold <- filter(Interval_table_cold, lifestage != "eggtoemergenc
 IntervalAnalysis_cold$absLat <- abs(IntervalAnalysis_cold$lat)
 
 
-fit2 <- lmer(Imin ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_cold) # 
+fit2 <- lmer(Imin ~ lifestage * absLat + (1|sp), data = IntervalAnalysis_cold) # 
 summary(fit2)
 Anova(fit2) # 
 plot(fit2) #
@@ -634,7 +706,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   theme_cowplot()
 
 
-
+dw_plot(fit2)+geom_vline(xintercept=0,lty=2)
 
 ```
 
@@ -648,7 +720,7 @@ IntervalAnalysis_hot <- filter(Interval_table_hot, lifestage != "eggtoemergence"
 IntervalAnalysis_hot$absLat <- abs(IntervalAnalysis_hot$lat)
 hist(Interval_table_hot$Imax)
 shapiro.test((Interval_table_hot$Imax))
-fit3 <- lmer(Imax ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_hot) # 
+fit3 <- lmer(Imax ~ lifestage * absLat + (1|sp), data = IntervalAnalysis_hot) # 
 summary(fit3)
 Anova(fit3) # 
 plot(fit3) #
@@ -667,6 +739,7 @@ ggplot(IntervalAnalysis_hot, aes(x = absLat, y = Imax, col = lifestage))+
   xlab("Absolute latitude")+
   #geom_jitter(mapping = aes(x = lifestage, y = maxTDopt, col = family))+
   ylim(10,45)
+dw_plot(fit3)+geom_vline(xintercept=0,lty=2)
 ```
 
 Observed (points) variation of the maximum temperature that allows for development at >= 50% efficiency. Neither absolute latitude nor lifestage explained the observed variation.
@@ -677,21 +750,26 @@ Observed (points) variation of the maximum temperature that allows for developme
 IntervalAnalysis_both <- filter(Interval_table_both, lifestage != "eggtoemergence", quality!= "inferred")
 IntervalAnalysis_both$absLat <- abs(IntervalAnalysis_both$lat)
 hist(IntervalAnalysis_both$Ilength)
-fit4 <- lmer(Ilength ~ lifestage + absLat + (1|sp), data = IntervalAnalysis_both) # 
+fit4 <- lmer(Ilength ~ lifestage * absLat + (1|sp), data = IntervalAnalysis_both) # 
 summary(fit4)
 Anova(fit4) # 
 plot(fit4) #
 ```
 
 ```{r}
-
-ggplot(IntervalAnalysis_both, aes(x = absLat, y = Ilength, col = lifestage))+
- geom_point()+
+pred <- ggpredict(fit4, terms = c("absLat","lifestage"))
+IntervalAnalysis_both$group <- IntervalAnalysis_both$lifestage
+ggplot(pred, aes(x = x, y = predicted, col = group , fill = group))+
+ geom_line()+
   theme_cowplot()+
-  ylab("D-interval length")+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  ylab("D-width")+
+  geom_point(data = IntervalAnalysis_both, mapping = aes(x = abs(lat), y = Ilength, col = group ),alpha = 0.6)+
   scale_color_viridis_d(alpha = 0.5)+
   xlab("Absolute latitude")+
-  ylim(0,20)
+  ylim(0,30)
+
+dw_plot(fit4)+geom_vline(xintercept=0,lty=2)
 
 ```
 
