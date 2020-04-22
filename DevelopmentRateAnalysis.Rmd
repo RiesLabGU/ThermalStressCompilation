@@ -560,6 +560,14 @@ latitude ranges from `r min(ToptAnalysis$absLat, na.rm = T)` to `r max(ToptAnaly
 
 1. Full model
 ```{r}
+CompleteSpecies <- ToptAnalysis %>% 
+  filter(lifestage != "eggtoemergence") %>% 
+  group_by(sp, lifestage) %>% 
+  select(sp, lifestage) %>% 
+  distinct() %>% 
+  group_by(sp) %>% 
+  tally(sort = T) %>% 
+  filter(n > 2)
 
 ToptAnalysis$Dopt <- scale(ToptAnalysis$maxTDopt)[,1]
 hist(ToptAnalysis$Topt_s)
