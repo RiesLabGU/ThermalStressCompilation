@@ -560,6 +560,7 @@ latitude ranges from `r min(ToptAnalysis$absLat, na.rm = T)` to `r max(ToptAnaly
 
 1. Full model
 ```{r}
+<<<<<<< HEAD
 CompleteSpecies <- ToptAnalysis %>% 
   filter(lifestage != "eggtoemergence") %>% 
   group_by(sp, lifestage) %>% 
@@ -603,12 +604,48 @@ dw_plot(fit1_reduced, conf.level = 0.95) +
 ```
 Dopt was higher at lower latitudes
 
+=======
+
+#fit1_full <- lmer(Topt_s ~ lifestage * absLat_s + (1|sp:family), data = ToptAnalysis) #
+fit1_full <- lmer(Topt_s ~ lifestage * absLat_s + (1|sp), data = ToptAnalysis) #
+summary(fit1_full)
+AIC(fit1_full)
+fit1_full_aic <- AIC(fit1_full)
+
+Anova(fit1_full)
+
+#library(broom)
+#output <- tidy(fit1_scaled)
+
+dw_plot(fit1_full) + geom_vline(xintercept=0,lty=2)
+```
+
+2. Reduced model
+```{r}
+fit1_reduced <- lmer(Topt_s ~ lifestage + absLat_s + (1|sp), data = ToptAnalysis) #
+summary(fit1_reduced)
+AIC(fit1_reduced)
+fit1_full_aic <- AIC(fit1_reduced)
+
+Anova(fit1_reduced)
+
+#library(broom)
+#output <- tidy(fit1_scaled)
+
+dw_plot(fit1_reduced) + geom_vline(xintercept=0,lty=2)
+```
+
+
+>>>>>>> 09ba936429b9606fa9e29fbf054851194f8505b3
 ```{r}
 # Plot model predictions
 library(sjPlot)
 library(sjmisc)
 plot_model(fit1_reduced, type = "eff")
+<<<<<<< HEAD
 plot_model(fit_reduced_b, type = "eff")
+=======
+>>>>>>> 09ba936429b9606fa9e29fbf054851194f8505b3
 ```
 
 
