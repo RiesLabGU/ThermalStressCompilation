@@ -7,6 +7,19 @@ output: html_notebook
 2. Dopt 
 3. D-width
 
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
+```
 
 1. Import files (these files were created with DR1_variable calculation)
 ```{r}
@@ -43,8 +56,7 @@ Dwidth <- Dwidth %>%
 
 Initially, there were `r length(unique(Dopt$set))` sets with values for Dopt, `r length(unique(Dwidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
 
-To assess variation in Dopt across latitude and life stages, we fitted a linear mixed model, including life and laitude as fixed factors and species as a random factor. 
-We discarded "eggtoemergence" category because it combines the other three.
+
 ```{r}
 # discard non-pertinent data
 unique(Dopt$quality)
@@ -66,14 +78,17 @@ Dwidth_table <- Dwidth %>%
 #rm(Dopt, lower, upper, Dwidth)
 
 ```
-We first fitted a full model including latitude, 
+To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
+
+We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
 
 ## Dopt: temperature that maximizes development rate
-Dopt ranged from `r min(Dopt_table$maxTDopt)` to `r max(Dopt_table$maxTDopt)`,  `r mean(Dopt_table$maxTDopt)`, SD `r sd(Dopt_table$maxTDopt)`
-latitude ranged from `r min(Dopt_table$absLat, na.rm = T)` to `r max(Dopt_table$absLat, na.rm = T)`
+Dopt ranged from `r min(Dopt_table$Dopt)` to `r max(Dopt_table$Dopt)`, mean =  `r mean(Dopt_table$Dopt)`, SD = `r sd(Dopt_table$Dopt)`
+Latitude ranged from `r min(Dopt_table$absLat, na.rm = T)` to `r max(Dopt_table$absLat, na.rm = T)`
 
-1. Full model
+
 ```{r}
+# 1. Full model
 # Scale response variable
 Dopt_table$Dopt_s <- scale(Dopt_table$Dopt)[,1]
 
@@ -88,26 +103,25 @@ fit1_full <- lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table) 
 
 fit1_full_aic <- AIC(fit1_full)
 fit1_fullpvals <- Anova(fit1_full)
-dw_plot(fit1_full) + 
-  geom_vline(xintercept=0,lty=2)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
+# dw_plot(fit1_full) + 
+#   geom_vline(xintercept=0,lty=2)+
+#   theme_cowplot()+
+#   scale_color_viridis_d()+
+#   theme(legend.position = "none")
+# Figure 1. effects and 95% CI of the full model
 ```
-Figure 1. effects and 95% CI of the full model (AIC value of `r fit1_full_aic`)
+ Full model: lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table)
+ Full model's AIC: `r fit1_full_aic`
 
-2. Reduced model
 ```{r}
+#2. Reduced model
 fit1_reduced <- lmer(Dopt_s ~  -1 + lifestage + absLat + (1|sp), data = Dopt_table) #
-
 
 # fit1Noctuids <- lmer(Dopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
 # fit1Not_noctuids <- lmer(Dopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
-
-
-#summary(fit1_reduced)
-reducedaic <- AIC(fit1_reduced)
+tidy(fit1_reduced)
+fit1_summary <- summary(fit1_reduced)
+fit1_reduced_aic <- AIC(fit1_reduced)
 #Anova(fit1_reduced)
 dw_plot(fit1_reduced, conf.level = 0.95) + 
   geom_vline(xintercept=0,lty=2)+
@@ -122,14 +136,15 @@ dw_plot(fit1_reduced, conf.level = 0.95) +
 Figure 2. Dopt was higher at lower latitudes
 Lots of variation among species!
 
-
+Reduced model: Dopt_s ~  -1 + lifestage + absLat + (1|sp), data = Dopt_table) #
+Reduced model's AIC: `r fit1_reduced_aic`, Ngroups = `r fit1_summary$ngrps`, N = `r nrow(Dopt_table)`
 
 
 
 ## D-width: 
 length of the temperature interval that allows for development rate at >= 50% efficiency
 
-D-width ranged from `r min(Dwidth_table$Ilength)` to `r max(Dwidth_table$Ilength)`,  `r mean(Dwidth_table$Ilength)`, SD `r sd(Dwidth_table$Ilength)`
+D-width ranged from `r min(Dwidth_table$Ilength)` to `r max(Dwidth_table$Ilength)`,  mean = `r mean(Dwidth_table$Ilength)`, SD = `r sd(Dwidth_table$Ilength)`
 latitude ranged from `r min(Dwidth_table$absLat, na.rm = T)` to `r max(Dwidth_table$absLat, na.rm = T)`
 
 1. Full model
@@ -146,15 +161,14 @@ dw_plot(fit2_full) +
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
-
+# Figure 3. effects and 95% CI of the
 ```
-Figure 3. effects and 95% CI of the full model (AIC value of `r fit2_full_aic`)
+D-width full model AIC: `r fit2_full_aic`
 
-2. Reduced model
 ```{r}
-
-fit2_reduced <- lmer(Ilength_s ~ -1 + lifestage * absLat + (1|sp), data = Dwidth_table) #
-
+# 2. Reduced model
+fit2_reduced <- lmer(Ilength_s ~ -1 + lifestage + absLat + (1|sp), data = Dwidth_table) #
+fit2_summary <- summary(fit2_reduced)
 fit2_reduced_aic <- AIC(fit2_reduced)
 fit2_reducedpvals <- Anova(fit2_reduced)
 dw_plot(fit2_reduced) + 
@@ -163,11 +177,16 @@ dw_plot(fit2_reduced) +
   scale_color_viridis_d()+
   theme(legend.position = "none")
 
-
 ```
-Figure 4. Pupae had larger intervals
-Lots of variation among species!
+D-width. Pupae had smaller intervals?
 
+D-width full model AIC: `r fit2_reduced_aic`. Ngroups = `r fit2_summary$ngrps`, N = `r nrow(Dwidth_table)`
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit2_reduced, type = "pred")
+```
 
 
 ## upper limit
@@ -176,31 +195,30 @@ Highest temperature that allows for development rate at >= 50% efficiency
 The upper limit ranged from `r min(upper_table$Imax)` to `r max(upper_table$Imax)`,  `r mean(upper_table$Imax)`, SD `r sd(upper_table$Imax)`
 latitude ranged from `r min(upper_table$absLat, na.rm = T)` to `r max(upper_table$absLat, na.rm = T)`
 
-1. Full model
 ```{r}
+# 1. Full model
 # Scale response variable
 upper_table$Imax_s <- scale(upper_table$Imax)[,1]
 
 fit3_full <- lmer(Imax_s ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
-
 fit3_full_aic <- AIC(fit3_full)
 fit3_fullpvals <- Anova(fit3_full)
-dw_plot(fit3_full) + 
-  geom_vline(xintercept=0,lty=2)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
+# dw_plot(fit3_full) + 
+#   geom_vline(xintercept=0,lty=2)+
+#   theme_cowplot()+
+#   scale_color_viridis_d()+
+#   theme(legend.position = "none")
+#Figure: effects and 95% CI of the full model
 ```
-Figure 5. effects and 95% CI of the full model (AIC value of `r fit3_full_aic`)
+AIC value of full model: `r fit3_full_aic`
 
 2. Reduced model
 ```{r}
 
 fit3_reduced <- lmer(Imax_s ~ -1 + lifestage + absLat + (1|sp), data = upper_table) #
-
 fit3_reduced_aic <- AIC(fit3_reduced)
 fit3_reducedpvals <- Anova(fit3_reduced)
+fit3_summary <- summary(fit3_reduced)
 dw_plot(fit3_reduced) + 
   geom_vline(xintercept=0,lty=2)+
   theme_cowplot()+
@@ -209,14 +227,56 @@ dw_plot(fit3_reduced) +
 
 
 ```
-Figure 6. The upper limit varied among species, but not among latitudes and lifestages.
+Figure 6. The upper limit varied among species, but not across latitudes or among lifestages.
+
+Upper limit analysis- AIC reduced model: `r fit3_reduced_aic`, Ngroups = `r fit3_summary$ngrps`, N = `r nrow(upper_table)`
 
 
+## Lower limit
+Lower temperature that allows for development rate at >= 50% efficiency
 
+The lower limit ranged from `r min(lower_table$Imax)` to `r max(lower_table$Imax)`,  `r mean(lower_table$Imax)`, SD `r sd(lower_table$Imax)`
+latitude ranged from `r min(lower_table$absLat, na.rm = T)` to `r max(lower_table$absLat, na.rm = T)`
 
+```{r}
+# 1. Full model
+# Scale response variable
+lower_table$Imin_s <- scale(lower_table$Imin)[,1]
 
+fit4_full <- lmer(Imin_s ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+fit4_full_aic <- AIC(fit4_full)
+fit4_fullpvals <- Anova(fit4_full)
+dw_plot(fit4_full) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+#Figure: effects and 95% CI of the full model
+```
+AIC value of full model: `r fit4_full_aic`
 
+2. Reduced model
+```{r}
+fit4_reduced <- lmer(Imin_s ~ -1 + lifestage + absLat + (1|sp), data = lower_table) #
+fit4_reduced_aic <- AIC(fit4_reduced)
+fit4_reducedpvals <- Anova(fit4_reduced)
+fit4_summary <- summary(fit4_reduced)
+dw_plot(fit4_reduced) + 
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+```
+The lower limit varied among latitudes, but among lifestages.
+the lower limit was lower at higher latitudes
 
+Lower limit analysis- AIC reduced model: `r fit4_reduced_aic`, Ngroups = `r fit4_summary$ngrps`, N = `r nrow(lower_table)`
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit4_reduced, type = "pred")
+```
 
 
 EXTRA CODE******************************
@@ -254,19 +314,4 @@ CompleteSpecies <- ToptAnalysis %>%
 ```
 
 
-
-
-
-
-
-```{r}
-CompleteSpecies <- ToptAnalysis %>% 
-  filter(lifestage != "eggtoemergence") %>% 
-  group_by(sp, lifestage) %>% 
-  select(sp, lifestage) %>% 
-  distinct() %>% 
-  group_by(sp) %>% 
-  tally(sort = T) %>% 
-  filter(n > 2)
-```
 
