@@ -1,0 +1,136 @@
+---
+title: "Analyze performance variables"
+output: html_notebook
+---
+## Contents
+1. Import data and housekeeping
+
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
+```
+
+1. Import files (these files were created with DR1_variable calculation)
+```{r}
+# Mariana's desktop
+Popt <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Popt.csv")
+lower <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/llP-width.csv")
+upper <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ulP-width.csv")
+Dwidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/P-width.csv")
+
+```
+
+
+```{r}
+# Mariana's laptop
+
+Popt <-  read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/Popt.csv")
+lower <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/llP-width.csv")
+upper <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ulP-width.csv")
+Dwidth <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/P-width.csv")
+```
+
+
+```{r}
+# convert character to factor
+Popt <- Popt %>%
+  mutate_if(is.character, factor)
+lower <- lower %>%
+  mutate_if(is.character, factor)
+upper <- upper %>%
+  mutate_if(is.character, factor)
+Dwidth <- Dwidth %>%
+  mutate_if(is.character, factor)
+```
+
+Initially, there were `r length(unique(Popt$set))` sets with values for Popt, `r length(unique(Dwidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
+
+
+```{r}
+# discard non-pertinent data
+unique(Popt$quality)
+Popt_table <- Popt %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+
+lower_table <- lower %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+
+upper_table <- upper %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+
+Dwidth_table <- Dwidth %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+#rm(Popt, lower, upper, Dwidth)
+
+```
+To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
+
+We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
+
+## Popt: temperature that maximizes development rate
+Popt ranged from `r min(Popt_table$Popt)` to `r max(Popt_table$Popt)`, mean =  `r mean(Popt_table$Popt)`, SD = `r sd(Popt_table$Popt)`
+Latitude ranged from `r min(Popt_table$absLat, na.rm = T)` to `r max(Popt_table$absLat, na.rm = T)`
+
+
+```{r}
+# 1. Full model
+# Scale response variable
+Popt_table$Popt_s <- scale(Popt_table$PTopt)[,1]
+
+fit1_full <- lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table) #
+
+# this model cannot be done because we have 134 observations and the number of random effects would be 171
+#fit1_full_random <- lmer(Popt_s ~ -1 + lifestage * absLat + (lifestage|sp), data = Popt_table) #
+# this model is singular
+#fit1_full_family <- lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = Popt_table) #
+
+#summary(fit1_full)
+
+fit1_full_aic <- AIC(fit1_full)
+fit1_fullpvals <- Anova(fit1_full)
+dw_plot(fit1_full) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+# Figure 1. effects and 95% CI of the full model
+```
+ Full model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table)
+ Full model's AIC: `r fit1_full_aic`
+
+```{r}
+# #2. Reduced model
+# fit1_reduced <- lmer(Popt_s ~  -1 + lifestage + absLat + (1|sp), data = Popt_table) #
+# 
+# # fit1Noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
+# # fit1Not_noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
+# tidy(fit1_reduced)
+# fit1_summary <- summary(fit1_reduced)
+# fit1_reduced_aic <- AIC(fit1_reduced)
+# #Anova(fit1_reduced)
+# dw_plot(fit1_reduced, conf.level = 0.95) + 
+#   geom_vline(xintercept=0,lty=2)+
+#   theme_cowplot()+
+#   scale_color_viridis_d()+
+#   theme(legend.position = "none")#+
+#   #scale_y_discrete(labels = c('sd Observation.Residual','sd species', 
+#                              # 'Latitude', 'Life stage (pupa)','Life stage (larva)'))
+# 
+
+```
+Figure 2. Popt was higher at lower latitudes
+Lots of variation among species!
