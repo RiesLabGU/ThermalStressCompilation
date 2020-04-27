@@ -2,9 +2,11 @@
 title: "Analyze performance variables"
 output: html_notebook
 ---
+
 ## Contents
 1. Import data and housekeeping
-
+2. Popt 
+3. P-width
 
 ```{r}
 # load packages
@@ -26,7 +28,7 @@ library(broom)
 Popt <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Popt.csv")
 lower <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/llP-width.csv")
 upper <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ulP-width.csv")
-Dwidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/P-width.csv")
+Pwidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/P-width.csv")
 
 ```
 
@@ -37,8 +39,9 @@ Dwidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance
 Popt <-  read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/Popt.csv")
 lower <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/llP-width.csv")
 upper <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ulP-width.csv")
-Dwidth <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/P-width.csv")
+Pwidth <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/P-width.csv")
 ```
+
 
 
 ```{r}
@@ -49,11 +52,11 @@ lower <- lower %>%
   mutate_if(is.character, factor)
 upper <- upper %>%
   mutate_if(is.character, factor)
-Dwidth <- Dwidth %>%
+Pwidth <- Pwidth %>%
   mutate_if(is.character, factor)
 ```
 
-Initially, there were `r length(unique(Popt$set))` sets with values for Popt, `r length(unique(Dwidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
+Initially, there were `r length(unique(Popt$set))` sets with values for Popt, `r length(unique(Pwidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
 
 
 ```{r}
@@ -71,10 +74,10 @@ upper_table <- upper %>%
   filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
   mutate(absLat = abs(lat))
 
-Dwidth_table <- Dwidth %>% 
+Pwidth_table <- Pwidth %>% 
   filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
   mutate(absLat = abs(lat))
-#rm(Popt, lower, upper, Dwidth)
+#rm(Popt, lower, upper, Swidth)
 
 ```
 To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
@@ -82,7 +85,7 @@ To assess variation in thermal responses across latitude and life stages, we fit
 We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
 
 ## Popt: temperature that maximizes development rate
-Popt ranged from `r min(Popt_table$Popt)` to `r max(Popt_table$Popt)`, mean =  `r mean(Popt_table$Popt)`, SD = `r sd(Popt_table$Popt)`
+Popt ranged from `r min(Popt_table$PTopt)` to `r max(Popt_table$PTopt)`, mean =  `r mean(Popt_table$PTopt)`, SD = `r sd(Popt_table$PTopt)`
 Latitude ranged from `r min(Popt_table$absLat, na.rm = T)` to `r max(Popt_table$absLat, na.rm = T)`
 
 
@@ -110,6 +113,128 @@ dw_plot(fit1_full) +
 # Figure 1. effects and 95% CI of the full model
 ```
  Full model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table)
+ Full model's AIC: `r fit1_full_aic`
+
+
+
+```{r}
+# 1. Full model
+# Scale response variable
+Pwidth_table$Pwidth_s <- scale(Pwidth_table$Ilength)[,1]
+
+fit2_full <- lmer(Pwidth_s ~ -1 + lifestage * absLat + (1|sp), data = Pwidth_table) #
+
+summary(fit2_full)
+
+fit2_full_aic <- AIC(fit2_full)
+fit2_fullpvals <- Anova(fit2_full)
+dw_plot(fit2_full) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+# Figure 1. effects and 95% CI of the full model
+```
+ Full model: lmer(P-width_s ~ -1 + lifestage * absLat + (1|sp), data = Pwidth_table)
+ Full model's AIC: `r fit2_full_aic`
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit2_full
+, type = "pred")
+```
+
+
+
+```{r}
+# 1. Full model
+# Scale response variable
+lower_table$lower_s <- scale(lower_table$Imin)[,1]
+
+fit3_full <- lmer(lower_s ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+
+summary(fit3_full)
+
+fit3_full_aic <- AIC(fit3_full)
+fit3_fullpvals <- Anova(fit3_full)
+dw_plot(fit3_full) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+#  effects and 95% CI of the full model
+
+```
+
+
+ Full model: lmer(lower ~ -1 + lifestage * absLat + (1|sp), data = lower_table)
+ Full model's AIC: `r fit3_full_aic`
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit3_full
+, type = "pred")
+```
+
+```{r}
+fit3_reduced <- lmer(lower_s ~ -1 + lifestage + absLat + (1|sp), data = lower_table) #
+
+summary(fit3_reduced)
+
+fit3_reduced_aic <- AIC(fit3_reduced)
+fit3_reducedpvals <- Anova(fit3_reduced)
+dw_plot(fit3_reduced) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+```
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit3_reduced
+, type = "pred")
+```
+
+
+
+
+
+```{r}
+# 1. Full model
+# Scale response variable
+upper_table$upper_s <- scale(upper_table$Imax)[,1]
+
+fit4_full <- lmer(upper_s ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
+
+summary(fit4_full)
+
+fit4_full_aic <- AIC(fit4_full)
+fit4_fullpvals <- Anova(fit4_full)
+dw_plot(fit4_full) +
+  geom_vline(xintercept=0,lty=2)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+#  effects and 95% CI of the full model
+
+```
+
+
+ Full model: lmer(upper ~ -1 + lifestage * absLat + (1|sp), data = upper_table)
+ Full model's AIC: `r fit4_full_aic`
+
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit4_full
+, type = "pred")
+```
+
+ll model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table)
  Full model's AIC: `r fit1_full_aic`
 
 ```{r}
