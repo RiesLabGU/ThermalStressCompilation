@@ -81,7 +81,7 @@ To assess variation in thermal responses across latitude and life stages, we fit
 We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
 
 ## Sopt: temperature that maximizes development rate
-Sopt ranged from `r min(Sopt_table$Sopt)` to `r max(Sopt_table$Sopt)`, mean =  `r mean(Sopt_table$Sopt)`, SD = `r sd(Sopt_table$Sopt)`
+Sopt ranged from `r min(Sopt_table$maxSopt)` to `r max(Sopt_table$maxSopt)`, mean =  `r mean(Sopt_table$maxSopt)`, SD = `r sd(Sopt_table$maxSopt)`
 Latitude ranged from `r min(Sopt_table$absLat, na.rm = T)` to `r max(Sopt_table$absLat, na.rm = T)`
 
 
