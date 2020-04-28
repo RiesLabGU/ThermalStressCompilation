@@ -170,7 +170,30 @@ Ana_dr_consolidated <- Ana_dr %>%
 names(Ana_dr_consolidated) <- c("redundancy_id", "temp", "dr", "dr2", "set", "n_sets")
 ```
 
+# HERE scale dr
+```{r}
+scale.dr <- function(table){
+  table <- table[!is.na(table$dr) & !is.na(table$temp),] # Remove treatments with no performance data
+  if(nrow(table) > 1 ){
+  maxdr <- max(table$dr, na.rm = T)
+  table$s_dr <- table$dr/maxdr
+  table
+  }
+}
 
+
+```
+
+
+Apply the function to each set and add s_dt column (scaled dt)
+```{r}
+Ana_dr_consolidated <- Ana_dr_consolidated %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(s_dr = map(data, scale.dr)) %>% 
+  unnest(cols = s_dr) %>% 
+  select(-data)
+```
 
 # 4. Obtain predicted dr in the range from 0 to 40C using linear interpolation. 
 
@@ -178,7 +201,7 @@ names(Ana_dr_consolidated) <- c("redundancy_id", "temp", "dr", "dr2", "set", "n_
 # 1- Make interpolation function:
 interpolate <- function(dat) {
   out <- seq(from = 0, to = 40, by = 0.1)
-  as.data.frame(approx(x = dat$temp, y = dat$dr, xout = out, method = "linear", rule = 1))
+  as.data.frame(approx(x = dat$temp, y = dat$s_dr, xout = out, method = "linear", rule = 1))
   
 }
 # 2. Apply interpolation function to all sets

@@ -39,18 +39,49 @@ Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx",
 ```{r}
 # Discard parasitoids and change character to factor 
 unique(Data$status)
-Ana <- Data[Data$status != "parasitoid",]
+Ana_1 <- Data[Data$status != "parasitoid",]
 rm(Data)
 
 # convert character to factor
-Ana <- Ana %>%
+Ana_1 <- Ana_1 %>%
   mutate_if(is.character, factor)
 ```
 
 # 2. Calculate P (only sets with survival and development time)
 
+2.1 Rescale D, then multiply!
 ```{r}
-Ana$P <- Ana$dr * (Ana$survival/100)
+scale.dr <- function(table){
+  table <- table[!is.na(table$dr) & !is.na(table$temp),] # Remove treatments with no performance data
+  if(nrow(table) > 1 ){
+  maxdr <- max(table$dr, na.rm = T)
+  table$s_dr <- table$dr/maxdr
+  table
+  }
+}
+
+
+```
+
+
+Apply the function to each set and add s_dt column (scaled dt)
+```{r}
+Ana <- Ana_1 %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(s_dr = map(data, scale.dr)) %>% 
+  unnest(cols = s_dr) %>% 
+  select(-data)
+```
+
+
+
+
+```{r}
+Ana$P <- Ana$s_dr * (Ana$survival/100)
+ggplot(Ana, aes(x = dr, y = s_dr))+
+  geom_point()
+
 ```
 
 
@@ -104,7 +135,7 @@ SetAssessment <- Ana %>%
   nest() %>% 
   mutate(curve = map(data,is_complete)) %>% 
   select(set, curve) %>% 
-  unnest() 
+  unnest(cols = curve) 
 
 ```
 
@@ -140,10 +171,12 @@ Consolidated sets kept the number (unique set identifier) of the first set they 
 
 ```{r}
 # make a new column that unifies redundant sets
-Ana_performance <- Ana_performance %>% 
-  mutate(redundancy_id = as.numeric(factor(paste(sp, locality, lifestage, id))))
+# Ana_performance <- Ana_performance %>% 
+#   mutate(redundancy_id = as.numeric(factor(paste(sp, locality, lifestage, id))))
+Ana_performance$redundancy_id <- as.numeric(factor(paste(Ana_performance$sp, Ana_performance$locality, Ana_performance$lifestage, Ana_performance$id)))
 
-#length(unique(Ana_performance$set)) # there were 156 sets
+
+#length(unique(Ana_performance$set)) # there were 139 sets
 #length(unique(Ana_performance$redundancy_id)) # there were 137 non-redundant sets
 
 # Function to get the geometric mean of development rate (dr_c), and mean (dr2)
