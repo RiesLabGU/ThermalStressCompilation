@@ -92,52 +92,53 @@ Latitude ranged from `r min(Dopt_table$absLat, na.rm = T)` to `r max(Dopt_table$
 # Scale response variable
 Dopt_table$Dopt_s <- scale(Dopt_table$Dopt)[,1]
 
-fit1_full <- lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table) #
+fit1_full <- lmer(Dopt_s ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = Dopt_table) #
 
 # this model cannot be done because we have 134 observations and the number of random effects would be 171
 #fit1_full_random <- lmer(Dopt_s ~ -1 + lifestage * absLat + (lifestage|sp), data = Dopt_table) #
 # this model is singular
 #fit1_full_family <- lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = Dopt_table) #
 
-#summary(fit1_full)
-
 fit1_full_aic <- AIC(fit1_full)
 fit1_fullpvals <- Anova(fit1_full)
-# dw_plot(fit1_full) + 
-#   geom_vline(xintercept=0,lty=2)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-# Figure 1. effects and 95% CI of the full model
+summary(fit1_full)
+
 ```
- Full model: lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table)
- Full model's AIC: `r fit1_full_aic`
-
+ 
 ```{r}
-#2. Reduced model
-fit1_reduced <- lmer(Dopt_s ~  -1 + lifestage + absLat + (1|sp), data = Dopt_table) #
-
-# fit1Noctuids <- lmer(Dopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
-# fit1Not_noctuids <- lmer(Dopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
-tidy(fit1_reduced)
-fit1_summary <- summary(fit1_reduced)
-fit1_reduced_aic <- AIC(fit1_reduced)
-#Anova(fit1_reduced)
-dw_plot(fit1_reduced, conf.level = 0.95) + 
+dw_plot(fit1_full) +
   geom_vline(xintercept=0,lty=2)+
   theme_cowplot()+
   scale_color_viridis_d()+
-  theme(legend.position = "none")#+
-  #scale_y_discrete(labels = c('sd Observation.Residual','sd species', 
-                             # 'Latitude', 'Life stage (pupa)','Life stage (larva)'))
-
+  theme(legend.position = "none")
+```
+ 
+ 
+ 
+```{r}
+# These work but has no random effect
+plot.design(Dopt_s ~ -1 + lifestage * absLat + sp , data = Dopt_table)
+plot.design(Dopt_s ~ -1 + lifestage * absLat , data = Dopt_table)
+# this does not work:
+plot.design(Dopt_s ~ -1 + lifestage * absLat + (1|sp) , data = Dopt_table)
 
 ```
-Figure 2. Dopt was higher at lower latitudes
-Lots of variation among species!
+ 
+ 
+ Full model: lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table)
+ Full model's AIC: `r fit1_full_aic`
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit1_full, type = "pred") # predicted values (marginal effects)
+plot_model(fit1_full, type = "re") # random effects
+plot_model(fit1_full, type = "emm")# look up
+plot_model(fit1_full, type = "slope")# 
+plot_model(fit1_full, type = "resid")# 
+plot_model(fit1_full, type = "diag")# 
 
-Reduced model: Dopt_s ~  -1 + lifestage + absLat + (1|sp), data = Dopt_table) #
-Reduced model's AIC: `r fit1_reduced_aic`, Ngroups = `r fit1_summary$ngrps`, N = `r nrow(Dopt_table)`
+```
+
 
 
 
@@ -203,30 +204,15 @@ upper_table$Imax_s <- scale(upper_table$Imax)[,1]
 fit3_full <- lmer(Imax_s ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
 fit3_full_aic <- AIC(fit3_full)
 fit3_fullpvals <- Anova(fit3_full)
-# dw_plot(fit3_full) + 
-#   geom_vline(xintercept=0,lty=2)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-#Figure: effects and 95% CI of the full model
-```
-AIC value of full model: `r fit3_full_aic`
-
-2. Reduced model
-```{r}
-
-fit3_reduced <- lmer(Imax_s ~ -1 + lifestage + absLat + (1|sp), data = upper_table) #
-fit3_reduced_aic <- AIC(fit3_reduced)
-fit3_reducedpvals <- Anova(fit3_reduced)
-fit3_summary <- summary(fit3_reduced)
-dw_plot(fit3_reduced) + 
+dw_plot(fit3_full) +
   geom_vline(xintercept=0,lty=2)+
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
-
-
+#Figure: effects and 95% CI of the full model
 ```
+AIC value of full model: `r fit3_full_aic`
+
 Figure 6. The upper limit varied among species, but not across latitudes or among lifestages.
 
 Upper limit analysis- AIC reduced model: `r fit3_reduced_aic`, Ngroups = `r fit3_summary$ngrps`, N = `r nrow(upper_table)`
