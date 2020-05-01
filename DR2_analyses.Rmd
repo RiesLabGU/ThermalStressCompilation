@@ -94,8 +94,10 @@ Dopt_table$Dopt_s <- scale(Dopt_table$Dopt)[,1]
 
 fit1_full <- lmer(Dopt_s ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = Dopt_table) #
 
-# this model cannot be done because we have 134 observations and the number of random effects would be 171
+# The model below does not work because we have 134 observations and the number of random effects would be 171
 #fit1_full_random <- lmer(Dopt_s ~ -1 + lifestage * absLat + (lifestage|sp), data = Dopt_table) #
+
+
 # this model is singular
 #fit1_full_family <- lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = Dopt_table) #
 
@@ -114,13 +116,13 @@ dw_plot(fit1_full) +
 ```
  
  
- 
+ Here are some plot.design() plots, but I'm not sure they are right.
 ```{r}
 # These work but has no random effect
 plot.design(Dopt_s ~ -1 + lifestage * absLat + sp , data = Dopt_table)
 plot.design(Dopt_s ~ -1 + lifestage * absLat , data = Dopt_table)
 # this does not work:
-plot.design(Dopt_s ~ -1 + lifestage * absLat + (1|sp) , data = Dopt_table)
+#plot.design(Dopt_s ~ -1 + lifestage * absLat + (1|sp) , data = Dopt_table)
 
 ```
  
@@ -128,11 +130,11 @@ plot.design(Dopt_s ~ -1 + lifestage * absLat + (1|sp) , data = Dopt_table)
  Full model: lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = Dopt_table)
  Full model's AIC: `r fit1_full_aic`
 ```{r}
-# Plot model predictions
+# Plot model predictions and diagnosticts plots
 # type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
 plot_model(fit1_full, type = "pred") # predicted values (marginal effects)
 plot_model(fit1_full, type = "re") # random effects
-plot_model(fit1_full, type = "emm")# look up
+
 plot_model(fit1_full, type = "slope")# 
 plot_model(fit1_full, type = "resid")# 
 plot_model(fit1_full, type = "diag")# 
@@ -202,6 +204,7 @@ latitude ranged from `r min(upper_table$absLat, na.rm = T)` to `r max(upper_tabl
 upper_table$Imax_s <- scale(upper_table$Imax)[,1]
 
 fit3_full <- lmer(Imax_s ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
+summary(fit3_full)
 fit3_full_aic <- AIC(fit3_full)
 fit3_fullpvals <- Anova(fit3_full)
 dw_plot(fit3_full) +
@@ -217,6 +220,10 @@ Figure 6. The upper limit varied among species, but not across latitudes or amon
 
 Upper limit analysis- AIC reduced model: `r fit3_reduced_aic`, Ngroups = `r fit3_summary$ngrps`, N = `r nrow(upper_table)`
 
+```{r}
+plot_model(fit3_full, type = "pred")
+
+```
 
 ## Lower limit
 Lower temperature that allows for development rate at >= 50% efficiency
@@ -230,6 +237,7 @@ latitude ranged from `r min(lower_table$absLat, na.rm = T)` to `r max(lower_tabl
 lower_table$Imin_s <- scale(lower_table$Imin)[,1]
 
 fit4_full <- lmer(Imin_s ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+summary(fit4_full)
 fit4_full_aic <- AIC(fit4_full)
 fit4_fullpvals <- Anova(fit4_full)
 dw_plot(fit4_full) +
@@ -265,38 +273,7 @@ plot_model(fit4_reduced, type = "pred")
 ```
 
 
-EXTRA CODE******************************
 
-
-```{r}
-library(effects)
-library(ggeffects)
-pred <- ggpredict(fit2_reduced, terms = c("absLat","lifestage"))
-Dwidth_table$group <- Dwidth_table$lifestage
-
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("D-width")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = Dwidth_table, mapping = aes(x = abs(lat), y = Ilength_s, col =group ), alpha = 0.6)+
-  theme_cowplot()
-
-```
-
-
-```{r}
-CompleteSpecies <- ToptAnalysis %>% 
-  filter(lifestage != "eggtoemergence") %>% 
-  group_by(sp, lifestage) %>% 
-  select(sp, lifestage) %>% 
-  distinct() %>% 
-  group_by(sp) %>% 
-  tally(sort = T) %>% 
-  filter(n > 2)
 ```
 
 
