@@ -22,127 +22,102 @@ library(sjmisc)
 library(broom)
 ```
 
-1. Import files (these files were created with DR1_variable calculation)
+1. Import file
 ```{r}
 # Mariana's desktop
-Popt <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Popt.csv")
-lower <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/llP-width.csv")
-upper <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ulP-width.csv")
-Pwidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/P-width.csv")
+
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
 
 ```
 
 
 ```{r}
 # Mariana's laptop
-
-Popt <-  read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/Popt.csv")
-lower <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/llP-width.csv")
-upper <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ulP-width.csv")
-Pwidth <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/P-width.csv")
+responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
 ```
-
 
 
 ```{r}
 # convert character to factor
-Popt <- Popt %>%
+responses <- responses %>%
   mutate_if(is.character, factor)
-lower <- lower %>%
-  mutate_if(is.character, factor)
-upper <- upper %>%
-  mutate_if(is.character, factor)
-Pwidth <- Pwidth %>%
-  mutate_if(is.character, factor)
-```
 
-Initially, there were `r length(unique(Popt$set))` sets with values for Popt, `r length(unique(Pwidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
-
-
-```{r}
 # discard non-pertinent data
-unique(Popt$quality)
-Popt_table <- Popt %>% 
+responses_table <- responses %>% 
   filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
   mutate(absLat = abs(lat))
-
-lower_table <- lower %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-
-upper_table <- upper %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-
-Pwidth_table <- Pwidth %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-#rm(Popt, lower, upper, Swidth)
-
 ```
-To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
 
-We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
+To assess variation in thermal responses across latitude and life stages, we fitted linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
 
 ## Popt: temperature that maximizes development rate
-Popt ranged from `r min(Popt_table$PTopt)` to `r max(Popt_table$PTopt)`, mean =  `r mean(Popt_table$PTopt)`, SD = `r sd(Popt_table$PTopt)`
-Latitude ranged from `r min(Popt_table$absLat, na.rm = T)` to `r max(Popt_table$absLat, na.rm = T)`
+Popt ranged from `r min(responses_table$Popt, na.rm = T)` to `r max(responses_table$Popt, na.rm = T)`, mean =  `r mean(responses_table$Popt, na.rm = T)`, SD = `r sd(responses_table$Popt, na.rm = T)`
+Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
 
 
 ```{r}
 # 1. Full model
 # Scale response variable
-Popt_table$Popt_s <- scale(Popt_table$PTopt)[,1]
+#responses_table$Popt_s <- scale(responses_table$PTopt)[,1]
 
-fit1_full <- lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table) #
+fit1_full <- lmer(Popt ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
 
 # this model cannot be done because we have 134 observations and the number of random effects would be 171
-#fit1_full_random <- lmer(Popt_s ~ -1 + lifestage * absLat + (lifestage|sp), data = Popt_table) #
+#fit1_full_random <- lmer(Popt ~ -1 + lifestage * absLat + (lifestage|sp), data = responses_table) #
 # this model is singular
-#fit1_full_family <- lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = Popt_table) #
+#fit1_full_family <- lmer(Popt ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = responses_table) #
 
-#summary(fit1_full)
+summary(fit1_full)
 
 fit1_full_aic <- AIC(fit1_full)
 fit1_fullpvals <- Anova(fit1_full)
 dw_plot(fit1_full) +
-  geom_vline(xintercept=0,lty=2)+
+  geom_vline(xintercept = mean(responses_table$Popt, na.rm = T),lty = 2)+
+  geom_vline(xintercept = 0,lty = 3)+
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
 # Figure 1. effects and 95% CI of the full model
 ```
- Full model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table)
+ Full model: lmer(Popt ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
  Full model's AIC: `r fit1_full_aic`
 
 
+```{r}
+plot_model(fit1_full, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
 
 ```{r}
 # 1. Full model
 # Scale response variable
-Pwidth_table$Pwidth_s <- scale(Pwidth_table$Ilength)[,1]
+#responses_table$Pwidth_s<- scale(responses_table$Pwidth)[,1]
 
-fit2_full <- lmer(Pwidth_s ~ -1 + lifestage * absLat + (1|sp), data = Pwidth_table) #
+fit2_full <- lmer(Pwidth ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
 
 summary(fit2_full)
 
 fit2_full_aic <- AIC(fit2_full)
 fit2_fullpvals <- Anova(fit2_full)
 dw_plot(fit2_full) +
-  geom_vline(xintercept=0,lty=2)+
+  geom_vline(xintercept = mean(responses_table$Pwidth, na.rm = T),lty=2)+
+  geom_vline(xintercept = 0,lty = 3)+
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
 # Figure 1. effects and 95% CI of the full model
 ```
- Full model: lmer(P-width_s ~ -1 + lifestage * absLat + (1|sp), data = Pwidth_table)
+ Full model: lmer(P-width_s ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
  Full model's AIC: `r fit2_full_aic`
 
 ```{r}
 # Plot model predictions
 # type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit2_full
-, type = "pred")
+plot_model(fit2_full, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+
 ```
 
 
@@ -150,16 +125,17 @@ plot_model(fit2_full
 ```{r}
 # 1. Full model
 # Scale response variable
-lower_table$lower_s <- scale(lower_table$Imin)[,1]
+#responses_table$Plower_s <- scale(responses_table$Plower)[,1]
 
-fit3_full <- lmer(lower_s ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+fit3_full <- lmer(Plower ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
 
 summary(fit3_full)
 
 fit3_full_aic <- AIC(fit3_full)
 fit3_fullpvals <- Anova(fit3_full)
 dw_plot(fit3_full) +
-  geom_vline(xintercept=0,lty=2)+
+  geom_vline(xintercept = mean(responses_table$Plower, na.rm = T),lty = 2)+
+  geom_vline(xintercept = 0,lty = 3)+
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
@@ -168,54 +144,32 @@ dw_plot(fit3_full) +
 ```
 
 
- Full model: lmer(lower ~ -1 + lifestage * absLat + (1|sp), data = lower_table)
+ Full model: lmer(lower ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
  Full model's AIC: `r fit3_full_aic`
 
 ```{r}
 # Plot model predictions
 # type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit3_full
-, type = "pred")
-```
-
-```{r}
-fit3_reduced <- lmer(lower_s ~ -1 + lifestage + absLat + (1|sp), data = lower_table) #
-
-summary(fit3_reduced)
-
-fit3_reduced_aic <- AIC(fit3_reduced)
-fit3_reducedpvals <- Anova(fit3_reduced)
-dw_plot(fit3_reduced) +
-  geom_vline(xintercept=0,lty=2)+
+plot_model(fit3_full, type = "int")+
   theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
+  scale_color_viridis_d()
 ```
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit3_reduced
-, type = "pred")
-```
-
-
-
 
 
 ```{r}
 # 1. Full model
 # Scale response variable
-upper_table$upper_s <- scale(upper_table$Imax)[,1]
+#responses_table$upper_s <- scale(responses_table$Imax)[,1]
 
-fit4_full <- lmer(upper_s ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
+fit4_full <- lmer(Pupper ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
 
 summary(fit4_full)
 
 fit4_full_aic <- AIC(fit4_full)
 fit4_fullpvals <- Anova(fit4_full)
 dw_plot(fit4_full) +
-  geom_vline(xintercept=0,lty=2)+
+  geom_vline(xintercept = mean(responses_table$Pupper, na.rm = T), lty=2)+
+  geom_vline(xintercept = 0 ,lty = 3)+
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
@@ -224,22 +178,23 @@ dw_plot(fit4_full) +
 ```
 
 
- Full model: lmer(upper ~ -1 + lifestage * absLat + (1|sp), data = upper_table)
+ Full model: lmer(upper ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
  Full model's AIC: `r fit4_full_aic`
 
 ```{r}
 # Plot model predictions
 # type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit4_full
-, type = "pred")
+plot_model(fit4_full, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
 ```
 
-ll model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = Popt_table)
+ll model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
  Full model's AIC: `r fit1_full_aic`
 
 ```{r}
 # #2. Reduced model
-# fit1_reduced <- lmer(Popt_s ~  -1 + lifestage + absLat + (1|sp), data = Popt_table) #
+# fit1_reduced <- lmer(Popt_s ~  -1 + lifestage + absLat + (1|sp), data = responses_table) #
 # 
 # # fit1Noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
 # # fit1Not_noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
