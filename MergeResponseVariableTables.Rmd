@@ -1,0 +1,49 @@
+---
+title: "Merge response variable tables"
+output: html_notebook
+---
+
+
+```{r}
+# load packages
+library(tidyverse)
+library(cowplot)
+
+```
+
+1. Import development rate files:
+```{r}
+# Mariana's desktop
+Development <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Development.csv")
+Survival <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Survival.csv")
+Performance <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Performance.csv")
+```
+
+
+2. Merge tables 
+```{r}
+# 1 get all sets and their general info
+SetDe <- select(Development, set, sp, family, lifestage, lat, lon, locality, quality)
+DeVars <- select(Development, set, Dopt, s_dr, Dlower, Dupper, Dwidth, Max_dr)
+
+SetSu <- select(Survival, set, sp, family, lifestage, lat, lon, locality, quality)
+SuVars <- select(Survival, set, maxSopt, minSopt, Slower, Supper, Swidth)
+
+SetPe <- select(Performance, set, sp, family, lifestage, lat, lon, locality, quality)
+PeVars <- select(Performance, set, Popt, performance, Plower, Pupper, Pwidth)
+
+names(Performance)
+
+# 2 merge set info
+setInfo1 <- rbind(SetDe, SetSu, SetPe)
+setInfo <- distinct(setInfo1)
+Merge1 <- full_join(DeVars, SuVars, by = "set")
+Merge2 <- full_join(Merge1, PeVars, by = "set")
+Responses <- full_join(Merge2, setInfo, by = "set")
+
+```
+
+
+```{r}
+#write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+```
