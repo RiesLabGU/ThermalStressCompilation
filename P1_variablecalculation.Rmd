@@ -365,3 +365,29 @@ Popts: Optimum performance,  Interval_table_cold: lower limit of P-witdh Interva
 # write_csv(Interval_table_both,"/Users/mar/Desktop/Projects/ThermalPerformance/P-width.csv")
 
 ```
+
+
+Merge performance variables in one table
+```{r}
+names(Interval_table_cold)
+```
+
+```{r}
+Popt_to_merge <- Popt_table %>% mutate(Popt = PTopt, performance = Propt) %>% select(-PTopt, -Propt, -Opt)
+
+Merge1 <- select(Interval_table_cold, set, Plower = Imin)
+Merge2 <- select(Interval_table_hot, set, Pupper = Imax)
+Merge3 <- select(Interval_table_hot, set, Pwidth = Ilength)
+
+Performance1 <- full_join(Popt_to_merge, Merge1, by = "set")
+Performance2 <- full_join(Performance1, Merge2, by = "set")
+Performance <- full_join(Performance2, Merge3, by = "set")
+
+head(Performance)
+
+```
+
+
+```{r}
+# write_csv(Performance,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Performance.csv")
+```
