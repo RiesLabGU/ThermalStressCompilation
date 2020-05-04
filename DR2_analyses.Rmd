@@ -118,9 +118,7 @@ dw_plot(fit1_full) +
 ```
  
  
- 
- 
- 
+
  Here are some plot.design() plots, but I'm not sure they are right.
 ```{r}
 # These work but has no random effect
@@ -140,6 +138,7 @@ plot.design(Dopt ~ -1 + lifestage * absLat , data = Dopt_table)
 plot_model(fit1_full, type = "eff") # predicted values (marginal effects)
 plot_model(fit1_full, type = "emm", terms = absLat) # predicted values (marginal effects)
 plot_model(fit1_full, type = "re") # random effects
+
 plot_model(fit1_full, type = "int")+
   theme_cowplot()+
   scale_color_viridis_d()
@@ -212,7 +211,9 @@ latitude ranged from `r min(upper_table$absLat, na.rm = T)` to `r max(upper_tabl
 # Scale response variable
 upper_table$Imax_s <- scale(upper_table$Imax)[,1]
 
+
 fit3_full <- lmer(Imax ~ -1 + lifestage * absLat + (1|sp), data = upper_table) #
+
 summary(fit3_full)
 fit3_full_aic <- AIC(fit3_full)
 fit3_fullpvals <- Anova(fit3_full)
@@ -245,7 +246,9 @@ latitude ranged from `r min(lower_table$absLat, na.rm = T)` to `r max(lower_tabl
 # Scale response variable
 lower_table$Imin_s <- scale(lower_table$Imin)[,1]
 
-fit4_full <- lmer(Imin ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+
+fit4_full <- lmer(Imin_s ~ -1 + lifestage * absLat + (1|sp), data = lower_table) #
+
 summary(fit4_full)
 fit4_full_aic <- AIC(fit4_full)
 fit4_fullpvals <- Anova(fit4_full)
