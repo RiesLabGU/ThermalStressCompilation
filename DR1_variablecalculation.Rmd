@@ -392,6 +392,23 @@ Interval_table_both <- filter(Interval_table1, gradecold == "complete", gradehot
 rm(Interval_table1)
 ```
 
+# 7. get a table with maximum development rate (not standardized)
+ 
+```{r}
+MaxDrTable <- Ana_dr_consolidated %>%
+   group_by(set) %>%
+   nest() %>%
+   mutate(Max_dr = map(data, max)) %>%
+   select(set, Max_dr) %>%
+   unnest(cols = c(Max_dr)) %>% 
+  filter(!is.na(Max_dr))
+```
+ 
+ 
+ 
+
+
+
 Print tables for analysis
 Dopt: Optimum development rate
 Interval_table_cold: lower limmit of D-witdh
@@ -411,6 +428,33 @@ Interval_table_both: D-witdh
 
 ```
 
+Merge tables
+
+```{r}
+names(Dopt_table)
+```
 
 
+
+```{r}
+Dopt_to_merge <- Dopt_table %>% mutate(s_dr = Dropt) %>% select(-Dropt)
+Merge1 <- select(Interval_table_cold, set, Dlower = Imin)
+head(Merge1)
+Merge2 <- select(Interval_table_hot, set, Dupper = Imax)
+head(Merge2)
+Merge3 <- select(Interval_table_both, set, Dwidth =Ilength)
+head(Merge3)
+DevelopmentRate1 <- full_join(Dopt_to_merge, Merge1,  by = "set")
+DevelopmentRate2 <- full_join(DevelopmentRate1, Merge2,  by = "set")
+DevelopmentRate3 <- full_join(DevelopmentRate2, Merge3,  by = "set")
+DevelopmentRate <- full_join(DevelopmentRate3, MaxDrTable,  by = "set")
+head(DevelopmentRate)
+names(DevelopmentRate)
+
+```
+
+
+```{r}
+# write_csv(DevelopmentRate,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Development.csv")
+```
 
