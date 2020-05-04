@@ -310,3 +310,28 @@ Interval_table_both: table with values for both lower and upper ends of S-Interv
 # write_csv(Interval_table_both,"/Users/mar/Desktop/Projects/ThermalPerformance/S-width.csv")
 
 ```
+
+Merge all survival variables tables in one table
+
+```{r}
+names(Interval_table_cold) 
+```
+
+```{r}
+merge1 <- select(Interval_table_cold, set, Slower = Imin)
+merge2 <- select(Interval_table_hot, set, Supper = Imax)
+merge3 <- select(Interval_table_both, set, Swidth = Ilength)
+
+Survival1 <- full_join(Sopts_table, merge1, by = "set")
+Survival2 <- full_join(Survival1, merge2, by = "set")
+Survival <- full_join(Survival2, merge3, by = "set")
+head(Survival)
+
+```
+
+
+```{r}
+ write_csv(Survival,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Survival.csv")
+```
+
+
