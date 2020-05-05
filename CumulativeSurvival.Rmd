@@ -1,0 +1,334 @@
+---
+title: "Cumulative survival"
+output: html_notebook
+---
+
+## Contents
+1. Import data and housekeeping
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
+```
+
+
+Import data 
+```{r}
+# Mariana's desktop
+Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", ""))
+```
+
+```{r}
+# Mariana's laptop
+Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Anna's Laptop
+Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", "")) 
+
+```
+
+
+```{r}
+# Discard parasitoids and change character to factor 
+unique(Data$status)
+Ana <- Data[Data$status != "parasitoid",]
+rm(Data)
+
+# convert character to factor
+Ana <- Ana %>%
+  mutate_if(is.character, factor)
+```
+
+
+Consolidate redundant sets
+Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
+Consolidated sets kept the number (unique set identifier) of the first set they include.
+
+
+```{r}
+# make a new column that unifies redundant sets
+Ana_survival <- Ana %>% 
+  mutate(redundancy_id = as.numeric(factor(paste(sp, locality, lifestage, id))))
+
+#length(unique(Ana_survival$set)) # there were 156 sets
+#length(unique(Ana_survival$redundancy_id)) # there were 137 non-redundant sets
+
+# Function to get the geometric mean of development rate (dr_c), and mean (dr2)
+mean_redundant <- function(dat){
+newset <- dat$set [[1]]
+dat %>%
+  select(temp, sp, survival) %>% 
+  group_by(temp) %>% 
+  summarise(survival_c = geometric.mean(survival, na.rm = T),
+            survival2 = mean(survival,  na.rm = T), 
+            newset = newset,
+            n_sets = length(survival)) 
+}
+
+# Apply function to Ana_survival
+
+Ana_survival_consolidated <- Ana_survival %>% 
+  group_by(redundancy_id) %>% 
+  nest() %>% 
+  mutate(consolidated = map(data, mean_redundant)) %>% 
+  select(redundancy_id, consolidated) %>% 
+  unnest(col = consolidated)# Function
+
+# re-name variables. Note that consolidated sets summarize multiple sets and got assigned the number (set id value) of the first set.
+names(Ana_survival_consolidated) <- c("redundancy_id", "temp", "survival", "survival2", "set", "n_sets")
+```
+
+```{r}
+add_info <- Ana_survival %>% 
+  select(set, sp, family, lifestage, lat, lon, locality, quality, id) %>% 
+  distinct()
+
+Survival_table <- inner_join(Ana_survival_consolidated, add_info, by = "set")
+```
+
+
+
+
+
+```{r}
+# Select sets of life stages of interest: egg, larva, pupa, egg to emergence
+
+
+life_stages <- c("egg", "larva", "pupa", "eggtoemergence")
+
+Ana_survival <- Ana %>% 
+  filter(lifestage %in% life_stages) # and only the life stages of interest
+
+Ana_survival$lifestage <- factor(Ana_survival$lifestage, levels = c("egg", "larva", "pupa", "eggtoemergence"))
+```
+
+
+
+# get ids of sets that report survival in all three life stages
+
+```{r}
+interval_sets <- Ana_survival %>% 
+  group_by(set) %>% 
+  mutate(n_temps = length(unique(temp)), 
+         validcount = sum(!is.na(survival)), 
+         validcount_s = sum(!is.na(survival))) %>% 
+  filter(n_temps > 3, validcount > 3, validcount_s > 3)
+
+interval_set_list <- unique(interval_sets$set) 
+
+interval <- Ana_survival %>% filter(set %in% interval_set_list)
+
+main_stages <- Ana_survival %>% 
+  filter(lifestage == "egg"|lifestage == "larva"|lifestage == "pupa")
+main_stages_list <- unique(main_stages$lifestage)
+inter <- interval %>% filter(lifestage %in% main_stages_list) 
+inter$lifestage <- factor(inter$lifestage)
+
+
+egg <- filter(inter, lifestage == "egg", survival >= 0)
+egg$set <- factor(egg$set)
+larva <- filter(inter, lifestage == "larva",  survival >= 1)
+larva$set <- factor(larva$set)
+pupa <- filter(inter, lifestage == "pupa",  survival >= 1)
+pupa$set <- factor(pupa$set)
+
+egg_ids <- tibble(id = unique(egg$id))
+larva_ids <- tibble(id = unique(larva$id))
+pupa_ids <- tibble(id = unique(pupa$id))
+
+fullstudies1 <- intersect(egg_ids,larva_ids)
+fullstudies <- intersect(fullstudies1,pupa_ids)
+# the new table "ontosurvival" contains only those sets
+ontosurvival <- inter %>% filter(id %in% fullstudies$id)
+ontosurvival$stagenum <- ifelse(ontosurvival$lifestage == "egg", 1, ifelse(ontosurvival$lifestage == "larva",2, 3))
+
+```
+
+
+
+```{r}
+# select only relevant columns (no tidyverse, so "set" can be removed as the grouping variable)
+combsurvival <- ontosurvival %>% 
+  filter(sp != "Chilo auricilius", sp != "Metisa plana", sp !="Pteroma pendula")
+combsurvival2 <- combsurvival[, c("id","sp", "lifestage", "temp", "survival","family")]
+head(combsurvival2)
+
+
+```
+
+Make it wider:
+```{r}
+combsurvival <- combsurvival2 %>% 
+  ungroup() %>% # by ungrouping you get rid of the issue of having a bunch of NA and non- matching rows
+  pivot_wider(names_from = lifestage, values_from = survival) 
+
+
+```
+
+Ploting Cumulative survival at different temperatures
+
+```{r}
+names(combsurvival)
+combsurvival$total <- combsurvival$egg/100 * combsurvival$larva/100 * combsurvival$pupa/100
+combsurvival$sp_id <- factor(paste(combsurvival$sp, combsurvival$id, sep = "-"))
+combsurvival$family <- factor(combsurvival$family)
+ggplot(combsurvival, aes(x = temp, y = total, group = factor(id)))+
+  geom_point(col = "black") +
+  geom_point(data = combsurvival, mapping = aes(x = temp, y = egg/100, group = factor(sp_id)), col = "grey", shape = 1) +
+  geom_line(data = combsurvival, mapping = aes(x = temp, y = egg/100, group = factor(sp_id)), col = "grey") +
+  
+  geom_point(data = combsurvival, mapping = aes(x = temp, y = larva/100, group = factor(sp_id)), col = "grey70", shape = 2) +
+  geom_line(data = combsurvival, mapping = aes(x = temp, y = larva/100, group = factor(sp_id)), col = "grey70", linetype = 2)+
+
+geom_point(data = combsurvival, mapping = aes(x = temp, y = pupa/100, group = factor(sp_id)), col = "grey32", shape = 4) +
+  geom_line(data = combsurvival, mapping = aes(x = temp, y = pupa/100, group = factor(sp_id)), col = "grey32", linetype = 3)+
+  
+  geom_line( col = "black") +
+  theme_cowplot()+
+  theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_wrap(.~sp_id)
+
+```
+
+
+```{r}
+# families in comsurvival: Pyralidae      Noctuidae      Tortricidae    Lycaenidae     Crambidae Arctiidae      Oecophoridae   Plutellidae    Elachistidae   Depressariidae Geometridae    Bellelliidae
+unique(combsurvival$family)
+combsurvival %>% 
+  group_by(family) %>% 
+  tally(sort = T)
+
+xfamily <- filter(combsurvival, family != "Crambidae", family !="Pyralidae", family!= "Tortricidae",family != "Lycaenidae")
+
+xfamily <- filter(combsurvival, family == "Pyralidae")
+
+
+ggplot(xfamily, aes(x = temp, y = total, group = factor(id)))+
+  geom_point(col = "black") +
+  geom_point(data = xfamily, mapping = aes(x = temp, y = egg/100, group = factor(sp_id)), col = "grey", shape = 1) +
+  geom_line(data = xfamily, mapping = aes(x = temp, y = egg/100, group = factor(sp_id)), col = "grey") +
+  
+  geom_point(data = xfamily, mapping = aes(x = temp, y = larva/100, group = factor(sp_id)), col = "grey70", shape = 2) +
+  geom_line(data = xfamily, mapping = aes(x = temp, y = larva/100, group = factor(sp_id)), col = "grey70", linetype = 2)+
+
+geom_point(data = xfamily, mapping = aes(x = temp, y = pupa/100, group = factor(sp_id)), col = "grey32", shape = 4) +
+  geom_line(data = xfamily, mapping = aes(x = temp, y = pupa/100, group = factor(sp_id)), col = "grey32", linetype = 3)+
+  
+  geom_line( col = "black") +
+  theme_cowplot()+
+  #theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_wrap(.~sp_id)
+```
+
+
+```{r}
+
+xfamily <- filter(combsurvival2, family == "Pyralidae")
+
+ggplot(xfamily, aes(x = temp, y = survival, col = lifestage, shape = lifestage))+
+  geom_point() +
+  geom_line()+
+  theme_cowplot()+
+  #theme(legend.position = "none") +
+  labs(x = "Temperature", y = "Cumulative Survival across lifestages") + 
+  facet_grid(sp~lifestage)
+
+
+```
+
+
+Eggs
+
+```{r}
+Eggs <- filter(Ana_survival, lifestage == "egg")
+Eggs$family <- factor(Eggs$family)
+Eggs$sp_id <- factor(paste(Eggs$sp, Eggs$id, sep = "-"))
+ggplot(Eggs, aes(x = temp, y = survival/100, col = sp_id))+
+  geom_point() +
+  geom_line()+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  facet_wrap(.~family)
+
+
+```
+
+```{r}
+ggplot(Eggs, aes(x = temp, y = survival/100, col = factor(set)))+
+#ggplot(filter(Eggs, family == "Pyralidae"), aes(x = temp, y = survival/100, col = factor(set)))+
+  #geom_point()+
+  geom_line()+
+  theme_cowplot()+
+  theme(legend.position = "none")#+
+  #facet_wrap(.~family)
+
+
+
+```
+
+Larvae
+
+```{r}
+Larvae <- filter(Ana_survival, lifestage == "larva")
+Larvae$family <- factor(Larvae$family)
+Larvae$sp_id <- factor(paste(Larvae$sp, Larvae$id, sep = "-"))
+
+ggplot(Larvae, aes(x = temp, y = survival/100, col = factor(set)))+
+#ggplot(filter(Larvae, family == "Pyralidae"), aes(x = temp, y = survival/100, col = factor(set)))+
+  xlim(-10,40)+
+  geom_line()+
+  theme_cowplot()+
+  theme(legend.position = "none")#+
+  #facet_wrap(.~family)
+
+
+```
+
+Pupae
+
+```{r}
+Pupae <- filter(Ana_survival, lifestage == "pupa")
+Pupae$family <- factor(Pupae$family)
+Pupae$sp_id <- factor(paste(Pupae$sp, Pupae$id, sep = "-"))
+
+ggplot(Pupae, aes(x = temp, y = survival/100, col = factor(set)))+
+  #geom_point()+
+  geom_line()+
+  theme_cowplot()+
+  xlim(-10,40)+
+  theme(legend.position = "none")#+
+  #facet_wrap(.~family)
+
+
+```
+
+```{r}
+# Most common temps
+Ana_common <- filter(Ana_survival, temp == 5| temp == 10| temp == 15| temp == 20| temp == 25| temp == 30| temp == 35| temp == 40)
+sum(!is.na(Ana_common$survival))
+length(unique(Ana_common$sp))
+ggplot(Ana_common, aes(x = factor(temp), y = survival))+
+  geom_boxplot()+
+  theme_cowplot()+
+  #geom_jitter()+
+  facet_wrap(.~ lifestage)
+```
+
