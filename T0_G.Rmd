@@ -141,11 +141,6 @@ get_rise_intervals <- function(Data){
 ```
 
 
-```{r}
-get_rise_intervals(Data)
-
-```
-
 Get rise intervals from all sets
 ```{r}
 trial2 <- select(trial, set, dr, temp, lifestage)
@@ -197,10 +192,6 @@ Intervals <- RiseIntervals %>%
 
 
 
-
-
-
-
 Function to calculate T0
 
 ```{r}
@@ -244,7 +235,7 @@ get_t0 <- function(Data){
 ```{r}
 # apply get_t0 to Intervals table
 Intervals$set2 <- Intervals$set
-T0table_interval <- Intervals %>% 
+T0table <- Intervals %>% 
   group_by(set2) %>% 
   nest() %>% 
   mutate(Threshold = map(data,get_t0)) %>% 
@@ -257,7 +248,7 @@ IntervalID <- unique(Intervals$set)
 ```
 
 ```{r}
-T0table_interval <- T0table %>% 
+T0table <- T0table %>% 
   mutate(set = set2) %>% 
   ungroup() %>% 
   select(-set2)
@@ -302,12 +293,6 @@ part3 <- T0table %>%
 master1 <- full_join(part2, part3, by = "set")
 master <- inner_join(part1, master1, by = "set")
 
-master <- master %>% 
-  mutate(model2 = map(original, get_t0))
-
-master$original[[1]] [,"sex"]
-trialmaster <- filter(master, set == 1)
-
 
 plot_master <- function(original, interval, model){
   ggplot(interval, aes(x = temp, y = dr))+
@@ -323,10 +308,153 @@ plot_master <- function(original, interval, model){
 master <- master %>% 
   mutate(plot = pmap(list(original, interval, model), plot_master))
 
-master$plot
+#master$plot
+
+# keep only sets with valid linear regressions.
+
+validregressions <- part3 %>% 
+  unnest(cols =  model) %>% 
+  filter(P < 0.05, shapiro_testP > 0.05, spread > 7)
+
+keepsets <- unique(validregressions$set)
+
+valid_master <- master %>% filter(set %in% keepsets)
+```
+
+```{r}
+valid_master$plot[1:10]
+```
+
+```{r}
+thresholds <- valid_master %>% 
+  select(set, model) %>% 
+  unnest(cols = model)
+
+#Add info
+
+Info <- Ana_dr %>% 
+  select(set, sp, lifestage, family, lat, lon, locality, quality) %>% 
+  distinct()
+
+thres <- inner_join(thresholds, Info, by = "set")
+
+mainthres <- thres %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(absLat = abs(lat))
+ggplot(mainthres, aes(x = lifestage, y = T0))+
+  geom_boxplot()
+
+ggplot(mainthres, aes(x = spread, y = T0))+
+  geom_point()
+
+ggplot(mainthres, aes(x = N_temp, y = T0))+
+  geom_point()
+
+
+names(mainthres)
+```
+
+```{r}
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+fit <- lmer(T0 ~ -1+  lifestage * absLat + (1|sp), data = mainthres)
+
+fit
+Anova(fit)
+```
+
+```{r}
+dw_plot(fit) +
+  geom_vline(xintercept = mean(mainthres$T0, na.rm = T), lty=2)+
+  geom_vline(xintercept = 0 ,lty = 3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+plot_model(fit, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+```{r}
+ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
+  geom_point()+
+  theme_cowplot()+
+  facet_grid(.~lifestage)
+```
+
+```{r}
+
+rateops <- Ana_dr %>% 
+  group_by(set) %>% 
+  summarise(drmax =max(dr, na.rm = T))
+
+ad <- inner_join(rateops, mainthres, by = "set")
+ggplot(ad, aes(x = absLat, y = drmax))+
+  geom_point()+
+  theme_cowplot()+
+  facet_grid(.~lifestage)
+
+
+
+
 
 ```
 
 ```{r}
 
+fit2 <- lmer(drmax ~ -1+  lifestage * absLat + (1|family) , data = ad)
+
+fit2
+Anova(fit2)
+
+
+dw_plot(fit2) +
+  geom_vline(xintercept = mean(ad$drmax, na.rm = T), lty=2)+
+  geom_vline(xintercept = 0 ,lty = 3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+plot_model(fit2, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+
+ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
+  geom_point()+
+  theme_cowplot()+
+  facet_grid(.~lifestage)
+
 ```
+
+```{r}
+larv <- filter(ad, lifestage == "larva")
+fit2 <- lm(drmax ~  absLat , data = ad)
+
+fit2
+Anova(fit2)
+
+
+dw_plot(fit2) +
+  geom_vline(xintercept = mean(ad$drmax, na.rm = T), lty=2)+
+  geom_vline(xintercept = 0 ,lty = 3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+plot_model(fit2, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+
+ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
+  geom_point()+
+  theme_cowplot()+
+  facet_grid(.~lifestage)
+```
+
