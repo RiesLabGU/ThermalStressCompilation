@@ -204,6 +204,7 @@ Intervals <- RiseIntervals %>%
 Function to calculate T0
 
 ```{r}
+
 get_t0 <- function(Data){
   Data <- Data[!is.na(Data$dr) & !is.na(Data$temp) & Data$dr > 0,] # Remove treatments with no dr data
   if(nrow(Data) > 2 ){
@@ -213,19 +214,25 @@ get_t0 <- function(Data){
     Data <- filter(Data, temp <= dTopt, dr > 0)
     fit <- lm(dr ~ temp, data = Data) # linear regression
     T0 <- as.numeric(- coef(fit)[1]/coef(fit)[2]) # T0 is the x intercept
+    Intercept <- coef(fit)[1]
     slope_f <- as.numeric(coef(fit)[2])
-    R2 <- as.numeric(summary(fit)$r.squared) #extract r2
-    P <- as.numeric(summary(fit)$coefficients[2, 4]) #extract P
-    shap <- as.numeric(shapiro.test(fit$residuals)[2])
+    R2 <- signif(as.numeric(summary(fit)$r.squared), digits = 3) #extract r2
+    P <- signif(as.numeric(summary(fit)$coefficients[2, 4]),digits = 3) #extract P
+    shap <- signif(as.numeric(shapiro.test(fit$residuals)[2]), digits = 3)
     Data$G <- (1/Data$dr) * (Data$temp - as.numeric(as.character(T0)))
     mean_G <- mean(Data$G, na.rm = T)
     mean_temp <- mean(Data$temp, na.rm = T)
+    min_temp <- min(Data$temp, na.rm = T)
+    max_temp <- max(Data$temp, na.rm = T)
     Output <- tibble(T0 = T0, 
                      slope = slope_f, 
                      N_temp = nrow(Data),
                      spread = max(Data$temp) - min(Data$temp),
                      r2= R2, P = P, shapiro_testP = shap, G = mean_G, 
-                     meantemp = mean_temp) 
+                     meantemp = mean_temp, 
+                     mintemp = min_temp, 
+                     maxtemp = max_temp,
+                     Intercept = Intercept) 
     #plot = plot(dr~temp, data = Data, main = paste(Data$sp[1], Data$set[1]))
   } else{ print("less than 3 data points")}
 }
@@ -237,17 +244,89 @@ get_t0 <- function(Data){
 ```{r}
 # apply get_t0 to Intervals table
 Intervals$set2 <- Intervals$set
-T0table <- Intervals %>% 
+T0table_interval <- Intervals %>% 
   group_by(set2) %>% 
   nest() %>% 
   mutate(Threshold = map(data,get_t0)) %>% 
   select(set2, Threshold) %>% 
   unnest(cols = Threshold) 
+IntervalID <- unique(Intervals$set)
 
-
-ggplot(T0table, aes(x = spread, y = T0))+
-  geom_point()
 
 
 ```
 
+```{r}
+T0table_interval <- T0table %>% 
+  mutate(set = set2) %>% 
+  ungroup() %>% 
+  select(-set2)
+
+# test
+Interval_944 <- filter(Intervals, set == 944)
+T0_944 <- filter(T0table, set == 944)
+T0_944b <- get_t0(Interval_944)
+ggplot(set_944, aes(x = temp, y = dr))+
+  geom_point(col = "grey")+
+  geom_point(data = Interval_944, mapping = aes(x = temp, y = dr), col = "black")+
+  theme_cowplot()+
+  #geom_abline(slope = T0_944$slope, xintercept = T0_944$T0)
+  #geom_abline(slope = T0_944$slope, yintercept = T0_944$Intercept, xintercept = T0_944$T0)+
+  #geom_abline(intercept = -0.01752141, slope = 0.006480599)+
+  geom_abline(intercept = T0_944$Intercept, slope = T0_944$slope)+
+  ggtitle(paste("Shapiro test P=", T0_944$shapiro_testP, ", r2 =", T0_944$r2, ", P =", T0_944$P, sep = ""))+
+  xlim(0,40)
+#length(unique(Intervals$set))
+
+```
+
+
+```{r}
+# Create master table
+
+part1 <- Ana_dr %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  transmute(original = data)
+
+part2 <- Intervals %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  transmute(interval = data)
+
+part3 <- T0table %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  transmute(model = data)
+
+master1 <- full_join(part2, part3, by = "set")
+master <- inner_join(part1, master1, by = "set")
+
+master <- master %>% 
+  mutate(model2 = map(original, get_t0))
+
+master$original[[1]] [,"sex"]
+trialmaster <- filter(master, set == 1)
+
+
+plot_master <- function(original, interval, model){
+  ggplot(interval, aes(x = temp, y = dr))+
+   geom_point(data = original, mapping = aes(x = temp, y = dr), col = "grey")+
+    geom_point(col = "black")+
+    theme_cowplot()+
+    
+    geom_abline(data = model, mapping = aes(intercept = Intercept, slope = slope))+
+    ggtitle(paste("Shapiro test P=", model$shapiro_testP, ", r2 =", model$r2, ", P =", model$P, sep = ""))+
+    xlim(0,40)
+}
+
+master <- master %>% 
+  mutate(plot = pmap(list(original, interval, model), plot_master))
+
+master$plot
+
+```
+
+```{r}
+
+```
