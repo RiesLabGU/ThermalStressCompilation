@@ -57,30 +57,34 @@ Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(respon
 
 
 ```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Dopt_s <- scale(responses_table$Dopt)[,1]
+# 1. Subset to D metrics and predictors only
+D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth, lifestage, absLat, sp))
 
-fit1_full <- lmer(Dopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = responses_table) #
+# Full models, with random intercept, and then random slopes
 
+## random slopes: need to input dataset as dataframe
 
-# The model below does not work because we have 134 observations and the number of random effects would be 171
-#fit1_full_random <- lmer(Dopt ~ -1 + lifestage * absLat + (lifestage|sp), data = responses_table) #
+fit1_fullrandom <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
 
+summary(fit1_fullrandom)
 
-# this model is singular
-#fit1_full_family <- lmer(Dopt ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = responses_table) #
+fit_red1random <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
 
-fit1_full_aic <- AIC(fit1_full)
-fit1_fullpvals <- Anova(fit1_full)
-summary(fit1_full)
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
 
+# fit better model with ML
+fit1_randomML <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
+summary(fit1_randomML)
+Anova(fit1_randomML)
+D.set <- as.data.frame(D.set)
 
+#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
 ```
  
 ```{r}
-dw_plot(fit1_full) +
-  geom_vline(xintercept= mean(responses_table$Dopt),lty=2)+
+dw_plot(fit1_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
   scale_color_viridis_d()+
@@ -88,20 +92,52 @@ dw_plot(fit1_full) +
 ```
  
  
-
- Here are some plot.design() plots, but I'm not sure they are right.
+ 
+ 
+ 
+ 
+ 
 ```{r}
-# These work but has no random effect
-plot.design(Dopt ~ -1 + lifestage * absLat + sp , data = responses_table)
-plot.design(Dopt ~ -1 + lifestage * absLat , data = responses_table)
-# this does not work:
-#plot.design(Dopt_s ~ -1 + lifestage * absLat + (1|sp) , data = responses_table)
+## Omit NA rows for PCA. need dataframe for input
+D.set.nona <- as.data.frame(na.omit(D.set))
+Dpc <- princomp(~Dopt + Dupper + Dwidth, data = D.set.nona)
+summary(Dpc)
+loadings(Dpc)
+names(Dpc)
+
+## Bind PC scores to dataset
+
+D.set.pcs <- cbind(D.set.nona, Dpc$scores)
+head(D.set.pcs)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (lifestage|sp), data = D.set.pcs)
+summary(fit1_red1)
+
+## test simpler models
+fit1_red2 <- lmer(Comp.1 ~ lifestage  + (lifestage|sp), data = D.set.pcs)
+fit1_red3 <- lmer(Comp.1 ~ absLat + (lifestage|sp), data = D.set.pcs)
+fit1_red4 <- lmer(Comp.1 ~ (lifestage|sp), data = D.set.pcs)
+anova(fit1_red1,fit1_red2, fit1_red3,fit1_red4, test.statistic = "Chisq")
+
+## estimate parameters using ML rather than REML (default)
+fit1_red1.ML <- lmer(Comp.1 ~ lifestage + absLat  + (lifestage|sp), data = D.set.pcs, REML = F)
+summary(fit1_red1.ML)
+
+dw_plot(fit1_red1.ML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
 
 ```
  
  
- Full model: lmer(Dopt_s ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit1_full_aic`
+ 
+# Old code below_____________________________
+ 
 ```{r}
 # Plot model predictions and diagnosticts plots
 # type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
@@ -109,9 +145,9 @@ plot.design(Dopt ~ -1 + lifestage * absLat , data = responses_table)
 # plot_model(fit1_full, type = "emm", terms = c("lifestage", "absLat")) # predicted values (marginal effects)
 # plot_model(fit1_full, type = "re") # random effects
 
-plot_model(fit1_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
+# plot_model(fit1_randomML, type = "est")+
+#   theme_cowplot()+
+#   scale_color_viridis_d()
 
 # plot_model(fit1_full, type = "slope")# 
 # plot_model(fit1_full, type = "resid")# 
