@@ -18,39 +18,91 @@ library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
 ```
-
-1. Import files (these files were created with DR1_variable calculation)
+1. Import file
 ```{r}
 # Mariana's desktop
-Sopt <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Sopt.csv")
-lower <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/llS-width.csv")
-upper <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ulS-width.csv")
-Swidth <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/S-width.csv")
 
-```
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 
-
-```{r}
-# Mariana's laptop
-
-Sopt <-  read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/Sopt.csv")
-lower <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/llS-width.csv")
-upper <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ulS-width.csv")
-Swidth <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/S-width.csv")
 ```
 
 
 ```{r}
 # convert character to factor
-Sopt <- Sopt %>%
+responses <- responses %>%
   mutate_if(is.character, factor)
-lower <- lower %>%
-  mutate_if(is.character, factor)
-upper <- upper %>%
-  mutate_if(is.character, factor)
-Swidth <- Swidth %>%
-  mutate_if(is.character, factor)
+# discard non-pertinent data
+
+responses_table <- responses %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
 ```
+
+
+```{r}
+names(responses_table)
+# 1. Subset to D metrics and predictors only
+S.set <- with(responses_table, cbind(maxSopt, Swidth, Supper, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(maxSopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(S.set)) #
+
+summary(fit1_fullrandom)
+
+fit_red1random <- lmer(maxSopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(S.set))
+
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
+
+# fit better model with ML
+fit1_randomML <- lmer(maxSopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(S.set))
+summary(fit1_randomML)
+Anova(fit1_randomML)
+S.set <- as.data.frame(S.set)
+
+dw_plot(fit1_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+
+
+
+```{r}
+## Omit NA rows for PCA. need dataframe for input
+S.set.nona <- as.data.frame(na.omit(S.set))
+Spc <- princomp(~maxSopt + Supper + Swidth, data = S.set.nona)
+summary(Spc)
+loadings(Spc)
+names(Spc)
+
+## Bind PC scores to dataset
+
+S.set.pcs <- cbind(S.set.nona, Spc$scores)
+head(S.set.pcs)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(S.set.pcs))
+# not working! 
+```
+
+
+
+
+
+
+
+
+
+
+
 
 Initially, there were `r length(unique(Sopt$set))` sets with values for Sopt, `r length(unique(Swidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
 
