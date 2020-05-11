@@ -25,7 +25,7 @@ library(broom)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 
 ```
 
@@ -133,6 +133,18 @@ dw_plot(fit1_red1.ML) +
 
 
 ```
+ 
+ 
+ 
+ 
+```{r}
+names(responses_table)
+
+plot(T0 ~ Popt, data = responses_table)
+
+```
+ 
+ 
  
  
  
