@@ -17,6 +17,7 @@ library(cowplot)
 Development <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Development.csv")
 Survival <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Survival.csv")
 Performance <-  read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Performance.csv")
+T0 <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/T0-G.csv")
 ```
 
 
@@ -31,19 +32,23 @@ SuVars <- select(Survival, set, maxSopt, minSopt, Slower, Supper, Swidth)
 
 SetPe <- select(Performance, set, sp, family, lifestage, lat, lon, locality, quality)
 PeVars <- select(Performance, set, Popt, performance, Plower, Pupper, Pwidth)
+#names(T0)
+SetT0 <- select(T0, set, sp, family, lifestage, lat, lon, locality, quality)
+T0Vars <- select(T0, set, T0, G)
 
 names(Performance)
 
 # 2 merge set info
-setInfo1 <- rbind(SetDe, SetSu, SetPe)
+setInfo1 <- rbind(SetDe, SetSu, SetPe, SetT0)
 setInfo <- distinct(setInfo1)
 Merge1 <- full_join(DeVars, SuVars, by = "set")
 Merge2 <- full_join(Merge1, PeVars, by = "set")
-Responses <- full_join(Merge2, setInfo, by = "set")
+Merge3 <- full_join(Merge2, T0Vars, by = "set")
+Responses <- full_join(Merge3, setInfo, by = "set")
 
 ```
 
 
 ```{r}
-#write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+#write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 ```
