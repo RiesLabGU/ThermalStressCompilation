@@ -48,7 +48,7 @@ S.set <- with(responses_table, cbind(maxSopt, Swidth, Supper, lifestage, absLat,
 
 ## random slopes: need to input dataset as dataframe
 
-fit1_fullrandom <- lmer(maxSopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(S.set)) #
+fit1_fullrandom <- lmer(maxSopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(S.set), REML = F) #
 
 summary(fit1_fullrandom)
 
@@ -58,7 +58,7 @@ anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
 ## interaction term is worse fit by AIC ro BIC, use reduced model
 
 # fit better model with ML
-fit1_randomML <- lmer(maxSopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(S.set))
+fit1_randomML <- lmer(maxSopt ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(S.set))
 summary(fit1_randomML)
 Anova(fit1_randomML)
 S.set <- as.data.frame(S.set)
@@ -76,20 +76,41 @@ dw_plot(fit1_randomML) +
 
 
 ```{r}
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot.design(fit1_randomML, type = "eff")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+
+
+```{r}
 ## Omit NA rows for PCA. need dataframe for input
 S.set.nona <- as.data.frame(na.omit(S.set))
+
 Spc <- princomp(~maxSopt + Supper + Swidth, data = S.set.nona)
 summary(Spc)
 loadings(Spc)
 names(Spc)
-
+plot(Spc)
 ## Bind PC scores to dataset
 
 S.set.pcs <- cbind(S.set.nona, Spc$scores)
 head(S.set.pcs)
 
 ## Now model Comp.1 (PC scores on 1st PC)
-fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(S.set.pcs))
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set.pcs), REML = F)
+
+summary(fit1_red1)
+Anova(fit1_red1)
+
+
+dw_plot(fit1_red1) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
 # not working! 
 ```
 
@@ -106,28 +127,6 @@ fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (lifestage|sp), data = as.data.f
 
 Initially, there were `r length(unique(Sopt$set))` sets with values for Sopt, `r length(unique(Swidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
 
-
-```{r}
-# discard non-pertinent data
-unique(Sopt$quality)
-Sopt_table <- Sopt %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-
-lower_table <- lower %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-
-upper_table <- upper %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-
-Swidth_table <- Swidth %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
-  mutate(absLat = abs(lat))
-#rm(Sopt, lower, upper, Swidth)
-
-```
 To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
 
 We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
@@ -136,52 +135,3 @@ We first fitted a full model including latitude, life stage, and their interacti
 Sopt ranged from `r min(Sopt_table$maxSopt)` to `r max(Sopt_table$maxSopt)`, mean =  `r mean(Sopt_table$maxSopt)`, SD = `r sd(Sopt_table$maxSopt)`
 Latitude ranged from `r min(Sopt_table$absLat, na.rm = T)` to `r max(Sopt_table$absLat, na.rm = T)`
 
-
-```{r}
-# 1. Full model
-# Scale response variable
-Sopt_table$Sopt_s <- scale(Sopt_table$maxSopt)[,1]
-
-fit1_full <- lmer(Sopt_s ~ -1 + lifestage * absLat + (1|sp), data = Sopt_table) #
-
-# this model cannot be done because we have 134 observations and the number of random effects would be 171
-#fit1_full_random <- lmer(Sopt_s ~ -1 + lifestage * absLat + (lifestage|sp), data = Sopt_table) #
-# this model is singular
-#fit1_full_family <- lmer(Sopt_s ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = Sopt_table) #
-
-#summary(fit1_full)
-
-fit1_full_aic <- AIC(fit1_full)
-fit1_fullpvals <- Anova(fit1_full)
-# dw_plot(fit1_full) +
-#   geom_vline(xintercept=0,lty=2)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-# Figure 1. effects and 95% CI of the full model
-```
- Full model: lmer(Sopt_s ~ -1 + lifestage * absLat + (1|sp), data = Sopt_table)
- Full model's AIC: `r fit1_full_aic`
-
-```{r}
-#2. Reduced model
-fit1_reduced <- lmer(Sopt_s ~  -1 + lifestage + absLat + (1|sp), data = Sopt_table) #
-
-# fit1Noctuids <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
-# fit1Not_noctuids <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
-tidy(fit1_reduced)
-fit1_summary <- summary(fit1_reduced)
-fit1_reduced_aic <- AIC(fit1_reduced)
-#Anova(fit1_reduced)
-dw_plot(fit1_reduced, conf.level = 0.95) + 
-  geom_vline(xintercept=0,lty=2)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")#+
-  #scale_y_discrete(labels = c('sd Observation.Residual','sd species', 
-                             # 'Latitude', 'Life stage (pupa)','Life stage (larva)'))
-
-
-```
-Figure 2. Sopt was higher at lower latitudes
-Lots of variation among species!
