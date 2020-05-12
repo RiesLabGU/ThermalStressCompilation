@@ -35,6 +35,14 @@ responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerforma
 responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
 ```
 
+```{r}
+# Anna's Laptop
+
+responses <- read_csv("~/Desktop/ThermalResponsesII.csv")
+```
+
+
+
 
 ```{r}
 # convert character to factor
