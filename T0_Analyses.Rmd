@@ -1,0 +1,103 @@
+---
+title: "T0 Analyses"
+output: html_notebook
+---
+## Contents
+1. Import data and housekeeping
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
+```
+1. Import file
+```{r}
+# Mariana's desktop
+
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+
+```
+
+
+```{r}
+# convert character to factor
+responses <- responses %>%
+  mutate_if(is.character, factor)
+# discard non-pertinent data
+
+responses_table <- responses %>% 
+  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+```
+
+
+```{r}
+names(responses_table)
+# 1. Subset to T0 metrics and predictors only
+T.set <- with(responses_table, cbind(T0, G, Max_dr, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(T.set)) #
+
+summary(fit1_fullrandom)
+
+fit_red1random <- lmer(T0 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(T.set), REML = F)
+
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
+
+# fit better model with ML
+fit1_randomML <- lmer(T0 ~  lifestage + absLat + (1|sp), REML = F, data = as.data.frame(T.set))
+summary(fit1_randomML)
+Anova(fit1_randomML)
+
+
+dw_plot(fit1_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+
+
+
+
+```{r}
+fit2_fullrandom <- lmer(Max_dr ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(T.set)) #
+
+summary(fit1_fullrandom)
+
+fit_red2random <- lmer(Max_dr ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(T.set), REML = F)
+
+anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
+
+# fit better model with ML
+fit2_randomML <- lmer(Max_dr ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(T.set))
+summary(fit2_randomML)
+Anova(fit2_randomML)
+
+
+dw_plot(fit2_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+```
+
+
