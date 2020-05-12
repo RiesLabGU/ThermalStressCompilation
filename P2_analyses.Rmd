@@ -2,7 +2,6 @@
 title: "Analyze performance variables"
 output: html_notebook
 ---
-
 ## Contents
 1. Import data and housekeeping
 2. Popt 
@@ -26,14 +25,14 @@ library(broom)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 
 ```
 
 
 ```{r}
 # Mariana's laptop
-responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
 ```
 
 
@@ -41,12 +40,159 @@ responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalRes
 # convert character to factor
 responses <- responses %>%
   mutate_if(is.character, factor)
-
 # discard non-pertinent data
+
 responses_table <- responses %>% 
   filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
   mutate(absLat = abs(lat))
 ```
+
+
+
+
+```{r}
+# 1. Subset to P metrics and predictors only
+P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set)) #
+
+summary(fit1_fullrandom)
+
+fit_red1random <- lmer(Popt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(P.set))
+
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
+
+# fit better model with ML
+fit1_randomML <- lmer(Popt ~ lifestage + absLat + (1|sp), REML = F, data = as.data.frame(P.set))
+summary(fit1_randomML)
+Anova(fit1_randomML)
+
+
+#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
+```
+ 
+```{r}
+dw_plot(fit1_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+```
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+```{r}
+## Omit NA rows for PCA. need dataframe for input
+P.set.nona <- as.data.frame(na.omit(P.set))
+Ppc <- princomp(~Popt + Pupper + Pwidth, data = P.set.nona)
+summary(Ppc)
+loadings(Ppc)
+names(Ppc)
+
+## Bind PC scores to dataset
+
+P.set.pcs <- cbind(P.set.nona, Ppc$scores)
+head(P.set.pcs)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (1|sp), data = P.set.pcs)
+summary(fit1_red1)
+
+## test simpler models
+fit1_red2 <- lmer(Comp.1 ~ lifestage  + (1|sp), data = P.set.pcs)
+fit1_red3 <- lmer(Comp.1 ~ absLat + (1|sp), data = P.set.pcs)
+fit1_red4 <- lmer(Comp.1 ~ (1|sp), data = P.set.pcs)
+anova(fit1_red1,fit1_red2, fit1_red3,fit1_red4, test.statistic = "Chisq")
+
+## estimate parameters using ML rather than REML (default)
+fit1_red1.ML <- lmer(Comp.1 ~  absLat  + (1|sp), data = P.set.pcs, REML = F)
+summary(fit1_red1.ML)
+
+dw_plot(fit1_red1.ML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+ 
+ 
+ 
+ 
+```{r}
+# PCA analysis for D and S metrics
+
+DS.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth, maxSopt, Supper, Swidth, lifestage, absLat, sp))
+
+DS.set.nona <- as.data.frame(na.omit(DS.set))
+DSpc <- princomp(~Dopt + Dupper + Dwidth + maxSopt + Supper + Swidth, data = DS.set.nona)
+summary(DSpc)
+loadings(DSpc)
+names(DSpc)
+
+## Bind PC scores to dataset
+
+DS.set.pcs <- cbind(DS.set.nona, DSpc$scores)
+head(P.set.pcs)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (1|sp), data = DS.set.pcs)
+summary(fit1_red1)
+
+## test simpler models
+fit1_red2 <- lmer(Comp.1 ~ lifestage  + (1|sp), data = DS.set.pcs)
+fit1_red3 <- lmer(Comp.1 ~ absLat + (1|sp), data = DS.set.pcs)
+fit1_red4 <- lmer(Comp.1 ~ (1|sp), data = DS.set.pcs)
+anova(fit1_red1,fit1_red2, fit1_red3,fit1_red4, test.statistic = "Chisq")
+
+## estimate parameters using ML rather than REML (default)
+fit1_red1.ML <- lmer(Comp.1 ~  absLat  + (1|sp), data = DS.set.pcs, REML = F)
+summary(fit1_red1.ML)
+
+dw_plot(fit1_red1.ML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+ 
+ 
+ 
+ 
+ 
+```{r}
+names(responses_table)
+
+plot(T0 ~ Popt, data = responses_table)
+
+```
+ 
+ 
+
+
+
+
+
+
+
+
+
+
 
 To assess variation in thermal responses across latitude and life stages, we fitted linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
 
