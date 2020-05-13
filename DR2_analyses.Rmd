@@ -51,8 +51,10 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage != "eggtoemergence", quality!= "inferred", quality != "combination") %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination") %>% 
   mutate(absLat = abs(lat))
+responses_table$lifestage <- factor(responses_table$lifestage)
+responses_table$sp <- factor(responses_table$sp)
 ```
 
 ## Dopt: temperature that maximizes development rate
@@ -68,12 +70,13 @@ Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(respon
 ```{r}
 # 1. Subset to D metrics and predictors only
 D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth, lifestage, absLat, sp))
+D.set <- select(responses_table, Dopt, Dupper, Dwidth, lifestage, absLat, sp)
 
 # Full models, with random intercept, and then random slopes
 
 ## random slopes: need to input dataset as dataframe
 
-fit1_fullrandom <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
+fit1_fullrandom <- lmer(Dopt ~ -1+ factor(lifestage) + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
 
 summary(fit1_fullrandom)
 
@@ -95,7 +98,7 @@ D.set <- as.data.frame(D.set)
 ```
  
 ```{r}
-dw_plot(fit1_randomMLs) +
+dw_plot(fit1_fullrandom) +
   #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
@@ -104,6 +107,21 @@ dw_plot(fit1_randomMLs) +
 ```
  
  Topt varied among species and latitudes, but not among lifestages.
+ 
+ 
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit1_randomMLs, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+
+ 
+ 
+ 
+ 
  
  
 PCA of development responses 
