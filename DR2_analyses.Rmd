@@ -32,7 +32,7 @@ responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerforma
 
 ```{r}
 # Mariana's laptop
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponses.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 ```
 
 ```{r}
@@ -55,11 +55,12 @@ responses_table <- responses %>%
   mutate(absLat = abs(lat))
 ```
 
-To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
-
-We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. 
-
 ## Dopt: temperature that maximizes development rate
+We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three. We also discarded data from sets of uncertain locality ("inferred") or that were a combination of localities "combination".
+
+We first fitted a full model including latitude, life stage, and their interaction as fixed effects and lifestage within species as a random effect. 
+
+
 Dopt ranged from `r min(responses_table$Dopt, na.rm = T)` to `r max(responses_table$Dopt, na.rm = T)`, mean =  `r mean(responses_table$Dopt, na.rm = T)`, SD = `r sd(responses_table$Dopt, na.rm = T)`
 Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
 
@@ -83,6 +84,9 @@ anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
 
 # fit better model with ML
 fit1_randomML <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
+
+# the effect of lifestage within species was very small, fit another model just with species:
+fit1_randomMLs <- lmer(Dopt ~ lifestage + absLat + (1|sp), REML = F, data = as.data.frame(D.set))
 summary(fit1_randomML)
 Anova(fit1_randomML)
 D.set <- as.data.frame(D.set)
@@ -91,7 +95,7 @@ D.set <- as.data.frame(D.set)
 ```
  
 ```{r}
-dw_plot(fit1_randomML) +
+dw_plot(fit1_randomMLs) +
   #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
@@ -99,22 +103,28 @@ dw_plot(fit1_randomML) +
   theme(legend.position = "none")
 ```
  
+ Topt varied among species and latitudes, but not among lifestages.
  
  
- 
- 
- 
- 
+PCA of development responses 
 ```{r}
 ## Omit NA rows for PCA. need dataframe for input
 D.set.nona <- as.data.frame(na.omit(D.set))
 Dpc <- princomp(~Dopt + Dupper + Dwidth, data = D.set.nona)
 summary(Dpc)
+```
+The first principal component explains 74% of the total variation.
+The second component explains 19% of the total variation.
+
+```{r}
 loadings(Dpc)
-names(Dpc)
+```
+Dopt and Dupper are highly correlated (have high positive loadings in component 1)
+Dopt and Dwith are negatively correlated. 
+ 
+```{r}
 
 ## Bind PC scores to dataset
-
 D.set.pcs <- cbind(D.set.nona, Dpc$scores)
 head(D.set.pcs)
 
