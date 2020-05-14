@@ -376,9 +376,16 @@ library(car)
 library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
-fit <- lmer(T0 ~ -1+  lifestage * absLat + (1|sp), data = mainthres)
+fit <- lmer(T0 ~ lifestage * absLat + (1|sp), data = mainthres)
 
-fit
+meannT0temperate <- mainthres %>% 
+  select(T0, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(T0, na.rm = T), 
+            sd = sd(T0, na.rm = T))
+
+
 Anova(fit)
 ```
 
