@@ -57,7 +57,7 @@ responses_table <- responses %>%
 
 ```{r}
 # 1. Subset to P metrics and predictors only
-P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, lifestage, absLat, sp))
+P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp))
 
 # Full models, with random intercept, and then random slopes
 
@@ -76,8 +76,13 @@ anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
 fit1_randomML <- lmer(Popt ~ lifestage + absLat + (1|sp), REML = F, data = as.data.frame(P.set))
 summary(fit1_randomML)
 Anova(fit1_randomML)
-
-
+P.set <- as.data.frame(P.set)
+meanP <- P.set %>% 
+  select(Popt, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Popt, na.rm = T), 
+            sd = sd(Popt, na.rm = T))
 #plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
 ```
  
@@ -189,8 +194,32 @@ plot(T0 ~ Popt, data = responses_table)
  
  
 
+```{r}
+meanPwidth <- P.set %>% 
+  select(Pwidth, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Pwidth, na.rm = T), 
+            sd = sd(Pwidth, na.rm = T))
+```
 
+```{r}
+meanPupper <- P.set %>% 
+  select(Pupper, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Pupper, na.rm = T), 
+            sd = sd(Pupper, na.rm = T))
+```
 
+```{r}
+meanPlower <- P.set %>% 
+  select(Plower, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Plower, na.rm = T), 
+            sd = sd(Plower, na.rm = T))
+```
 
 
 
