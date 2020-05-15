@@ -42,7 +42,7 @@ responses_table <- responses %>%
 ```{r}
 names(responses_table)
 # 1. Subset to D metrics and predictors only
-S.set <- with(responses_table, cbind(maxSopt, Swidth, Supper, lifestage, absLat, sp))
+S.set <- with(responses_table, cbind(maxSopt, Swidth, Supper,Slower, lifestage, absLat, sp))
 
 # Full models, with random intercept, and then random slopes
 
@@ -70,7 +70,12 @@ dw_plot(fit1_randomML) +
   scale_color_viridis_d()+
   theme(legend.position = "none")
 
-
+meanS_opt <- S.set %>% 
+  select(maxSopt, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(maxSopt, na.rm = T), 
+            sd = sd(maxSopt, na.rm = T))
 ```
 
 
@@ -135,3 +140,21 @@ We first fitted a full model including latitude, life stage, and their interacti
 Sopt ranged from `r min(Sopt_table$maxSopt)` to `r max(Sopt_table$maxSopt)`, mean =  `r mean(Sopt_table$maxSopt)`, SD = `r sd(Sopt_table$maxSopt)`
 Latitude ranged from `r min(Sopt_table$absLat, na.rm = T)` to `r max(Sopt_table$absLat, na.rm = T)`
 
+```{r}
+meanSwidth <- S.set %>% 
+  select(Swidth, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Swidth, na.rm = T), 
+            sd = sd(Swidth, na.rm = T))
+```
+
+
+```{r}
+meanSlower <- S.set %>% 
+  select(Slower, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Slower, na.rm = T), 
+            sd = sd(Slower, na.rm = T))
+```
