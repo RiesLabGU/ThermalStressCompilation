@@ -69,14 +69,14 @@ Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(respon
 
 ```{r}
 # 1. Subset to D metrics and predictors only
-D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth, lifestage, absLat, sp))
-D.set <- select(responses_table, Dopt, Dupper, Dwidth, lifestage, absLat, sp)
+D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth,Dlower, lifestage, absLat, sp))
+#D.set <- select(responses_table, Dopt, Dupper, Dwidth, lifestage, absLat, sp)
 
 # Full models, with random intercept, and then random slopes
 
 ## random slopes: need to input dataset as dataframe
 
-fit1_fullrandom <- lmer(Dopt ~ -1+ factor(lifestage) + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
+fit1_fullrandom <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
 
 summary(fit1_fullrandom)
 
@@ -98,7 +98,7 @@ D.set <- as.data.frame(D.set)
 ```
  
 ```{r}
-dw_plot(fit1_fullrandom) +
+dw_plot(fit1_randomMLs) +
   #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
@@ -118,11 +118,6 @@ plot_model(fit1_randomMLs, type = "pred", terms = c("lifestage", "absLat"))+
 ```
  
 
- 
- 
- 
- 
- 
  
 PCA of development responses 
 ```{r}
@@ -181,10 +176,57 @@ plot(T0 ~ Popt, data = responses_table)
 ```
  
  
+## D-width: 
+length of the temperature interval that allows for development rate at >= 50% efficiency
+
+D-width ranged from `r min(responses_table$Dwidth, na.rm = T)` to `r max(responses_table$Dwidth, na.rm = T)`,  mean = `r mean(responses_table$Dwidth, na.rm = T)`, SD = `r sd(responses_table$Dwidth, na.rm = T)`
+latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
+
+```{r}
+# Full models, with random intercept, and then random slopes
+## random slopes: need to input dataset as dataframe
+
+fit2_fullrandom <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = D.set) #
+
+summary(fit2_fullrandom)
+##############
+fit_red2random <- lmer(Dwidth ~ lifestage + absLat + (lifestage|sp), data = D.set)
+
+anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
+## no significant difference use full model
+
+# fit better model with ML
+fit2_randomML <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
+
+# the effect of lifestage within species was very small, fit another model just with species:
+fit2_randomMLs <- lmer(Dwidth ~ lifestage + absLat + (1|sp), REML = F, data = 
+as.data.frame(D.set))                         
+anova(fit2_randomML, fit2_randomMLs, test.statistic = "Chisq")                         
+
+summary(fit2_randomML)
+Anova(fit2_randomML)
+D.set <- as.data.frame(D.set)
+
+dw_plot(fit2_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+# Dwidth at temperate latitudes
+meanD_widthtemperate <- D.set %>% 
+  select(Dwidth, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Dwidth, na.rm = T), 
+            sd = sd(Dwidth, na.rm = T))
+
+
+```
  
  
- 
-# Old code below_____________________________
+# Old code below____________________________________________________________
  
 ```{r}
 # Plot model predictions and diagnosticts plots
@@ -282,6 +324,13 @@ dw_plot(fit3_full) +
   scale_color_viridis_d()+
   theme(legend.position = "none")
 #Figure: effects and 95% CI of the full model
+
+meanupperD_widthtemperate <- D.set %>% 
+  select(Dupper, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Dupper, na.rm = T), 
+            sd = sd(Dupper, na.rm = T))
 ```
 AIC value of full model: `r fit3_full_aic`
 
@@ -319,6 +368,13 @@ dw_plot(fit4_full) +
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
+
+meanlowerD_widthtemperate <- D.set %>% 
+  select(Dlower, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Dlower, na.rm = T), 
+            sd = sd(Dlower, na.rm = T))
 #Figure: effects and 95% CI of the full model
 ```
 AIC value of full model: `r fit4_full_aic`
