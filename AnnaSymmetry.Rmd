@@ -1,0 +1,30 @@
+---
+title: "Analyses for Symmetry"
+output: html_notebook
+---
+
+I wrote really quick code to get the percentage of each interval above and below the optimum - it's shown below using the new dataset and the P metric, though it could easily be used for the S and D metrics. It ended up being really simple, given the new summary table!
+
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+```
+
+
+```{r}
+#Anna's Laptop
+
+data <- read_csv("~/Desktop/ThermalResponsesII.csv")
+
+head(data)
+```
+
+```{r}
+data$belowPopt <- ((abs(data$Plower - data$Popt)) / (data$Pwidth))
+data$abovePopt <- ((data$Pupper - data$Popt) / (data$Pwidth))
+
+head(data)
+```
+
