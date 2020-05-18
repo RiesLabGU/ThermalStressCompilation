@@ -22,9 +22,122 @@ head(data)
 ```
 
 ```{r}
+# Mariana's desktop
+
+data <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+
+```
+
+
+```{r}
+# convert character to factor
+data <- data %>%
+  mutate_if(is.character, factor)
+# discard non-pertinent data
+
+data <- data %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination") %>% 
+  mutate(absLat = abs(lat))
+data$lifestage <- factor(data$lifestage)
+data$sp <- factor(data$sp)
+
+```
+
+
+
+```{r}
 data$belowPopt <- ((abs(data$Plower - data$Popt)) / (data$Pwidth))
 data$abovePopt <- ((data$Pupper - data$Popt) / (data$Pwidth))
-
+data$above <- data$Pupper - data$Popt
+data$below <- data$Popt - data$Plower
+data$bias <- data$above - data$below
 head(data)
+data_nona <- filter(data, !is.na(belowPopt))
 ```
+
+
+
+```{r}
+ggplot(data, aes(x = lifestage, y = bias))+
+  geom_boxplot()
+
+```
+
+
+
+```{r}
+
+ggplot(data, aes(x = Popt, y = bias))+
+  geom_point()
+
+```
+
+
+
+```{r}
+
+
+ggplot(data, aes(x = Pwidth, y = bias))+
+  geom_point()
+
+```
+
+
+
+```{r}
+
+ggplot(data, aes(x = Max_dr, y = bias))+
+  geom_point()
+
+```
+
+
+
+```{r}
+ggplot(data, aes(x = absLat, y = bias))+
+  geom_point()
+```
+
+
+```{r}
+A.set <- with(data_nona, cbind(bias, belowPopt, abovePopt, Max_dr, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+hist(data_nona$bias)
+hist(data_nona$abovePopt)
+hist(data_nona$belowPopt)
+# fit1_fullrandom <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(A.set)) # This model doesn't work
+
+fit1_fullrandomsp <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(A.set)) #
+
+fit1_redrandomsp <- lmer(bias ~ lifestage + absLat + (1|sp), data = as.data.frame(A.set)) #
+
+anova(fit1_fullrandomsp, fit1_redrandomsp, test.statistic = "Chisq")
+# use full model with ML
+
+fit1_fullrandomspML <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(A.set)) #
+summary(fit1_fullrandomspML)
+
+
+dw_plot(fit1_fullrandomspML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+```
+
+
+```{r}
+fit1_fullrandomspMLpredict <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = data) #
+plot_model(fit1_fullrandomspMLpredict, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+
+```
+
+
 
