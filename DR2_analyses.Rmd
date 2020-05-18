@@ -190,19 +190,22 @@ fit2_fullrandom <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (lifest
 
 summary(fit2_fullrandom)
 ##############
-fit_red2random <- lmer(Dwidth ~ lifestage + absLat + (lifestage|sp), data = D.set)
 
+
+fit_red2random <- lmer(Dwidth ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
+# this model fails to converge, use full
 anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
 ## no significant difference use full model
 
-# fit better model with ML
-fit2_randomML <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
-
 # the effect of lifestage within species was very small, fit another model just with species:
+fit2_randomML <- lmer(Dwidth ~ factor(lifestage) + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
+
+# fit reduced model
 fit2_randomMLs <- lmer(Dwidth ~ lifestage + absLat + (1|sp), REML = F, data = 
 as.data.frame(D.set))                         
-anova(fit2_randomML, fit2_randomMLs, test.statistic = "Chisq")                         
+anova(fit2_randomML, fit_red2random, test.statistic = "Chisq")                         
 
+# fit2_randomML had smaller AIC and BIC values
 summary(fit2_randomML)
 Anova(fit2_randomML)
 D.set <- as.data.frame(D.set)
@@ -224,6 +227,18 @@ meanD_widthtemperate <- D.set %>%
 
 
 ```
+ 
+ 
+ 
+```{r}
+# Plot model predictions
+# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit2_randomML, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+
+```
+ 
  
  
 # Old code below____________________________________________________________
