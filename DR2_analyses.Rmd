@@ -51,10 +51,12 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination") %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(Dopt)) %>% 
+  select(-T0, -G) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
+
 ```
 
 ## Dopt: temperature that maximizes development rate
@@ -109,13 +111,7 @@ dw_plot(fit1_randomMLs) +
  Topt varied among species and latitudes, but not among lifestages.
  
  
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit1_randomMLs, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
+
  
 
  
@@ -165,13 +161,51 @@ dw_plot(fit1_red1.ML) +
 
 ```
  
+
  
- 
+PCA of ALL development responses (same result as first PCA, not included in report)
+```{r}
+## Omit NA rows for PCA. need dataframe for input
+D.set.nona2 <- as.data.frame(na.omit(D.set))
+Dpc2 <- princomp(~Dopt + Dupper + Dwidth + Dlower, data = D.set.nona2)
+summary(Dpc2)
+```
+The first principal component explains 67% of the total variation.
+The second component explains 26% of the total variation.
+
+```{r}
+loadings(Dpc2)
+```
+Dopt and Dupper are highly correlated (have high positive loadings in component 1)
+Dopt and Dwith are negatively correlated. 
  
 ```{r}
-names(responses_table)
 
-plot(T0 ~ Popt, data = responses_table)
+## Bind PC scores to dataset
+D.set.pcs2 <- cbind(D.set.nona2, Dpc2$scores)
+head(D.set.pcs2)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit5_red1 <- lmer(Comp.1 ~ lifestage + absLat + (lifestage|sp), data = D.set.pcs2)
+summary(fit5_red1)
+
+## test simpler models
+fit5_red2 <- lmer(Comp.1 ~ lifestage  + (lifestage|sp), data = D.set.pcs2)
+fit5_red3 <- lmer(Comp.1 ~ absLat + (lifestage|sp), data = D.set.pcs2)
+fit5_red4 <- lmer(Comp.1 ~ (lifestage|sp), data = D.set.pcs2)
+anova(fit5_red1,fit5_red2, fit5_red3,fit5_red4, test.statistic = "Chisq")
+
+## estimate parameters using ML rather than REML (default)
+fit5_red3.ML <- lmer(Comp.1 ~ lifestage + absLat  + (lifestage|sp), data = D.set.pcs2, REML = F)
+summary(fit5_red3.ML)
+
+dw_plot(fit5_red3.ML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
 
 ```
  
@@ -186,7 +220,7 @@ latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(respon
 # Full models, with random intercept, and then random slopes
 ## random slopes: need to input dataset as dataframe
 
-fit2_fullrandom <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = D.set) #
+fit2_fullrandom <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
 
 summary(fit2_fullrandom)
 ##############
@@ -194,11 +228,11 @@ summary(fit2_fullrandom)
 
 fit_red2random <- lmer(Dwidth ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
 # this model fails to converge, use full
-anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
-## no significant difference use full model
+#anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
 
 # the effect of lifestage within species was very small, fit another model just with species:
-fit2_randomML <- lmer(Dwidth ~ factor(lifestage) + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
+fit2_randomML <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
+
 
 # fit reduced model
 fit2_randomMLs <- lmer(Dwidth ~ lifestage + absLat + (1|sp), REML = F, data = 
@@ -208,16 +242,8 @@ anova(fit2_randomML, fit_red2random, test.statistic = "Chisq")
 # fit2_randomML had smaller AIC and BIC values
 summary(fit2_randomML)
 Anova(fit2_randomML)
-D.set <- as.data.frame(D.set)
 
-dw_plot(fit2_randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
 
-# Dwidth at temperate latitudes
 meanD_widthtemperate <- D.set %>% 
   select(Dwidth, absLat) %>% 
   ungroup() %>% 
@@ -225,20 +251,64 @@ meanD_widthtemperate <- D.set %>%
   summarise(mean = mean(Dwidth, na.rm = T), 
             sd = sd(Dwidth, na.rm = T))
 
-
+dw_plot(fit2_randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
 ```
  
+```{r}
+# Upper limit of D-width
+# Full models, with random intercept, and then random slopes
+## random slopes: need to input dataset as dataframe
+
+fit3_fullrandom <- lmer(Dupper ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
+# that model did not converge, remove lifestage from random term
+fit3_fullsp <- lmer(Dupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
+
+fit3_redsp <- lmer(Dupper ~ lifestage + absLat +  (1|sp), data = as.data.frame(D.set)) #
+
+
+anova(fit3_fullsp, fit3_redsp, test.statistic = "chisq")
+
+summary(fit3_fullsp)
+##############
+
+dw_plot(fit3_redsp) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+```
  
  
 ```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit2_randomML, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
+# Lower limit of D-width
+fit4_fullrandom <- lmer(Dlower ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
+summary(fit4_fullrandom)
 
+fit4_redrandom <- lmer(Dlower ~ lifestage + absLat  + (lifestage|sp), data = as.data.frame(D.set))
+
+anova(fit4_fullrandom, fit4_redrandom, test.statistic = "chisq")
+# keep reduced model
+
+#try removing lifestage from the random effect
+fit4_redrandomsp <- lmer(Dlower ~ lifestage + absLat  + (1|sp), data = as.data.frame(D.set))
+
+dw_plot(fit4_redrandomsp) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
 ```
  
+```{r}
+#PCA including lower limit as well
+```
  
  
 # Old code below____________________________________________________________
