@@ -196,9 +196,15 @@ dw_plot(fit4_reducedML) +
 P.set.nona <- as.data.frame(na.omit(P.set))
 Ppc <- princomp(~Popt + Pupper + Pwidth, data = P.set.nona)
 summary(Ppc)
-loadings(Ppc)
-names(Ppc)
+```
 
+```{r}
+loadings(Ppc)
+```
+
+
+```{r}
+names(Ppc)
 ## Bind PC scores to dataset
 
 P.set.pcs <- cbind(P.set.nona, Ppc$scores)
@@ -244,8 +250,20 @@ DS.set <- with(PCA_responses_table, cbind(Dopt, Dupper, Dwidth, maxSopt, Supper,
 
 DS.set.nona <- as.data.frame(na.omit(DS.set))
 DSpc <- princomp(~Dopt + Dupper + Dwidth + maxSopt + Supper + Swidth, data = DS.set.nona)
+```
+
+```{r}
+# PCA analysis for D and S metrics
 summary(DSpc)
+```
+
+```{r}
+# PCA analysis for D and S metrics
 loadings(DSpc)
+```
+
+```{r}
+# PCA analysis for D and S metrics
 names(DSpc)
 
 ## Bind PC scores to dataset
