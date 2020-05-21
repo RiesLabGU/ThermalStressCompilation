@@ -52,3 +52,77 @@ Responses <- full_join(Merge3, setInfo, by = "set")
 ```{r}
 #write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 ```
+
+Summary plot
+```{r}
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+responses_table <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage)) %>% 
+  select(sp, lifestage, Popt, Dopt, Sopt = maxSopt)
+
+long_responses <- responses_table %>% 
+  pivot_longer(c(`Popt`, `Dopt`, `Sopt`), names_to = "threshold", values_to = "temperature")
+
+ggplot(long_responses, aes(x = threshold, y = temperature))+
+  geom_boxplot()+
+  
+  theme_cowplot()+
+  ylim(0,40)+
+  facet_grid(.~lifestage)
+  
+str(responses_table)
+```
+```{r}
+responses_table_w <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage)) %>% 
+  select(sp, lifestage, Pwidth, Dwidth, Swidth)
+
+long_width <- responses_table_w %>% 
+  pivot_longer(c(`Pwidth`, `Dwidth`, `Swidth`), names_to = "threshold", values_to = "temperature")
+
+ggplot(long_width, aes(x = threshold, y = temperature))+
+  geom_boxplot()+
+  
+  theme_cowplot()+
+  ylim(0,40)+
+  facet_grid(.~lifestage)
+  
+```
+
+```{r}
+responses_table_min <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage)) %>% 
+  select(sp, lifestage, Plower, Dlower, Slower, T0)
+
+long_min<- responses_table_min %>% 
+  pivot_longer(c(`Plower`, `Dlower`, `Slower`, `T0`), names_to = "threshold", values_to = "temperature")
+
+ggplot(long_min, aes(x = threshold, y = temperature))+
+  geom_boxplot()+
+  
+  theme_cowplot()+
+  ylim(0,40)+
+  facet_grid(.~lifestage)
+```
+
+```{r}
+responses_table_max <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage)) %>% 
+  select(sp, lifestage, Pupper, Dupper, Supper)
+
+long_max<- responses_table_max %>% 
+  pivot_longer(c(`Pupper`, `Dupper`, `Supper`), names_to = "threshold", values_to = "temperature")
+
+ggplot(long_max, aes(x = threshold, y = temperature))+
+  geom_boxplot()+
+  
+  theme_cowplot()+
+  ylim(0,40)+
+  facet_grid(.~lifestage)
+
+```
+
