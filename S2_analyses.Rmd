@@ -35,7 +35,7 @@ responses <- responses %>%
 
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(maxSopt)) %>% 
-  select(maxSopt, Slower, Supper, Swidth, lifestage, sp, lat) %>% 
+  select(Sopt = maxSopt, Slower, Supper, Swidth, lifestage, sp, lat) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
@@ -43,188 +43,213 @@ responses_table$sp <- factor(responses_table$sp)
 ```
 
 
-```{r}
-names(responses_table)
-# 1. Subset to D metrics and predictors only
-S.set <- with(responses_table, cbind(maxSopt, Swidth, Supper,Slower, lifestage, absLat, sp))
-
-# Full models, with random intercept, and then random slopes
-
-## random slopes: need to input dataset as dataframe
-
-fit1_fullrandom <- lmer(maxSopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(S.set), REML = F) #
-
-summary(fit1_fullrandom)
-
-fit_red1random <- lmer(maxSopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(S.set))
-
-anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
-## interaction term is worse fit by AIC ro BIC, use reduced model
-
-# fit better model with ML
-fit1_randomML <- lmer(maxSopt ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(S.set))
-summary(fit1_randomML)
-Anova(fit1_randomML)
-S.set <- as.data.frame(S.set)
-
-dw_plot(fit1_randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-meanS_opt <- S.set %>% 
-  select(maxSopt, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(maxSopt, na.rm = T), 
-            sd = sd(maxSopt, na.rm = T))
-```
-
-
-
-```{r}
-#same model but removing lifestage from the random effect
-fit1_randomMLsp <- lmer(maxSopt ~  lifestage + absLat + (1|sp), REML = F, data = as.data.frame(S.set))
-summary(fit1_randomMLsp)
-Anova(fit1_randomMLsp)
-
-
-dw_plot(fit1_randomMLsp) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
-
-
-S-width
-```{r}
-SsetnoNA <- S.set %>% 
-  filter(!is.na(Swidth)) 
-S.set2 <- with(SsetnoNA, cbind(Swidth, lifestage, absLat, sp))
-
-fit2_fullrandom <- lmer(Swidth ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(S.set), REML = F) #
-
-summary(fit2_fullrandom)
-
-fit2_redrandom <- lmer(Swidth ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set))
-
-anova(fit2_fullrandom, fit2_redrandom, test.statistic = "Chisq")
-summary(fit2_redrandom)
-fit2_redrandomML <- lmer(Swidth ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set), REML = F)
-summary(fit2_redrandomML)
-dw_plot(fit2_redrandomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-```
-
-Upper limit of S-width
-```{r}
-SsetnoNA <- S.set %>% 
-  filter(!is.na(Supper)) 
-S.set2 <- with(SsetnoNA, cbind(Supper, lifestage, absLat, sp))
-
-
-fit3_fullrandom <- lmer(Supper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(S.set), REML = F) #
-
-summary(fit3_fullrandom)
-
-fit3_redrandom <- lmer(Supper ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set))
-
-anova(fit3_fullrandom, fit3_redrandom, test.statistic = "Chisq")
-summary(fit3_redrandom)
-fit3_redrandomML <- lmer(Supper ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set), REML = F)
-summary(fit3_redrandomML)
-dw_plot(fit3_redrandomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-```
-
-
-Lower limit of S-width
-```{r}
-SsetnoNA <- S.set %>% 
-  filter(!is.na(Slower)) 
-S.set2 <- with(SsetnoNA, cbind(Slower, lifestage, absLat, sp))
-
-
-fit4_fullrandom <- lmer(Slower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(S.set), REML = F) #
-
-summary(fit4_fullrandom)
-
-fit4_redrandom <- lmer(Slower ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set))
-
-anova(fit4_fullrandom, fit4_redrandom, test.statistic = "Chisq")
-summary(fit4_redrandom)
-fit3_redrandomML <- lmer(Slower ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set), REML = F)
-summary(fit3_redrandomML)
-dw_plot(fit3_redrandomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-```
-
-
-```{r}
-## Omit NA rows for PCA. need dataframe for input
-S.set.nona <- as.data.frame(na.omit(S.set))
-
-Spc <- princomp(~maxSopt + Supper + Swidth, data = S.set.nona)
-summary(Spc)
-loadings(Spc)
-names(Spc)
-plot(Spc)
-## Bind PC scores to dataset
-
-S.set.pcs <- cbind(S.set.nona, Spc$scores)
-head(S.set.pcs)
-
-## Now model Comp.1 (PC scores on 1st PC)
-fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (1|sp), data = as.data.frame(S.set.pcs), REML = F)
-
-summary(fit1_red1)
-Anova(fit1_red1)
-
-
-dw_plot(fit1_red1) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-# not working! 
-```
-
-
-
-
-
-
-
-
-
-
-
-
 Initially, there were `r length(unique(Sopt$set))` sets with values for Sopt, `r length(unique(Swidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
 
 To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
 
 We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
+
+
+ 
+```{r}
+# models with species (1|species) as a random effect
+# 1. Subset to S metrics and predictors only
+
+S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
+
+# Full model
+
+full <- lmer(Sopt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(S.set)) #
+latlife <- lmer(Sopt ~ absLat + lifestage + (1|sp), data = as.data.frame(S.set)) #
+lat <- lmer(Sopt ~ absLat + (1|sp), data = as.data.frame(S.set)) #
+life <- lmer(Sopt ~ lifestage + (1|sp), data = as.data.frame(S.set)) #
+
+anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+latlifeI <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(S.set)) #
+
+
+latlifeI <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(S.set)) #
+
+Anova(full)
+summary(latlife)
+summary(latlifeI)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(latlifeI)
+Esizes_wide <- tibble(o_mean = mean(S.set$Sopt),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+S.set$group <- S.set$lifestage
+pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Sopt")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+Correlation coefficients of survival variables 
+ 
+```{r}
+library(Hmisc)
+names(S.set)
+cor(S.set[1:4])
+rcorr(as.matrix(S.set[1:4])) # correlation coefficients and then P values
+```
+
+ 
+ 
+ 
+ 
+ 
+ 
+# Supper
+
+```{r}
+ggplot(S.set, aes(x = Supper, fill = lifestage))+
+  geom_histogram()+
+  facet_grid(.~lifestage)
+hist(S.set$Supper)
+median(S.set$Supper, na.rm = T)
+```
+
+
+
+```{r}
+# models with species (1|species) as a random effect
+# 1. Subset to S metrics and predictors only
+
+#S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
+
+# Full model
+
+full <- lmer(Supper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(S.set)) #
+latlife <- lmer(Supper ~ absLat + lifestage + (1|sp), data = as.data.frame(S.set)) #
+lat <- lmer(Supper ~ absLat + (1|sp), data = as.data.frame(S.set)) #
+life <- lmer(Supper ~ lifestage + (1|sp), data = as.data.frame(S.set)) #
+
+anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+latlifeI <- lmer(Supper ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(S.set)) #
+
+
+latlifeI <- lmer(Supper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(S.set)) #
+
+Anova(full)
+summary(latlife)
+summary(latlifeI)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(latlifeI)
+Esizes_wide <- tibble(o_mean = mean(S.set$Supper, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]] - o_mean)
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+S.set$group <- S.set$lifestage
+pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Supper")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+
+ 
+ 
+
+
+
+
+
+
+
 
 ## Sopt: temperature that maximizes development rate
 Sopt ranged from `r min(Sopt_table$maxSopt)` to `r max(Sopt_table$maxSopt)`, mean =  `r mean(Sopt_table$maxSopt)`, SD = `r sd(Sopt_table$maxSopt)`
