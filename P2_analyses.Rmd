@@ -58,6 +58,224 @@ responses_table$sp <- factor(responses_table$sp)
 
 
 
+```{r}
+# models with species (1|species) as a random effect
+# 1. Subset to S metrics and predictors only
+
+P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp)
+
+# Full model
+
+full <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
+latlife <- lmer(Popt ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
+lat <- lmer(Popt ~ absLat + (1|sp), data = as.data.frame(P.set)) #
+life <- lmer(Popt ~ lifestage + (1|sp), data = as.data.frame(P.set)) #
+
+anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
+
+
+latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(P.set)) #
+
+Anova(full)
+Anova(latlifeI)
+summary(latlife)
+summary(latlifeI)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(latlifeI)
+Esizes_wide <- tibble(o_mean = mean(P.set$Popt, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+P.set$group <- P.set$lifestage
+pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Popt")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Popt, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+Correlation coefficients of performance variables 
+ 
+```{r}
+library(Hmisc)
+names(P.set)
+cor(P.set[1:4])
+rcorr(as.matrix(P.set[1:4])) # correlation coefficients and then P values
+```
+
+ 
+ 
+ 
+ 
+ 
+ 
+# Pupper
+
+```{r}
+ggplot(P.set, aes(x = Pupper, fill = lifestage))+
+  geom_histogram()+
+  facet_grid(.~lifestage)
+hist(P.set$Pupper)
+median(P.set$Pupper, na.rm = T)
+```
+
+
+
+```{r}
+# models with species (1|species) as a random effect
+# 1. Subset to S metrics and predictors only
+
+#P.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
+
+# Full model
+
+full <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
+latlife <- lmer(Pupper ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
+lat <- lmer(Pupper ~ absLat + (1|sp), data = as.data.frame(P.set)) #
+life <- lmer(Pupper ~ lifestage + (1|sp), data = as.data.frame(P.set)) #
+
+anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+
+fullI <- lmer(Pupper ~ -1 + absLat + lifestage +  lifestage:absLat + (1|sp), REML = F, data = as.data.frame(P.set)) #
+
+Anova(fullI)
+
+summary(fullI)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(fullI)
+Esizes_wide <- tibble(o_mean = mean(P.set$Pupper, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean,
+                   lat_larva = filter(latlifeI_effects, term == "absLat:lifestagelarva")[[2]],
+                   lat_larva10 = filter(latlifeI_effects, term == "absLat:lifestagelarva")[[2]]*10,
+                   lat_pupa = filter(latlifeI_effects, term == "absLat:lifestagepupa")[[2]],
+                   lat_pupa10 = filter(latlifeI_effects, term == "absLat:lifestagepupa")[[2]]*10,
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "lat_larva10",  "lat_pupa10", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa","lat_larva10",  "lat_pupa10", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2, 6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+P.set$group <- P.set$lifestage
+pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Supper")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Pupper, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeI, type = "int", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Old code below
+
 
 ```{r}
 # 1. Subset to P metrics and predictors only
@@ -66,10 +284,14 @@ P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, Plower, lifestage, ab
 # Full models, with random intercept, and then random slopes
 
 ## random slopes: need to input dataset as dataframe
+P.set2 <- P.set
+P.set2$lifestage <- factor(P.set2$lifestage)
+fit1_fullrandom <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set2)) #
 
-fit1_fullrandom <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set)) #
+fit1_fullrandomFactors <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(responses_table)) #
 
 summary(fit1_fullrandom)
+summary(fit1_fullrandomFactors)
 
 fit_red1random <- lmer(Popt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(P.set))
 
@@ -95,6 +317,10 @@ dw_plot(fit1_fullrandom) +
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
+type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit1_fullrandom, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
 ```
  
 ```{r}
@@ -168,17 +394,17 @@ Lower limit of D-width
  
 ```{r}
 # Full models, with random intercept, and then random slopes
-fit4_fullrandom <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set)) #
+fit4_fullrandom <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set2)) #
 # this model failed to converge
-fit4_full <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
+fit4_full <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set2)) #
 
 
-fit4_reduced <- lmer(Plower ~ lifestage + absLat  + (1|sp), data = as.data.frame(P.set)) #
+fit4_reduced <- lmer(Plower ~ lifestage + absLat  + (1|sp), data = as.data.frame(P.set2)) #
 
 anova(fit4_full, fit4_reduced, test.statistic = "chisq")
 
 # use reduced model
-fit4_reducedML <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp),  REML = F, data = as.data.frame(P.set))
+fit4_reducedML <- lmer(Plower ~ -1+ lifestage + absLat  + (1|sp),  REML = F, data = as.data.frame(P.set2))
 
 summary(fit4_reducedML)
 
@@ -188,6 +414,10 @@ dw_plot(fit4_reducedML) +
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
+type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fit4_reducedML, type = "pred", #terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
 ```
 
  
@@ -202,6 +432,11 @@ summary(Ppc)
 loadings(Ppc)
 ```
 
+```{r}
+names(P.set.nona)
+cor(P.set.nona[1:4])
+rcorr(as.matrix(P.set.nona[1:4])) # correlation coefficients and then P values
+```
 
 ```{r}
 names(Ppc)
