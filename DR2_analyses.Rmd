@@ -123,68 +123,42 @@ lat <- lmer(Dopt ~ absLat + (1|sp), data = as.data.frame(D.set)) #
 life <- lmer(Dopt ~ lifestage + (1|sp), data = as.data.frame(D.set)) #
 
 latlifeI <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-slatlifeI <- lmer(sDopt ~ -1 + sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
+
 fit_red1random <- lmer(Dopt ~ lifestage + absLat + (1|sp), data = as.data.frame(D.set))
 
-anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+#anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
 anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+latlifeI <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
+
 Anova(full)
 summary(latlife)
 summary(latlifeI)
-summary(slatlifeI)
-
-
-summary(fit1_fullrandom)
-Anova(fit1_fullrandom)
-## interaction term is worse fit by AIC ro BIC, use reduced model
-
-# fit better model with ML
-fit1_randomML <- lmer(Dopt ~ lifestage + absLat + (1|sp), REML = F, data = as.data.frame(D.set))
-
-summary(fit1_randomML)
-Anova(fit1_randomML)
-D.set <- as.data.frame(D.set)
-
-#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
 ```
  
-Do same model on continuous variables converted to sd units to faciliate comparison of effect sizes
 ```{r}
-D.set <- D.set %>% 
-  mutate(sDopt = scale(Dopt), 
-         sabsLat = scale(absLat))
+# get data for plot
+latlifeI_effects <- tidy(latlifeI)
+Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
 
-Scalefit1_randomML <- lmer(sDopt ~ lifestage + sabsLat + (1|sp), REML = F, data = as.data.frame(D.set))
-sfull <- lmer(sDopt ~ lifestage + sabsLat + lifestage:sabsLat + (1|sp), data = as.data.frame(D.set)) #
-slatlife <- lmer(sDopt ~ sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-slat <- lmer(sDopt ~ sabsLat + (1|sp), data = as.data.frame(D.set)) #
-slife <- lmer(sDopt ~ lifestage + (1|sp), data = as.data.frame(D.set)) #
-anova(sfull, slatlife, slat, slife, test.statistic = "Chisq")
-summary(slatlife)
-summary(Scalefit1_randomML)
-Anova(fit1_randomML)
-D.set <- as.data.frame(D.set)
+names(Esizes_wide)
 
-library(lme4)
-example(glmer)
-coef(summary(Scalefit1_randomML))
-coef(summary(Scalefit1_randomML))[,"z value"]
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
 
 ```
-
-
-```{r}
-# Model with latitude
-# Model with lifestage
-```
-
-
-
-
-
-
-
-
  
  
 ```{r}
@@ -218,6 +192,8 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
   scale_color_viridis_d()
 ```
  
+Correlation coefficients of development variables 
+ 
 ```{r}
 library(Hmisc)
 names(D.set)
@@ -241,7 +217,35 @@ plot_model(fit1_randomML, type = "pred", terms = c("absLat", "lifestage"))+
 ```
 
 
+ ############## Old stuff below
  
+Do same model on continuous variables converted to sd units to faciliate comparison of effect sizes
+```{r}
+D.set <- D.set %>% 
+  mutate(sDopt = scale(Dopt), 
+         sabsLat = scale(absLat))
+
+Scalefit1_randomML <- lmer(sDopt ~ lifestage + sabsLat + (1|sp), REML = F, data = as.data.frame(D.set))
+sfull <- lmer(sDopt ~ lifestage + sabsLat + lifestage:sabsLat + (1|sp), data = as.data.frame(D.set)) #
+slatlife <- lmer(sDopt ~ sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
+slat <- lmer(sDopt ~ sabsLat + (1|sp), data = as.data.frame(D.set)) #
+slife <- lmer(sDopt ~ lifestage + (1|sp), data = as.data.frame(D.set)) #
+
+slatlifeI <- lmer(sDopt ~ -1 + sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
+anova(sfull, slatlife, slat, slife, test.statistic = "Chisq")
+summary(slatlife)
+summary(slatlifeI)
+summary(Scalefit1_randomML)
+Anova(fit1_randomML)
+D.set <- as.data.frame(D.set)
+
+library(lme4)
+example(glmer)
+coef(summary(Scalefit1_randomML))
+coef(summary(Scalefit1_randomML))[,"z value"]
+
+```
+
 PCA of development responses 
 ```{r}
 ## Omit NA rows for PCA. need dataframe for input
