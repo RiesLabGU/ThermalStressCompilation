@@ -45,6 +45,100 @@ responses_table$sp <- factor(responses_table$sp)
 ```
 
 
+
+```{r}
+# models with species (1|species) as a random effect
+
+# Full model
+
+full <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (1|sp), data = responses_table) #
+latlife <- lmer(T0 ~ absLat + lifestage + (1|sp), data = responses_table) #
+lat <- lmer(T0 ~ absLat + (1|sp), data = responses_table) #
+life <- lmer(T0 ~ lifestage + (1|sp), data = responses_table) #
+
+anova(full, latlife, lat, life, test.statistic = "Chisq")
+
+latlifeI <- lmer(T0 ~ -1 + absLat + lifestage + (1|sp), REML = F, data = responses_table) #
+
+
+Anova(latlifeI)
+
+summary(latlifeI)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(latlifeI)
+Esizes_wide <- tibble(o_mean = mean(responses_table$T0, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+responses_table$group <- responses_table$lifestage
+pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("T0")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = responses_table, mapping = aes(x = absLat, y = T0, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Old code below
+
 ```{r}
 names(responses_table)
 # 1. Subset to T0 metrics and predictors only
