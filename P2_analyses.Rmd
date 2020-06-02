@@ -49,7 +49,7 @@ responses <- responses %>%
 
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(Popt)) %>% 
-  select(Popt, Plower, Pupper, Pwidth, lifestage, sp, lat) %>% 
+  select(Popt, Plower, Pupper, Pwidth, lifestage, sp, lat, family) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
@@ -62,7 +62,8 @@ responses_table$sp <- factor(responses_table$sp)
 # models with species (1|species) as a random effect
 # 1. Subset to S metrics and predictors only
 
-P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp)
+P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family)
+
 
 # Full model
 
@@ -73,14 +74,12 @@ life <- lmer(Popt ~ lifestage + (1|sp), data = as.data.frame(P.set)) #
 
 anova(full, latlife, lat, life, test.statistic = "Chisq")
 
-latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
-
-latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(P.set)) #
+latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 Anova(full)
 Anova(latlifeI)
-summary(latlife)
+summary(full)
 summary(latlifeI)
 ```
  
