@@ -10,6 +10,16 @@ I wrote really quick code to get the percentage of each interval above and below
 # load packages
 library(tidyverse)
 library(readxl)
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
 ```
 
 
@@ -48,9 +58,24 @@ data$sp <- factor(data$sp)
 ```{r}
 data$belowPopt <- ((abs(data$Plower - data$Popt)) / (data$Pwidth))
 data$abovePopt <- ((data$Pupper - data$Popt) / (data$Pwidth))
-data$above <- data$Pupper - data$Popt
-data$below <- data$Popt - data$Plower
-data$bias <- data$above - data$below
+data$aboveP <- data$Pupper - data$Popt
+data$belowP <- data$Popt - data$Plower
+data$biasP <- data$aboveP - data$belowP
+
+
+data$aboveD <- data$Dupper - data$Dopt
+data$belowD <- data$Dopt - data$Dlower
+data$biasD <- data$aboveD - data$belowD
+
+
+data$aboveS <- data$Supper - data$maxSopt
+data$belowS <- data$maxSopt - data$Slower
+data$biasS <- data$aboveS - data$belowS
+
+
+
+
+
 head(data)
 data_nona <- filter(data, !is.na(belowPopt))
 ```
@@ -58,8 +83,21 @@ data_nona <- filter(data, !is.na(belowPopt))
 
 
 ```{r}
-ggplot(data, aes(x = lifestage, y = bias))+
-  geom_boxplot()
+ggplot(data, aes(x = lifestage, y = biasP))+
+  geom_boxplot()#+
+  #geom_boxplot(data = data, mapping = aes(lifestage, y = biasD), col = "blue")+
+  #geom_boxplot(data = data, mapping = aes(lifestage, y = biasS), col = "darkred")
+
+```
+
+
+
+```{r}
+ggplot(data, aes(x = lifestage, y = biasP))+
+  geom_jitter(col = "darkgreen")+
+  geom_jitter(data = data, mapping = aes(lifestage, y = biasD), col = "blue")+
+  geom_jitter(data = data, mapping = aes(lifestage, y = biasS), col = "darkred")
+
 
 ```
 
@@ -67,7 +105,8 @@ ggplot(data, aes(x = lifestage, y = bias))+
 
 ```{r}
 
-ggplot(data, aes(x = Popt, y = bias))+
+
+ggplot(data, aes(x = Pwidth, y = biasP))+
   geom_point()
 
 ```
@@ -76,8 +115,7 @@ ggplot(data, aes(x = Popt, y = bias))+
 
 ```{r}
 
-
-ggplot(data, aes(x = Pwidth, y = bias))+
+ggplot(data, aes(x = Max_dr, y = biasP))+
   geom_point()
 
 ```
@@ -85,32 +123,26 @@ ggplot(data, aes(x = Pwidth, y = bias))+
 
 
 ```{r}
-
-ggplot(data, aes(x = Max_dr, y = bias))+
-  geom_point()
-
-```
-
-
-
-```{r}
-ggplot(data, aes(x = absLat, y = bias))+
-  geom_point()
+ggplot(data, aes(x = absLat, y = biasP))+
+  geom_point(col = "darkgreen")+
+  geom_point(data = data, mapping = aes(absLat, y = biasD), col = "blue")+
+  geom_point(data = data, mapping = aes(absLat, y = biasS), col = "darkred")
 ```
 
 
 ```{r}
-A.set <- with(data_nona, cbind(bias, belowPopt, abovePopt, Max_dr, lifestage, absLat, sp))
+A.set <- with(data_nona, cbind(biasP, belowPopt, abovePopt, Max_dr, lifestage, absLat, sp))
 
 # Full models, with random intercept, and then random slopes
 
 ## random slopes: need to input dataset as dataframe
-hist(data_nona$bias)
+hist(data_nona$biasD)
+hist(data_nona$biasS)
 hist(data_nona$abovePopt)
 hist(data_nona$belowPopt)
 # fit1_fullrandom <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(A.set)) # This model doesn't work
 
-fit1_fullrandomsp <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(A.set)) #
+fit1_fullrandomsp <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), data = data) #
 
 fit1_redrandomsp <- lmer(bias ~ lifestage + absLat + (1|sp), data = as.data.frame(A.set)) #
 
@@ -140,4 +172,239 @@ plot_model(fit1_fullrandomspMLpredict, type = "int")+
 ```
 
 
+```{r}
+# models with species (1|species) as a random effect
+
+# Full model
+
+fullP <- lmer(biasP ~ lifestage + absLat + lifestage:absLat + (1|sp), data = data) #
+latlifeP <- lmer(biasP ~ absLat + lifestage + (1|sp), data = data) #
+latP <- lmer(biasP ~ absLat + (1|sp), data = data) #
+lifeP <- lmer(biasP ~ lifestage + (1|sp), data = data) #
+
+anova(fullP, latlifeP, latP, lifeP, test.statistic = "Chisq")
+
+fullP <- lmer(biasP ~ -1 + absLat + lifestage  + lifestage:absLat+ (1|sp), REML = F, data = data) #
+
+
+
+Anova(fullP)
+
+
+summary(fullP)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(fullP)
+Esizes_wide <- tibble(o_mean = mean(data$biasP, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()#+
+  #ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+data$group <- data$lifestage
+pred <- ggpredict(fullP, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("BiasP")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = data, mapping = aes(x = absLat, y = biasP, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fullP, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+```{r}
+# models with species (1|species) as a random effect
+
+# Full model
+
+fullD <- lmer(biasD ~ lifestage + absLat + lifestage:absLat + (1|sp), data = data) #
+latlifeD <- lmer(biasD ~ absLat + lifestage + (1|sp), data = data) #
+latD <- lmer(biasD ~ absLat + (1|sp), data = data) #
+lifeD <- lmer(biasD ~ lifestage + (1|sp), data = data) #
+
+anova(fullD, latlifeD, latD, lifeD, test.statistic = "Chisq")
+
+latlifeD <- lmer(biasD ~ -1 + absLat + lifestage + (1|sp), REML = F, data = data) #
+
+
+
+Anova(latlifeD)
+
+
+summary(latlifeD)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(latlifeD)
+Esizes_wide <- tibble(o_mean = mean(data$biasD, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()#+
+  #ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+data$group <- data$lifestage
+pred <- ggpredict(latlifeD, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("BiasD")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = data, mapping = aes(x = absLat, y = biasD, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(latlifeD, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+```{r}
+# models with species (1|species) as a random effect
+dataS <- filter(data, !is.na(biasS))
+dataS$sp <- factor(dataS$sp)
+dataS$lifestage <- factor(dataS$lifestage)
+# Full model
+
+fullS <- lmer(biasS ~ lifestage + absLat + lifestage:absLat + (1|sp), data = data) #
+latlifeS <- lmer(biasS ~ absLat + lifestage + (1|sp), data = data) #
+latS <- lmer(biasS ~ absLat + (1|sp), data = data) #
+lifeS <- lmer(biasS ~ lifestage + (1|sp), data = data) #
+
+anova(fullP, latlifeP, latP, lifeP, test.statistic = "Chisq")
+
+fullP <- lmer(biasP ~ -1 + absLat + lifestage + (1|sp), REML = F, data = data) #
+
+
+
+Anova(fullP)
+
+
+summary(fullP)
+```
+ 
+```{r}
+# get data for plot
+latlifeI_effects <- tidy(fullP)
+Esizes_wide <- tibble(o_mean = mean(data$biasP, na.rm = T),
+                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+
+names(Esizes_wide)
+
+Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+
+ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+  geom_bar(stat = "identity")+
+  theme_cowplot()+
+  ylim(-2,6)
+
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+data$group <- data$lifestage
+pred <- ggpredict(fullP, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("BiasP")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = data, mapping = aes(x = absLat, y = biasP, col =group ), alpha = 0.6)+
+  theme_cowplot()
+
+
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(fullP, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
 
