@@ -4,9 +4,12 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
+2. Models with lifestage within species (lifestage|sp) as a random effect
+3. Models with species (1|sp) as a random effect
+4. Correlation coefficients of survival variables
+5. PCA
 
 ```{r}
-# load packages
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -17,8 +20,13 @@ library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
+library(effects)
+library(ggeffects)
+library(Hmisc)
+
 ```
-1. Import file
+
+# 1. Import data and housekeeping
 ```{r}
 # Mariana's desktop
 
@@ -42,14 +50,61 @@ responses_table$sp <- factor(responses_table$sp)
 
 ```
 
+## Sopt: temperature that maximizes development rate
+Sopt ranged from `r min(responses_table$Sopt, na.rm = T)` to `r max(responses_table$Sopt)`, mean =  `r mean(responses_table$Sopt)`, SD = `r sd(responses_table$Sopt)`
+Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
 
-Initially, there were `r length(unique(Sopt$set))` sets with values for Sopt, `r length(unique(Swidth$set))` sets with values for D-width. For `r length(unique(lower$set))` sets only the lower limit of D-width could be calculated and in  for `r length(unique(upper$set))` cases only the upper limit could be calculated.
+#2. Models with lifestage within species (lifestage|sp) as a random effect
 
-To assess variation in thermal responses across latitude and life stages, we fitted a linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
+```{r}
+# Subset to survival metrics and predictors only
+S.set <- with(responses_table, cbind(Sopt, Supper, Swidth, Slower, lifestage, absLat, sp))
 
-We first fitted a full model including latitude, life stage, and their interaction as fixed effects and species as a random effect. We also fitted a reduced model without the interaction term and used AIC to select between them. 
+# Full models, with random intercept, and then random slopes
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(Sopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(S.set)) #
+
+fit1_redrandom <- lmer(Sopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(S.set)) #
+
+summary(fit1_fullrandom)
+summary(fit1_redrandom)
+
+anova(fit1_fullrandom, fit1_redrandom, test.statistic = "Chisq")
+# This model fails to converge:
+fit_redrandom <- lmer(Sopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(S.set))
+# This model does not fail to converge:
+fit_redrandom <- lmer(Sopt ~ lifestage + absLat + (lifestage|sp), REML = T, data = as.data.frame(S.set))
+# Why??
 
 
+
+## IF we  use log-likelihood instead of restricted maximum likelihood:
+summary(fit1_fullrandom)
+Anova(fit1_fullrandom)
+S.set <- as.data.frame(S.set)
+meanS <- S.set %>% 
+  select(Sopt, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Sopt, na.rm = T), 
+            sd = sd(Sopt, na.rm = T))
+#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
+dw_plot(fit1_fullrandom) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+
+# lifestage is numeric in S.set, so this plot does not work
+plot_model(fit1_fullrandom, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+# 3. Models with species (1|sp) as a random effect
  
 ```{r}
 # models with species (1|species) as a random effect
@@ -132,24 +187,68 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
   scale_color_viridis_d()
 ```
  
-Correlation coefficients of survival variables 
- 
+# 4. Correlation coefficients of survival variables
+
 ```{r}
-library(Hmisc)
 names(S.set)
 cor(S.set[1:4])
 rcorr(as.matrix(S.set[1:4])) # correlation coefficients and then P values
 ```
 
+
  
- 
- 
- 
- 
- 
-# Supper
+# 5. PCA of survival variables
 
 ```{r}
+## Omit NA rows for PCA. need dataframe for input
+S.set <- with(responses_table, cbind(Sopt, Supper, Swidth, Slower, lifestage, absLat, sp))
+S.set.nona <- as.data.frame(na.omit(S.set))
+Spc <- princomp(~Sopt + Supper + Swidth, data = S.set.nona)
+summary(Spc)
+```
+
+
+```{r}
+loadings(Spc)
+```
+
+
+```{r}
+names(Spc)
+## Bind PC scores to dataset
+
+S.set.pcs <- cbind(S.set.nona, Spc$scores)
+head(S.set.pcs)
+
+## Now model Comp.1 (PC scores on 1st PC)
+fit1_red1 <- lmer(Comp.1 ~ lifestage + absLat + (1|sp), data = S.set.pcs)
+summary(fit1_red1)
+
+## test simpler models
+fit1_red2 <- lmer(Comp.1 ~ lifestage  + (1|sp), data = S.set.pcs)
+fit1_red3 <- lmer(Comp.1 ~ absLat + (1|sp), data = S.set.pcs)
+fit1_red4 <- lmer(Comp.1 ~ (1|sp), data = S.set.pcs)
+anova(fit1_red1,fit1_red2, fit1_red3,fit1_red4, test.statistic = "Chisq")
+
+## estimate parameters using ML rather than REML (default)
+fit1_red3.ML <- lmer(Comp.1 ~  absLat  + (1|sp), data = S.set.pcs, REML = F)
+summary(fit1_red3.ML)
+
+dw_plot(fit1_red3.ML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+
+
+# 6. Supper
+
+```{r}
+S.set <- data.frame(S.set)
 ggplot(S.set, aes(x = Supper, fill = lifestage))+
   geom_histogram()+
   facet_grid(.~lifestage)
@@ -163,7 +262,7 @@ median(S.set$Supper, na.rm = T)
 # models with species (1|species) as a random effect
 # 1. Subset to S metrics and predictors only
 
-#S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
+S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
 
 # Full model
 
@@ -193,7 +292,7 @@ Esizes_wide <- tibble(o_mean = mean(S.set$Supper, na.rm = T),
                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]] - o_mean)
+                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
 
 names(Esizes_wide)
 
@@ -202,8 +301,7 @@ Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva"
 
 ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
   geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
+  theme_cowplot()
 
 
 ```
@@ -211,9 +309,6 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
-
 S.set$group <- S.set$lifestage
 pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
 
@@ -241,21 +336,10 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
 ```
  
 
- 
- 
 
-
-
-
-
-
-
-
-## Sopt: temperature that maximizes development rate
-Sopt ranged from `r min(Sopt_table$maxSopt)` to `r max(Sopt_table$maxSopt)`, mean =  `r mean(Sopt_table$maxSopt)`, SD = `r sd(Sopt_table$maxSopt)`
-Latitude ranged from `r min(Sopt_table$absLat, na.rm = T)` to `r max(Sopt_table$absLat, na.rm = T)`
 
 ```{r}
+S.set <- data.frame(S.set)
 meanSwidth <- S.set %>% 
   select(Swidth, absLat) %>% 
   ungroup() %>% 
