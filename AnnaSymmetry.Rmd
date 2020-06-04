@@ -5,6 +5,13 @@ output: html_notebook
 
 I wrote really quick code to get the percentage of each interval above and below the optimum - it's shown below using the new dataset and the P metric, though it could easily be used for the S and D metrics. It ended up being really simple, given the new summary table!
 
+Contents
+1. Import data and housekeeping
+2. Exploratory plots
+3. Bias in performance
+4. Bias in development (not in presentation)
+5. Bias in survival (not in presentation)
+
 
 ```{r}
 # load packages
@@ -22,6 +29,7 @@ library(sjmisc)
 library(broom)
 ```
 
+# 1. Import data and housekeeping
 
 ```{r}
 #Anna's Laptop
@@ -81,7 +89,7 @@ data_nona <- filter(data, !is.na(belowPopt))
 ```
 
 
-
+# 2. Exploratory plots
 ```{r}
 ggplot(data, aes(x = lifestage, y = biasP))+
   geom_boxplot()#+
@@ -129,47 +137,17 @@ ggplot(data, aes(x = absLat, y = biasP))+
   geom_point(data = data, mapping = aes(absLat, y = biasS), col = "darkred")
 ```
 
-
+# 3. Bias in performance
 ```{r}
 A.set <- with(data_nona, cbind(biasP, belowPopt, abovePopt, Max_dr, lifestage, absLat, sp))
 
 # Full models, with random intercept, and then random slopes
 
 ## random slopes: need to input dataset as dataframe
-hist(data_nona$biasD)
-hist(data_nona$biasS)
-hist(data_nona$abovePopt)
-hist(data_nona$belowPopt)
-# fit1_fullrandom <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(A.set)) # This model doesn't work
-
-fit1_fullrandomsp <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), data = data) #
-
-fit1_redrandomsp <- lmer(bias ~ lifestage + absLat + (1|sp), data = as.data.frame(A.set)) #
-
-anova(fit1_fullrandomsp, fit1_redrandomsp, test.statistic = "Chisq")
-# use full model with ML
-
-fit1_fullrandomspML <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(A.set)) #
-summary(fit1_fullrandomspML)
-
-
-dw_plot(fit1_fullrandomspML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
+ fit1_fullrandom <- lmer(biasP ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(A.set)) # This model doesn't work
 
 ```
 
-
-```{r}
-fit1_fullrandomspMLpredict <- lmer(bias ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = data) #
-plot_model(fit1_fullrandomspMLpredict, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-```
 
 
 ```{r}
@@ -221,8 +199,7 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
+
 
 data$group <- data$lifestage
 pred <- ggpredict(fullP, terms = c("absLat","lifestage"))
@@ -249,6 +226,12 @@ plot_model(fullP, type = "pred", terms = c("lifestage", "absLat"))+
   theme_cowplot()+
   scale_color_viridis_d()
 ```
+
+
+
+
+# 4. Bias in development (not in presentation)
+
 
 ```{r}
 # models with species (1|species) as a random effect
@@ -328,6 +311,10 @@ plot_model(latlifeD, type = "pred", terms = c("lifestage", "absLat"))+
   scale_color_viridis_d()
 ```
 
+
+
+# 5. Bias in survival (not in presentation)
+
 ```{r}
 # models with species (1|species) as a random effect
 dataS <- filter(data, !is.na(biasS))
@@ -339,72 +326,9 @@ fullS <- lmer(biasS ~ lifestage + absLat + lifestage:absLat + (1|sp), data = dat
 latlifeS <- lmer(biasS ~ absLat + lifestage + (1|sp), data = data) #
 latS <- lmer(biasS ~ absLat + (1|sp), data = data) #
 lifeS <- lmer(biasS ~ lifestage + (1|sp), data = data) #
+# Models don't work
+#anova(fullP, latlifeP, latP, lifeP, test.statistic = "Chisq")
 
-anova(fullP, latlifeP, latP, lifeP, test.statistic = "Chisq")
-
-fullP <- lmer(biasP ~ -1 + absLat + lifestage + (1|sp), REML = F, data = data) #
-
-
-
-Anova(fullP)
-
-
-summary(fullP)
+#fullP <- lmer(biasP ~ -1 + absLat + lifestage + (1|sp), REML = F, data = data) #
 ```
  
-```{r}
-# get data for plot
-latlifeI_effects <- tidy(fullP)
-Esizes_wide <- tibble(o_mean = mean(data$biasP, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
-
-
-```
- 
- 
-```{r}
-# Plot data and predictions
-library(effects)
-library(ggeffects)
-
-data$group <- data$lifestage
-pred <- ggpredict(fullP, terms = c("absLat","lifestage"))
-
-
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("BiasP")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = data, mapping = aes(x = absLat, y = biasP, col =group ), alpha = 0.6)+
-  theme_cowplot()
-
-
-```
- 
- 
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fullP, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
