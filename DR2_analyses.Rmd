@@ -8,10 +8,9 @@ output: html_notebook
 3. Models with species (1|sp) as a random effect
 4. Correlation coefficients of development variables
 5. PCA
-6. Old code 
+
 
 ```{r}
-# load packages
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -24,9 +23,10 @@ library(sjmisc)
 library(broom)
 library(effects)
 library(ggeffects)
+library(Hmisc)
 ```
 
-# 1. Import file
+# 1. Import data and housekeeping
 ```{r}
 # Mariana's desktop
 
@@ -37,12 +37,11 @@ responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerforma
 
 ```{r}
 # Mariana's laptop
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
 ```
 
 ```{r}
 # Anna's Laptop
-
 responses <- read_csv("~/Desktop/ThermalResponsesII.csv")
 ```
 
@@ -108,7 +107,7 @@ dw_plot(fit1_randomMLs) +
   theme_cowplot()+
   scale_color_viridis_d()+
   theme(legend.position = "none")
-D.set$group <- D.set$lifestage
+D.set$group <- factor(D.set$lifestage)
 pred <- ggpredict(fit1_randomMLs, terms = c("absLat","lifestage"))
 
 
@@ -120,7 +119,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
   ylab("Dopt")+
   xlab("Absolute latitude")+
  # ylim(5, 20)+
-  #geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
   theme_cowplot()
 
 ```
@@ -211,7 +210,6 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
 # 4. Correlation coefficients of development variables 
  
 ```{r}
-library(Hmisc)
 names(D.set)
 cor(D.set[1:4])
 rcorr(as.matrix(D.set[1:4])) # correlation coefficients and then P values
@@ -317,276 +315,3 @@ dw_plot(fit5_red3.ML) +
  
  
  
-################################################################################################################## 
-# 5. Old code 
-################################################################################################################## 
-
-
-## D-width: 
-length of the temperature interval that allows for development rate at >= 50% efficiency
-
-D-width ranged from `r min(responses_table$Dwidth, na.rm = T)` to `r max(responses_table$Dwidth, na.rm = T)`,  mean = `r mean(responses_table$Dwidth, na.rm = T)`, SD = `r sd(responses_table$Dwidth, na.rm = T)`
-latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
-
-```{r}
-# Full models, with random intercept, and then random slopes
-## random slopes: need to input dataset as dataframe
-
-fit2_fullrandom <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
-
-summary(fit2_fullrandom)
-##############
-
-
-fit_red2random <- lmer(Dwidth ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
-# this model fails to converge, use full
-#anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
-
-# the effect of lifestage within species was very small, fit another model just with species:
-fit2_randomML <- lmer(Dwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(D.set))
-
-
-# fit reduced model
-fit2_randomMLs <- lmer(Dwidth ~ lifestage + absLat + (1|sp), REML = F, data = 
-as.data.frame(D.set))                         
-anova(fit2_randomML, fit_red2random, test.statistic = "Chisq")                         
-
-# fit2_randomML had smaller AIC and BIC values
-summary(fit2_randomML)
-Anova(fit2_randomML)
-
-
-meanD_widthtemperate <- D.set %>% 
-  select(Dwidth, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(Dwidth, na.rm = T), 
-            sd = sd(Dwidth, na.rm = T))
-
-dw_plot(fit2_randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
- 
-```{r}
-# Upper limit of D-width
-# Full models, with random intercept, and then random slopes
-## random slopes: need to input dataset as dataframe
-
-fit3_fullrandom <- lmer(Dupper ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
-# that model did not converge, remove lifestage from random term
-fit3_fullsp <- lmer(Dupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
-
-fit3_redsp <- lmer(Dupper ~ lifestage + absLat +  (1|sp), data = as.data.frame(D.set)) #
-
-
-anova(fit3_fullsp, fit3_redsp, test.statistic = "chisq")
-
-summary(fit3_fullsp)
-##############
-
-dw_plot(fit3_redsp) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
- 
- 
-```{r}
-# Lower limit of D-width
-fit4_fullrandom <- lmer(Dlower ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
-summary(fit4_fullrandom)
-
-fit4_redrandom <- lmer(Dlower ~ lifestage + absLat  + (lifestage|sp), data = as.data.frame(D.set))
-
-anova(fit4_fullrandom, fit4_redrandom, test.statistic = "chisq")
-# keep reduced model
-
-#try removing lifestage from the random effect
-fit4_redrandomsp <- lmer(Dlower ~ lifestage + absLat  + (1|sp), data = as.data.frame(D.set))
-
-dw_plot(fit4_redrandomsp) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
- 
-```{r}
-#PCA including lower limit as well
-```
- 
- 
-
- 
-```{r}
-# Plot model predictions and diagnosticts plots
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-# plot_model(fit1_full, type = "eff") # predicted values (marginal effects)
-# plot_model(fit1_full, type = "emm", terms = c("lifestage", "absLat")) # predicted values (marginal effects)
-# plot_model(fit1_full, type = "re") # random effects
-
-# plot_model(fit1_randomML, type = "est")+
-#   theme_cowplot()+
-#   scale_color_viridis_d()
-
-# plot_model(fit1_full, type = "slope")# 
-# plot_model(fit1_full, type = "resid")# 
-# plot_model(fit1_full, type = "diag")# 
-
-```
-
-
-
-
-## D-width: 
-length of the temperature interval that allows for development rate at >= 50% efficiency
-
-D-width ranged from `r min(responses_table$Dwidth)` to `r max(responses_table$Dwidth)`,  mean = `r mean(responses_table$Dwidth)`, SD = `r sd(responses_table$Dwidth)`
-latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
-
-1. Full model
-```{r}
-# Scale response variable
-#responses_table$Dwidth_s <- scale(responses_table$Dwidth)[,1]
-
-fit2_full <- lmer(Dwidth ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-fit2_full_aic <- AIC(fit2_full)
-fit2_fullpvals <- Anova(fit2_full)
-dw_plot(fit2_full) + 
-  geom_vline(xintercept=mean(responses_table$Dwidth, na.rm = T),lty=2)+
-  geom_vline(xintercept=0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-# Figure 3. effects and 95% CI of the
-```
-D-width full model AIC: `r fit2_full_aic`
-
-```{r}
-# 2. Reduced model
-fit2_reduced <- lmer(Dwidth ~ -1 + lifestage + absLat + (1|sp), data = responses_table) #
-fit2_summary <- summary(fit2_reduced)
-fit2_reduced_aic <- AIC(fit2_reduced)
-fit2_reducedpvals <- Anova(fit2_reduced)
-dw_plot(fit2_reduced) + 
-  geom_vline(xintercept= mean(responses_table$Dwidth, na.rm = T),lty=2)+
-  geom_vline(xintercept=0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-```
-D-width. Pupae had smaller intervals?
-
-D-width full model AIC: `r fit2_reduced_aic`. Ngroups = `r fit2_summary$ngrps`, N = `r nrow(responses_table)`
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit2_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-
-## upper limit
-Highest temperature that allows for development rate at >= 50% efficiency
-
-The upper limit ranged from `r min(responses_table$Dupper)` to `r max(responses_table$Dupper)`,  `r mean(responses_table$Dupper)`, SD `r sd(responses_table$Dupper)`
-latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Dupper_s <- scale(responses_table$Dupper)[,1]
-
-
-fit3_full <- lmer(Dupper ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-summary(fit3_full)
-fit3_full_aic <- AIC(fit3_full)
-fit3_fullpvals <- Anova(fit3_full)
-dw_plot(fit3_full) +
-  geom_vline(xintercept= mean(responses_table$Dupper, na.rm = T),lty=2)+
-  geom_vline(xintercept=0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-#Figure: effects and 95% CI of the full model
-
-meanupperD_widthtemperate <- D.set %>% 
-  select(Dupper, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(Dupper, na.rm = T), 
-            sd = sd(Dupper, na.rm = T))
-```
-AIC value of full model: `r fit3_full_aic`
-
-Figure 6. The upper limit varied among species, but not across latitudes or among lifestages.
-
-Upper limit analysis- AIC reduced model: `r fit3_reduced_aic`, Ngroups = `r fit3_summary$ngrps`, N = `r nrow(responses_table)`
-
-```{r}
-plot_model(fit3_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-```
-
-## Lower limit
-Lower temperature that allows for development rate at >= 50% efficiency
-
-The lower limit ranged from `r min(responses_table$Dlower)` to `r max(responses_table$Dlower)`,  `r mean(responses_table$Dlower)`, SD `r sd(responses_table$Dlower)`
-latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Dlower <- scale(responses_table$Dlower)[,1]
-
-
-fit4_full <- lmer(Dlower ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-summary(fit4_full)
-fit4_full_aic <- AIC(fit4_full)
-fit4_fullpvals <- Anova(fit4_full)
-dw_plot(fit4_full) +
-  geom_vline(xintercept = mean(responses_table$Dlower, na.rm = T),lty = 2)+
-  geom_vline(xintercept = 0,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-meanlowerD_widthtemperate <- D.set %>% 
-  select(Dlower, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(Dlower, na.rm = T), 
-            sd = sd(Dlower, na.rm = T))
-#Figure: effects and 95% CI of the full model
-```
-AIC value of full model: `r fit4_full_aic`
-
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit4_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-
-
-
-
-
