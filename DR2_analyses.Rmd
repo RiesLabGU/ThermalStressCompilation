@@ -4,8 +4,11 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
-2. Dopt 
-3. D-width
+2. Models with lifestage within species (lifestage|sp) as a random effect
+3. Models with species (1|sp) as a random effect
+4. Correlation coefficients of development variables
+5. PCA
+6. Old code 
 
 ```{r}
 # load packages
@@ -19,9 +22,11 @@ library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
+library(effects)
+library(ggeffects)
 ```
 
-1. Import file
+# 1. Import file
 ```{r}
 # Mariana's desktop
 
@@ -41,7 +46,8 @@ responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerforma
 responses <- read_csv("~/Desktop/ThermalResponsesII.csv")
 ```
 
-
+## Dopt: temperature that maximizes development rate
+We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three. We also discarded data from sets of uncertain locality ("inferred") or that were a combination of localities "combination".
 
 
 ```{r}
@@ -59,58 +65,71 @@ responses_table$sp <- factor(responses_table$sp)
 
 ```
 
-## Dopt: temperature that maximizes development rate
-We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three. We also discarded data from sets of uncertain locality ("inferred") or that were a combination of localities "combination".
-
-We first fitted a full model including latitude, life stage, and their interaction as fixed effects and lifestage within species as a random effect. 
-
-
 Dopt ranged from `r min(responses_table$Dopt, na.rm = T)` to `r max(responses_table$Dopt, na.rm = T)`, mean =  `r mean(responses_table$Dopt, na.rm = T)`, SD = `r sd(responses_table$Dopt, na.rm = T)`
 Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
 
+We first fitted a full model including latitude, life stage, and their interaction as fixed effects and lifestage within species as a random effect. 
+
+# 2. Models with lifestage within species (lifestage|sp) as a random effect
 
 ```{r}
 # Models with lifestage within species (lifestage|sp) as a random effect
 
 # 1. Subset to D metrics and predictors only
-#D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth,Dlower, lifestage, absLat, sp))
+D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth,Dlower, lifestage, absLat, sp))
 
 
 # Full models, with random intercept, and then random slopes
 ## random slopes: need to input dataset as dataframe
 
-#fit1_fullrandom <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
+fit1_fullrandom <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(D.set)) #
 
-#summary(fit1_fullrandom)
+summary(fit1_fullrandom)
 
-#fit_red1random <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
+fit_red1random <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(D.set))
 
-#anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
 ## interaction term is worse fit by AIC ro BIC, use reduced model
 
 # fit better model with ML
-#fit1_randomML <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
+fit1_randomML <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
 
 # the effect of lifestage within species was very small, fit another model just with species:
-#fit1_randomMLs <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
-# summary(fit1_randomML)
-# Anova(fit1_randomML)
-# D.set <- as.data.frame(D.set)
+fit1_randomMLs <- lmer(Dopt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(D.set))
+ summary(fit1_randomML)
+ Anova(fit1_randomML)
+ D.set <- as.data.frame(D.set)
 
 #plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
 
-#dw_plot(fit1_randomMLs) +
+dw_plot(fit1_randomMLs) +
   #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-#  geom_vline(xintercept= 0,lty=3)+
-#  theme_cowplot()+
-#  scale_color_viridis_d()+
-#  theme(legend.position = "none")
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+D.set$group <- D.set$lifestage
+pred <- ggpredict(fit1_randomMLs, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Dopt")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  #geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
+  theme_cowplot()
+
 ```
  
- 
+# 3. Models with species (1|sp) as a random effect
+
  
 ```{r}
-# models with species (1|species) as a random effect
+# Models with species (1|species) as a random effect
 # 1. Subset to D metrics and predictors only
 
 D.set <- select(responses_table, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp)
@@ -137,7 +156,7 @@ summary(latlifeI)
 ```
  
 ```{r}
-# get data for plot
+# get data for effects plot
 latlifeI_effects <- tidy(latlifeI)
 Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
@@ -163,9 +182,6 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
-
 D.set$group <- D.set$lifestage
 pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
 
@@ -192,7 +208,7 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
   scale_color_viridis_d()
 ```
  
-Correlation coefficients of development variables 
+# 4. Correlation coefficients of development variables 
  
 ```{r}
 library(Hmisc)
@@ -201,54 +217,12 @@ cor(D.set[1:4])
 rcorr(as.matrix(D.set[1:4])) # correlation coefficients and then P values
 ```
 
- 
- 
- 
- 
-```{r}
-plot_model(fit1_randomML, type = "pred", terms = c("absLat", "lifestage"))+
-  theme_cowplot()+
-  geom_point(data = fit1_randomML, mapping = aes(x = absLat, y = Dopt, col = group))+
-  scale_color_viridis_d()
-```
 
-```{r}
-
-```
-
-
- ############## Old stuff below
- 
-Do same model on continuous variables converted to sd units to faciliate comparison of effect sizes
-```{r}
-D.set <- D.set %>% 
-  mutate(sDopt = scale(Dopt), 
-         sabsLat = scale(absLat))
-
-Scalefit1_randomML <- lmer(sDopt ~ lifestage + sabsLat + (1|sp), REML = F, data = as.data.frame(D.set))
-sfull <- lmer(sDopt ~ lifestage + sabsLat + lifestage:sabsLat + (1|sp), data = as.data.frame(D.set)) #
-slatlife <- lmer(sDopt ~ sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-slat <- lmer(sDopt ~ sabsLat + (1|sp), data = as.data.frame(D.set)) #
-slife <- lmer(sDopt ~ lifestage + (1|sp), data = as.data.frame(D.set)) #
-
-slatlifeI <- lmer(sDopt ~ -1 + sabsLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-anova(sfull, slatlife, slat, slife, test.statistic = "Chisq")
-summary(slatlife)
-summary(slatlifeI)
-summary(Scalefit1_randomML)
-Anova(fit1_randomML)
-D.set <- as.data.frame(D.set)
-
-library(lme4)
-example(glmer)
-coef(summary(Scalefit1_randomML))
-coef(summary(Scalefit1_randomML))[,"z value"]
-
-```
-
+# 5. PCA
 PCA of development responses 
 ```{r}
 ## Omit NA rows for PCA. need dataframe for input
+D.set <- with(responses_table, cbind(Dopt, Dupper, Dwidth,Dlower, lifestage, absLat, sp))
 D.set.nona <- as.data.frame(na.omit(D.set))
 Dpc <- princomp(~Dopt + Dupper + Dwidth, data = D.set.nona)
 summary(Dpc)
@@ -341,6 +315,13 @@ dw_plot(fit5_red3.ML) +
 ```
  
  
+ 
+ 
+################################################################################################################## 
+# 5. Old code 
+################################################################################################################## 
+
+
 ## D-width: 
 length of the temperature interval that allows for development rate at >= 50% efficiency
 
@@ -442,7 +423,7 @@ dw_plot(fit4_redrandomsp) +
 ```
  
  
-# Old code below____________________________________________________________
+
  
 ```{r}
 # Plot model predictions and diagnosticts plots
