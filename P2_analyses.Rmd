@@ -4,8 +4,13 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
-2. Popt 
-3. P-width
+2. Popt: Models with lifestage within species (lifestage|sp) as a random effect
+3. Popt: Models with species (1|sp) as a random effect
+4. Correlation coefficients of performance variables
+5. Pupper models with species (1|sp) as a random effect
+6. PCA of performance variables
+7. PCA of development and survival variables
+
 
 ```{r}
 # load packages
@@ -19,9 +24,13 @@ library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
+library(effects)
+library(ggeffects)
+library(Hmisc)
+
 ```
 
-1. Import file
+# 1. Import file
 ```{r}
 # Mariana's desktop
 
@@ -56,7 +65,56 @@ responses_table$sp <- factor(responses_table$sp)
 
 ```
 
+# 2. Popt: Models with lifestage within species (lifestage|sp) as a random effect
+## Popt: temperature that maximizes development rate
+Popt ranged from `r min(responses_table$Popt, na.rm = T)` to `r max(responses_table$Popt, na.rm = T)`, mean =  `r mean(responses_table$Popt, na.rm = T)`, SD = `r sd(responses_table$Popt, na.rm = T)`
+Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
 
+```{r}
+# Subset to P metrics and predictors only
+P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set)) #
+
+fit1_redrandom <- lmer(Popt ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(P.set)) #
+
+summary(fit1_fullrandom)
+summary(fit1_redrandom)
+
+anova(fit1_fullrandom, fit1_redrandom, test.statistic = "Chisq")
+fit_fullrandom <- lmer(Popt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(P.set))
+
+
+## use full model
+summary(fit1_fullrandom)
+Anova(fit1_fullrandom)
+P.set <- as.data.frame(P.set)
+meanP <- P.set %>% 
+  select(Popt, absLat) %>% 
+  ungroup() %>% 
+  filter(absLat > 30 & absLat < 50) %>% 
+  summarise(mean = mean(Popt, na.rm = T), 
+            sd = sd(Popt, na.rm = T))
+#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
+dw_plot(fit1_fullrandom) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+
+# lifestage is numeric in P.set, so this plot does not work
+plot_model(fit1_fullrandom, type = "int")+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+
+# 3. Popt: Models with species (1|sp) as a random effect
 
 ```{r}
 # models with species (1|species) as a random effect
@@ -110,9 +168,6 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
-
 P.set$group <- P.set$lifestage
 pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
 
@@ -139,22 +194,16 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
   scale_color_viridis_d()
 ```
  
-Correlation coefficients of performance variables 
+# 4. Correlation coefficients of performance variables 
  
 ```{r}
-library(Hmisc)
+
 names(P.set)
 cor(P.set[1:4])
 rcorr(as.matrix(P.set[1:4])) # correlation coefficients and then P values
 ```
 
- 
- 
- 
- 
- 
- 
-# Pupper
+# 5. Pupper models with species (1|sp) as a random effect
 
 ```{r}
 ggplot(P.set, aes(x = Pupper, fill = lifestage))+
@@ -167,12 +216,7 @@ median(P.set$Pupper, na.rm = T)
 
 
 ```{r}
-# models with species (1|species) as a random effect
-# 1. Subset to S metrics and predictors only
-
-#P.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
-
-# Full model
+# Pupper
 
 full <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 latlife <- lmer(Pupper ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
@@ -191,18 +235,18 @@ summary(fullI)
  
 ```{r}
 # get data for plot
-latlifeI_effects <- tidy(fullI)
+fullI_effects <- tidy(fullI)
 Esizes_wide <- tibble(o_mean = mean(P.set$Pupper, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean,
-                   lat_larva = filter(latlifeI_effects, term == "absLat:lifestagelarva")[[2]],
-                   lat_larva10 = filter(latlifeI_effects, term == "absLat:lifestagelarva")[[2]]*10,
-                   lat_pupa = filter(latlifeI_effects, term == "absLat:lifestagepupa")[[2]],
-                   lat_pupa10 = filter(latlifeI_effects, term == "absLat:lifestagepupa")[[2]]*10,
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+                   lat = filter(fullI_effects, term == "absLat")[[2]], 
+                   lat10 = filter(fullI_effects, term == "absLat")[[2]]*10, 
+                   egg = filter(fullI_effects, term == "lifestageegg")[[2]] - o_mean, 
+                   larva = filter(fullI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+                   pupa = filter(fullI_effects, term == "lifestagepupa")[[2]] - o_mean,
+                   lat_larva = filter(fullI_effects, term == "absLat:lifestagelarva")[[2]],
+                   lat_larva10 = filter(fullI_effects, term == "absLat:lifestagelarva")[[2]]*10,
+                   lat_pupa = filter(fullI_effects, term == "absLat:lifestagepupa")[[2]],
+                   lat_pupa10 = filter(fullI_effects, term == "absLat:lifestagepupa")[[2]]*10,
+                   SD_sp = filter(fullI_effects, term == "sd_(Intercept).sp")[[2]])
 
 names(Esizes_wide)
 
@@ -220,11 +264,8 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
-
 P.set$group <- P.set$lifestage
-pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+pred <- ggpredict(fullI, terms = c("absLat","lifestage"))
 
 
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
@@ -232,196 +273,28 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("Supper")+
+  ylab("Pupper")+
   xlab("Absolute latitude")+
  # ylim(5, 20)+
   geom_point(data = P.set, mapping = aes(x = absLat, y = Pupper, col =group ), alpha = 0.6)+
   theme_cowplot()
-
 
 ```
  
  
 ```{r}
 #type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(latlifeI, type = "int", terms = c("lifestage", "absLat"))+
+plot_model(fullI, type = "int", terms = c("lifestage", "absLat"))+
   theme_cowplot()+
   scale_color_viridis_d()
 ```
  
 
+# PCA of performance variables
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Old code below
-
-
-```{r}
-# 1. Subset to P metrics and predictors only
-P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp))
-
-# Full models, with random intercept, and then random slopes
-
-## random slopes: need to input dataset as dataframe
-P.set2 <- P.set
-P.set2$lifestage <- factor(P.set2$lifestage)
-fit1_fullrandom <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set2)) #
-
-fit1_fullrandomFactors <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(responses_table)) #
-
-summary(fit1_fullrandom)
-summary(fit1_fullrandomFactors)
-
-fit_red1random <- lmer(Popt ~ lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(P.set))
-
-anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
-## use full model
-
-
-
-
-summary(fit1_fullrandom)
-Anova(fit1_fullrandom)
-P.set <- as.data.frame(P.set)
-meanP <- P.set %>% 
-  select(Popt, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(Popt, na.rm = T), 
-            sd = sd(Popt, na.rm = T))
-#plot.design(Dopt ~ lifestage *  absLat + (lifestage|sp) , data = D.set)
-dw_plot(fit1_fullrandom) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit1_fullrandom, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
- 
-```{r}
-
-#fit model without lifestage in the random effect
-fit1_fullrandomsp <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
-dw_plot(fit1_fullrandomsp) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
- 
- 
- P-width
-```{r}
-# get mean at temperate latitudes
-meanPwidth <- P.set %>% 
-  select(Pwidth, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(Pwidth, na.rm = T), 
-            sd = sd(Pwidth, na.rm = T))
-
-# Full models, with random intercept, and then random slopes
-fit2_full <- lmer(Pwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
-
-fit2_reduced <- lmer(Pwidth ~ lifestage + absLat  + (1|sp), data = as.data.frame(P.set)) #
-
-anova(fit2_full, fit2_reduced, test.statistic = "chisq")
-fit2_reducedML <- lmer(Pwidth ~ lifestage + absLat  + (1|sp),  REML = F, data = as.data.frame(P.set)) #
-summary(fit2_reducedML)
-
-dw_plot(fit2_reducedML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
- 
-Upper limit of D-width
- 
-```{r}
-# Full models, with random intercept, and then random slopes
-fit3_fullrandom <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set)) #
-# this model has too many random effects
-fit3_full <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
-
-
-fit3_reduced <- lmer(Pupper ~ lifestage + absLat  + (1|sp), data = as.data.frame(P.set)) #
-
-anova(fit3_full, fit3_reduced, test.statistic = "chisq")
- # use full model
-fit3_fullML <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp),  REML = F, data = as.data.frame(P.set))
-
-summary(fit3_fullML)
-
-dw_plot(fit3_fullML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-```
-
- 
- 
-Lower limit of D-width
- 
-```{r}
-# Full models, with random intercept, and then random slopes
-fit4_fullrandom <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(P.set2)) #
-# this model failed to converge
-fit4_full <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set2)) #
-
-
-fit4_reduced <- lmer(Plower ~ lifestage + absLat  + (1|sp), data = as.data.frame(P.set2)) #
-
-anova(fit4_full, fit4_reduced, test.statistic = "chisq")
-
-# use reduced model
-fit4_reducedML <- lmer(Plower ~ -1+ lifestage + absLat  + (1|sp),  REML = F, data = as.data.frame(P.set2))
-
-summary(fit4_reducedML)
-
-dw_plot(fit4_reducedML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit4_reducedML, type = "pred", #terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
- 
 ```{r}
 ## Omit NA rows for PCA. need dataframe for input
+P.set <- with(responses_table, cbind(Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp))
 P.set.nona <- as.data.frame(na.omit(P.set))
 Ppc <- princomp(~Popt + Pupper + Pwidth, data = P.set.nona)
 summary(Ppc)
@@ -471,7 +344,7 @@ dw_plot(fit1_red3.ML) +
  Popt and Pupper were positively correlated. 
  Popt and Pwidth were negatively correlated?
  
- 
+# PCA for D and S metrics 
  
 ```{r}
 # PCA analysis for D and S metrics
@@ -531,18 +404,13 @@ dw_plot(fit5_red3.ML) +
  
  
  
- 
- 
-```{r}
-names(responses_table)
 
-plot(T0 ~ Popt, data = responses_table)
-
-```
  
  
 
 ```{r}
+# Get mean values of Pupper at mid latitudes
+P.set <- data.frame(P.set)
 meanPupper <- P.set %>% 
   select(Pupper, absLat) %>% 
   ungroup() %>% 
@@ -552,6 +420,7 @@ meanPupper <- P.set %>%
 ```
 
 ```{r}
+# Get mean values of Plower at mid latitudes
 meanPlower <- P.set %>% 
   select(Plower, absLat) %>% 
   ungroup() %>% 
@@ -564,172 +433,5 @@ meanPlower <- P.set %>%
 
 
 
-# Old code below____________________________________________________________
 
 
-To assess variation in thermal responses across latitude and life stages, we fitted linear mixed models, including each thermal response scaled and life and laitude as fixed factors and species as a random factor. We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three.
-
-## Popt: temperature that maximizes development rate
-Popt ranged from `r min(responses_table$Popt, na.rm = T)` to `r max(responses_table$Popt, na.rm = T)`, mean =  `r mean(responses_table$Popt, na.rm = T)`, SD = `r sd(responses_table$Popt, na.rm = T)`
-Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(responses_table$absLat, na.rm = T)`
-
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Popt_s <- scale(responses_table$PTopt)[,1]
-
-fit1_full <- lmer(Popt ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-# this model cannot be done because we have 134 observations and the number of random effects would be 171
-#fit1_full_random <- lmer(Popt ~ -1 + lifestage * absLat + (lifestage|sp), data = responses_table) #
-# this model is singular
-#fit1_full_family <- lmer(Popt ~ -1 + lifestage * absLat + (1|sp) + (1|family), data = responses_table) #
-
-summary(fit1_full)
-
-fit1_full_aic <- AIC(fit1_full)
-fit1_fullpvals <- Anova(fit1_full)
-dw_plot(fit1_full) +
-  geom_vline(xintercept = mean(responses_table$Popt, na.rm = T),lty = 2)+
-  geom_vline(xintercept = 0,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-# Figure 1. effects and 95% CI of the full model
-```
- Full model: lmer(Popt ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit1_full_aic`
-
-
-```{r}
-plot_model(fit1_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Pwidth_s<- scale(responses_table$Pwidth)[,1]
-
-fit2_full <- lmer(Pwidth ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-summary(fit2_full)
-
-fit2_full_aic <- AIC(fit2_full)
-fit2_fullpvals <- Anova(fit2_full)
-dw_plot(fit2_full) +
-  geom_vline(xintercept = mean(responses_table$Pwidth, na.rm = T),lty=2)+
-  geom_vline(xintercept = 0,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-# Figure 1. effects and 95% CI of the full model
-```
- Full model: lmer(P-width_s ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit2_full_aic`
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit2_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-```
-
-
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$Plower_s <- scale(responses_table$Plower)[,1]
-
-fit3_full <- lmer(Plower ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-summary(fit3_full)
-
-fit3_full_aic <- AIC(fit3_full)
-fit3_fullpvals <- Anova(fit3_full)
-dw_plot(fit3_full) +
-  geom_vline(xintercept = mean(responses_table$Plower, na.rm = T),lty = 2)+
-  geom_vline(xintercept = 0,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-#  effects and 95% CI of the full model
-
-```
-
-
- Full model: lmer(lower ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit3_full_aic`
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit3_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-
-```{r}
-# 1. Full model
-# Scale response variable
-#responses_table$upper_s <- scale(responses_table$Imax)[,1]
-
-fit4_full <- lmer(Pupper ~ -1 + lifestage * absLat + (1|sp), data = responses_table) #
-
-summary(fit4_full)
-
-fit4_full_aic <- AIC(fit4_full)
-fit4_fullpvals <- Anova(fit4_full)
-dw_plot(fit4_full) +
-  geom_vline(xintercept = mean(responses_table$Pupper, na.rm = T), lty=2)+
-  geom_vline(xintercept = 0 ,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-#  effects and 95% CI of the full model
-
-```
-
-
- Full model: lmer(upper ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit4_full_aic`
-
-```{r}
-# Plot model predictions
-# type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(fit4_full, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-ll model: lmer(Popt_s ~ -1 + lifestage * absLat + (1|sp), data = responses_table)
- Full model's AIC: `r fit1_full_aic`
-
-```{r}
-# #2. Reduced model
-# fit1_reduced <- lmer(Popt_s ~  -1 + lifestage + absLat + (1|sp), data = responses_table) #
-# 
-# # fit1Noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family == "Noctuidae"))
-# # fit1Not_noctuids <- lmer(Popt ~ -1 + lifestage + absLat + (1|sp), data = filter(ToptAnalysis, family != "Noctuidae"))
-# tidy(fit1_reduced)
-# fit1_summary <- summary(fit1_reduced)
-# fit1_reduced_aic <- AIC(fit1_reduced)
-# #Anova(fit1_reduced)
-# dw_plot(fit1_reduced, conf.level = 0.95) + 
-#   geom_vline(xintercept=0,lty=2)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")#+
-#   #scale_y_discrete(labels = c('sd Observation.Residual','sd species', 
-#                              # 'Latitude', 'Life stage (pupa)','Life stage (larva)'))
-# 
-
-```
-Figure 2. Popt was higher at lower latitudes
-Lots of variation among species!
