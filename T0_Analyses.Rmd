@@ -4,9 +4,10 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
+2. Models with lifestage within species (lifestage|sp) as a random effect
+3. Models with species (1|sp) as a random effect
 
 ```{r}
-# load packages
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -17,8 +18,13 @@ library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
+library(effects)
+library(ggeffects)
+library(Hmisc)
+
 ```
-1. Import file
+
+# 1. Import data and housekeeping
 ```{r}
 # Mariana's desktop
 
@@ -44,10 +50,44 @@ responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
 ```
 
-
+# 2. Models with lifestage within species (lifestage|sp) as a random effect
 
 ```{r}
-# models with species (1|species) as a random effect
+names(responses_table)
+# 1. Subset to T0 metrics and predictors only
+T.set <- with(responses_table, cbind(T0, G, Max_dr, lifestage, absLat, sp))
+
+# Full models, with random intercept, and then random slopes
+
+## random slopes: need to input dataset as dataframe
+
+fit1_fullrandom <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(T.set)) #
+
+summary(fit1_fullrandom)
+
+fit_red1random <- lmer(T0 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(T.set), REML = F)
+
+anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
+## interaction term is worse fit by AIC ro BIC, use reduced model
+
+# fit better model with ML
+fit1_red1randomML <- lmer(T0 ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(T.set))
+summary(fit1_red1randomML)
+Anova(fit1_red1randomML)
+
+
+dw_plot(fit1_red1randomML) +
+  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  geom_vline(xintercept= 0,lty=3)+
+  theme_cowplot()+
+  scale_color_viridis_d()+
+  theme(legend.position = "none")
+
+
+```
+
+# 3. Models with species (1|sp) as a random effect
+```{r}
 
 # Full model
 
@@ -93,8 +133,6 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
 
 responses_table$group <- responses_table$lifestage
 pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
@@ -128,73 +166,7 @@ plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
 
 
 
-
-
-
-
-
-
-
-
-
-# Old code below
-
-```{r}
-names(responses_table)
-# 1. Subset to T0 metrics and predictors only
-T.set <- with(responses_table, cbind(T0, G, Max_dr, lifestage, absLat, sp))
-
-# Full models, with random intercept, and then random slopes
-
-## random slopes: need to input dataset as dataframe
-
-fit1_fullrandom <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(T.set)) #
-
-summary(fit1_fullrandom)
-
-fit_red1random <- lmer(T0 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(T.set), REML = F)
-
-anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
-## interaction term is worse fit by AIC ro BIC, use reduced model
-
-# fit better model with ML
-fit1_randomML <- lmer(T0 ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(T.set))
-summary(fit1_randomML)
-Anova(fit1_randomML)
-
-
-dw_plot(fit1_randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-
-```
-
-
-
-```{r}
-# fit model without lifestage in random term
-fit1_randomMLsp <- lmer(T0 ~  lifestage + absLat + (1|sp), REML = F, data = as.data.frame(T.set))
-summary(fit1_randomMLsp)
-Anova(fit1_randomMLsp)
-
-
-dw_plot(fit1_randomMLsp) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-```
-
-
-
-
-
+# 4. Variation in maximum development rate (exploratory not in presentation)
 ```{r}
 fit2_fullrandom <- lmer(Max_dr ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(T.set)) #
 
