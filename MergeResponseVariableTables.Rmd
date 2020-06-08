@@ -126,3 +126,13 @@ ggplot(long_max, aes(x = threshold, y = temperature))+
 
 ```
 
+```{r}
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+responses_table <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage))
+sp_list <- responses_table %>% select(sp, family) %>% distinct()
+#write_csv(sp_list,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SpeciesList.csv")
+
+```
+
