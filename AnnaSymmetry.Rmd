@@ -332,3 +332,26 @@ lifeS <- lmer(biasS ~ lifestage + (1|sp), data = data) #
 #fullP <- lmer(biasP ~ -1 + absLat + lifestage + (1|sp), REML = F, data = data) #
 ```
  
+ 
+```{r}
+hist(data_nona$biasP)
+positive <- filter(data_nona, biasP > 0)
+id_pos <-unique(positive$set) # 1035 1122 1128 1136 1140 1197 1206
+# You need to run other scripts to get Ana_performance_consolidated table
+#posi1 <- inner_join(Ana_performance_consolidated, add_info, by = "set")
+
+# posi <- posi1 %>% filter(set %in% id_pos)
+# 
+# ggplot(posi, aes(x = temp, y = P2))+
+#   geom_point()+
+#   theme_cowplot()+
+#   facet_wrap(lifestage~sp)
+# 
+# add_info <- Ana_performance%>% 
+#   select(set, sp, family, lifestage, lat, lon, locality, quality) %>% 
+#   distinct()
+# 
+# Popt_table <- inner_join(singles, add_info, by = "set")
+```
+ 
+ 
