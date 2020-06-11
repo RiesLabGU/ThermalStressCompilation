@@ -1,0 +1,154 @@
+---
+title: "Sample size"
+output: html_notebook
+---
+Extract sample size from sets included in analyses
+
+1. Get ids of sets used in analyses
+2. Sample size by treatment by set (list)
+3. Sample size by set and number of temperature treatments (table)
+
+
+```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych)
+```
+
+
+
+```{r}
+# table with sets inclduded in analyses
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+
+
+# table with relevant columns to extract sample size by treatment
+alldata <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
+                  sheet = "WorkingTable", na = c("NA", ""))
+# get set ids
+responses_table <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
+  mutate(lifestage = factor(lifestage))
+
+sets_table <- responses_table %>% select(sp, family, set) %>% distinct()
+set_list <- unique(sets_table$set)
+
+# extract sets in set_list from alldata and keep only relevant columns for sample size estimation
+data <- alldata %>% 
+  filter(set %in% set_list) %>% 
+  select(set, temp, lifestage, n, c1, idaid, c2, c3)
+
+
+```
+
+  `r length(set_list)` were included in analyses. 
+
+
+```{r}
+# extract N per treatment
+# 1. Get list of sets with problems
+problem1 <- data[is.na(as.numeric(as.character(data$n))),] #this instruction first changes non-numeric entries to NA and keeps only rows with NA values in sample size
+problem_n_list <- unique(problem1$set)
+length(unique(problem_n_list)) #154
+proper_list <- setdiff(set_list, problem_n_list) #154 sets with problematic sample sizes
+length(proper_list) # 237
+154+237
+
+#2. Get table of sets with no reporting problems 
+proper <- data %>% 
+  filter(set %in% proper_list) %>% 
+  mutate(n = as.numeric(n))
+
+# 3. Get table of sets with reporting problems
+problem <- filter(data, set %in% problem_n_list)
+
+# list problematic values
+length(unique(problem1$n))
+unique(problem1$n)
+
+```
+Replace character sample size with best guess given reports in paper or with NA when no info was reported ("nd")
+
+```{r}
+se <- filter(problem, n == "41,61,23")# there were three replicates, so add values
+se2 <- filter(problem, n == "34,53,37")# there were three replicates, so add values
+se3 <- filter(problem, n == "14,82,36")# there were three replicates, so add values
+se4 <- filter(problem, n == "17,11,3")# there were three replicates, so add values
+se5 <- filter(problem, n == "44,59,36,40")# there were four replicates, so add values
+
+# Make 25 modifications to data table (NA will not be modified)
+problem$n_approx <- ifelse(problem$n == "100-200", 150,
+                     ifelse(problem$n == "65-80", 40,
+                        ifelse(problem$n == "nd", "NA",
+                        ifelse(problem$n == "10to20", 15,
+                        ifelse(problem$n == "17,11,3", 41,
+                           ifelse(problem$n == "14,82,36", 132,
+                           ifelse(problem$n == "44,59,36,40",179,
+                           ifelse(problem$n == "41,61,23", 125,
+                               ifelse(problem$n == "34,53,37", 124,
+                               ifelse(problem$n == "5 replications, 50 to 60 eggs", 275, 
+                               ifelse(problem$n == "3 replicates of 50 each", 150, 
+                                   ifelse(problem$n == ">30", 30, 
+                                   ifelse(problem$n == "~18", 18,
+                                   ifelse(problem$n == "8 groups of 50", 400, 
+                                      ifelse(problem$n =="8 groups of 15", 120,
+                                      ifelse(problem$n == "over 30 individuals per treatment", 30,        
+                                      ifelse(problem$n == "~200", 200, 
+                                          ifelse(problem$n == "15 pairs of adults", 30,   
+                                          ifelse(problem$n == "~20 inds", 20,
+                                          ifelse(problem$n == "at least 15", 15, 
+                                              ifelse(problem$n == "~2000", 2000, 
+                                              ifelse(problem$n == "~60", 60,                                                                                                     ifelse(problem$n == "150 eggs", 150,                                                                                                  ifelse(problem$n == "~20", 20,
+                                                 ifelse(problem$n == "~100",100, problem$n)))))))))))))))))))))))))
+
+length(unique(problem$n_approx))
+unique(problem$n_approx)
+problem$n_approx <- as.numeric(problem$n_approx)
+
+```
+
+2. Sample size by temperature treatment (multiple values per set)
+
+```{r}
+# get sample size by temperature for proper sets
+proper_treatment1 <-  proper %>% 
+  select(set, temp, n) 
+ntreats <- proper_treatment1 %>% 
+  group_by(set) %>% 
+  summarise(treatments = n())
+proper_treatment <- left_join(proper_treatment1, ntreats, by = "set")
+
+# get sample size by temperature for problem sets
+problem_treatment1 <-  problem %>% 
+  select(set, temp, n = n_approx) 
+ntreats <- problem_treatment1 %>% 
+  group_by(set) %>% 
+  summarise(treatments = n())
+problem_treatment <- left_join(problem_treatment1, ntreats, by = "set")
+# merge tables
+
+n_by_treatment <- rbind(proper_treatment, problem_treatment)
+unique(n_by_treatment$n)
+
+```
+
+
+3. Sample size by set 
+
+```{r}
+n_by_set <- n_by_treatment %>% 
+  group_by(set) %>% 
+  summarise(n_mean_inds = mean(n, na.rm = T),n_total_inds = sum(n, na.rm = T), n_temps = mean(treatments, na.rm = T), max = max(temp,na.rm = T), min =  min(temp, na.rm = T)) %>% 
+  mutate(spread = max-min)
+```
+
+Print tables
+```{r}
+#write_csv(n_by_treatment,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/NbyTreatment.csv")
+#write_csv(n_by_set,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/NbySet.csv")
+```
+
+Consider consolidated sets? This estimate is conservative compared to one accounting for consolidation. 
+
