@@ -129,6 +129,8 @@ full <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.da
 latlife <- lmer(Popt ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 lat <- lmer(Popt ~ absLat + (1|sp), data = as.data.frame(P.set)) #
 life <- lmer(Popt ~ lifestage + (1|sp), data = as.data.frame(P.set)) #
+phylo <- lm(Popt ~ family + absLat + lifestage, data = as.data.frame(P.set))
+phylo2 <- lmer(Popt ~ family + absLat + lifestage + (1|sp), data = as.data.frame(P.set))
 
 anova(full, latlife, lat, life, test.statistic = "Chisq")
 
@@ -136,9 +138,12 @@ anova(full, latlife, lat, life, test.statistic = "Chisq")
 latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 Anova(full)
-Anova(latlifeI)
+Anova(latlife)
 summary(full)
-summary(latlifeI)
+summary(latlife)
+summary(phylo2)
+anova(phylo2)
+Anova(phylo2)
 ```
  
 ```{r}
