@@ -43,7 +43,7 @@ responses <- responses %>%
 
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(maxSopt)) %>% 
-  select(Sopt = maxSopt, Slower, Supper, Swidth, lifestage, sp, lat) %>% 
+  select(Sopt = maxSopt, Slower, Supper, Swidth, lifestage, sp, lat, family) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
@@ -110,7 +110,12 @@ plot_model(fit1_fullrandom, type = "int")+
 # models with species (1|species) as a random effect
 # 1. Subset to S metrics and predictors only
 
-S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp)
+S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
+S.noctu <- S.set %>% 
+  filter(family == "Noctuidae")
+S.allelse <- S.set %>% 
+  filter(family != "Noctuidae")
+  
 
 # Full model
 
@@ -125,9 +130,13 @@ latlifeI <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(S
 
 
 latlifeI <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(S.set)) #
+latlifeN <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(S.noctu)) #
+latlifeothers <- lmer(Sopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(S.allelse)) #
+
+
 
 Anova(full)
-summary(latlife)
+summary(latlifeI)
 summary(latlifeI)
 ```
  
@@ -162,10 +171,14 @@ library(effects)
 library(ggeffects)
 
 S.set$group <- S.set$lifestage
+S.noctu$group <- S.noctu$lifestage
+S.allelse$group <- S.allelse$lifestage
 pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+prednoctu <- ggpredict(latlifeN, terms = c("absLat","lifestage"))
+predelse <- ggpredict(latlifeothers, terms = c("absLat","lifestage"))
 
 
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+ggplot(predelse, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
