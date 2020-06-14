@@ -396,7 +396,8 @@ rm(Interval_table1)
  
 ```{r}
 MaxDrTable <- Ana_dr_consolidated %>%
-   group_by(set) %>%
+  select(set, dr) %>% 
+  group_by(set) %>%
    nest() %>%
    mutate(Max_dr = map(data, max)) %>%
    select(set, Max_dr) %>%
