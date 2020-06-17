@@ -34,7 +34,7 @@ SetPe <- select(Performance, set, sp, family, lifestage, lat, lon, locality, qua
 PeVars <- select(Performance, set, Popt, performance, Plower, Pupper, Pwidth)
 #names(T0)
 SetT0 <- select(T0, set, sp, family, lifestage, lat, lon, locality, quality)
-T0Vars <- select(T0, set, T0, G)
+T0Vars <- select(T0, set, T0, G, slope)
 
 names(Performance)
 
