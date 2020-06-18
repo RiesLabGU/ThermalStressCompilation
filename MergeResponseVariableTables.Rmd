@@ -28,7 +28,7 @@ SetDe <- select(Development, set, sp, family, lifestage, lat, lon, locality, qua
 DeVars <- select(Development, set, Dopt, s_dr, Dlower, Dupper, Dwidth, Max_dr)
 
 SetSu <- select(Survival, set, sp, family, lifestage, lat, lon, locality, quality)
-SuVars <- select(Survival, set, maxSopt, minSopt, Slower, Supper, Swidth)
+SuVars <- select(Survival, set, maxSopt, minSopt, Slower, Supper, Swidth, maxSurvival)
 
 SetPe <- select(Performance, set, sp, family, lifestage, lat, lon, locality, quality)
 PeVars <- select(Performance, set, Popt, performance, Plower, Pupper, Pwidth)
@@ -72,7 +72,13 @@ ggplot(long_responses, aes(x = threshold, y = temperature))+
   facet_grid(.~lifestage)
   
 str(responses_table)
+
 ```
+
+
+
+
+
 ```{r}
 responses_table_w <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
@@ -89,6 +95,7 @@ ggplot(long_width, aes(x = threshold, y = temperature))+
   ylim(0,40)+
   facet_grid(.~lifestage)
   
+
 ```
 
 ```{r}
