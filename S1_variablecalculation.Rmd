@@ -198,7 +198,8 @@ get_Sopt <- function(dat){
   x_min_list <- head(dat[dat$survival == y_max, "temp"], 1)[[1]]# 
     
   Soptima <- tibble(maxSopt = x_max_list,
-                   minSopt = x_min_list)
+                   minSopt = x_min_list, 
+                   maxSurvival = y_max/100)
 
 } 
 
