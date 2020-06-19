@@ -18,18 +18,208 @@ Gaus <- function(x, a, b, c) {
 
 ```
 
+Anna's plots
+
+A. Survival is fixed, dr is adaptive with latitude
+```{r}
+temperature <- seq(10,40, by = 1)
+A_survival <- c(0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                0.89, 0.75,0.5,0.25,0,NA)
+A_drGaus <- Gaus(temperature, 1, 30, 3)
+# This code is get the values of the vector above, but separated by commas, so the curve can be edited:
+paste(as.character(A_drGaus), sep="' '", collapse=", ")
+A_drtrop <- c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
+              NA, NA, NA, NA,
+              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766,
+              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
+              NA, NA)
+
+A_drtemp <- c(NA, NA, NA, NA, NA, 
+              NA, NA, NA, NA, NA,
+              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766, 
+              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
+              
+              NA, NA, NA, NA, NA, NA)
+
+FigureA <- tibble(temperature = temperature, 
+                  survival = A_survival, 
+                  tropical = A_drtrop, 
+                  temperate = A_drtemp, 
+                  P_tropical = survival * tropical, 
+                  P_temperate = survival * temperate)
+
+
+ggplot(FigureA, aes(x = temperature, y = survival))+
+  geom_line(linetype = 2, size = 2)+
+  #geom_line(aes(x = temperature, y = tropical, col = "tropical"))+
+  geom_line(aes(x = temperature, y = P_temperate), col = "grey",  size = 2)+
+  geom_line(aes(x = temperature, y = temperate), col = "black", linetype = 3, size = 2)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+
+```{r}
+ggplot(FigureA, aes(x = temperature, y = survival))+
+  geom_line(linetype = 2, size = 2)+
+  
+  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = tropical), col = "black", size = 2, linetype = 3)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+
+```{r}
+# Figure B
+B_drGaus <- Gaus(temperature, 1, 30, 7)
+B_dr <- c( NA,0.0168798841487899, 0.0251304889852744, 0.036658041953378, 0.0523931410698256, 0.0733696513683829, 0.100668899772898, 0.135335283236613, 0.178263979585048, 0.230066298993809, 0.290923807046148, 0.360447788597821, 0.437564737700269, 0.520450121020702, 0.606530659712633, 0.692569324205198, 0.774837428883249, 0.849365816568312, 0.912254076828545, 0.960005441285478, 0.989847803378734, 1,0.989847803378734, 0.960005441285478,0.90, 0.800737402916808, 0.606530659712633, 0, 
+              NA, NA, NA)
+B_temperate <- c(0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 
+                0.89, 0.75,0.5,0.25,0,NA,
+                NA, NA, NA, NA, NA, NA, NA, NA, NA)
+B_tropical <- c(NA, NA, NA, NA, NA, NA, 
+                NA, NA, NA,NA, 0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1,
+                0.89, 0.75,0.5,0.25,0)
+FigureB <- tibble(temperature = temperature, 
+                  dr= B_dr, 
+                  temperate = B_temperate, 
+                  tropical = B_tropical, 
+                  P_temperate = dr * temperate, 
+                  P_tropical = dr * tropical)
+
+ggplot(FigureB, aes(x = temperature, y = dr))+
+  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = tropical), col = "black", size = 2, linetype = 2)+
+  geom_line(linetype = 3, size = 2)+
+  
+  
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+
+```{r}
+ggplot(FigureB, aes(x = temperature, y = dr))+
+  geom_line(aes(x = temperature, y = P_temperate), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = temperate), col = "black", size = 2, linetype = 2)+
+  geom_line(linetype = 3, size = 2)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+Figure C
+```{r}
+dr_temperateC <- c(NA, NA, NA, NA,
+              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766, 
+              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
+              NA, NA, NA, NA,NA,NA,
+              NA, NA, NA, NA, NA, NA)
+
+FigureC <- tibble(temperature = temperature, 
+                  dr_tropical = FigureA$tropical,
+                  dr_temperate = dr_temperateC,
+                  su_tropical = FigureB$tropical,
+                  su_temperate = FigureB$temperate, 
+                  P_tropical = dr_tropical * su_tropical,
+                  P_temperate = dr_temperate * su_temperate)
+
+ggplot(FigureC, aes(x = temperature, y = dr_temperate))+
+  geom_line(aes(x = temperature, y = P_temperate), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = su_temperate), col = "black", size = 2, linetype = 2)+
+  geom_line(linetype = 3, size = 2)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+
+
+```
+
+```{r}
+FigureD <- tibble(temperature = temperature, 
+                  dr = FigureB$dr, 
+                  survival = FigureA$survival, 
+                  P = dr * survival)
+ggplot(FigureD, aes(x = temperature, y = dr))+
+  geom_line(aes(x = temperature, y = P), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = survival), col = "black", size = 2, linetype = 2)+
+  geom_line(linetype = 3, size = 2)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+```
+
+
+```{r}
+
+ggplot(FigureC, aes(x = temperature, y = dr_tropical))+
+  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
+  geom_line(aes(x = temperature, y = su_tropical), col = "black", size = 2, linetype = 2)+
+  geom_line(linetype = 3, size = 2)+
+  scale_color_viridis_d()+
+  theme_cowplot()
+
+```
+
+
+Is there a trade-off between cold and heat tolerance?
+
+```{r}
+Tolerance <- tibble(cold= rnorm(50, mean = 12, sd = 2), 
+                    hot1 = rnorm(50, mean = 2, sd = 2), 
+                    hot2 = (cold/2)-3,
+                    hot3 = 10 -(cold/2))
+
+ggplot(Tolerance, aes(x = hot1, y = cold)) +
+  geom_point(size = 2)+
+  theme_cowplot()+
+  geom_hline(yintercept = 12)+
+  ylim(0,20)+
+  xlim(0,20)+
+  ylab("cold tolerance")+
+  xlab("heat tolerance")
+  
+  
+  
+```
+
+```{r}
+ggplot(Tolerance, aes(x = hot2, y = cold)) +
+  geom_point(size = 2)+
+  theme_cowplot()+
+  geom_hline(yintercept = 12)+
+  ylim(0,20)+
+  xlim(0,20)+
+  ylab("cold tolerance")+
+  xlab("heat tolerance")
+```
+
+
+
+```{r}
+ggplot(Tolerance, aes(x = hot3, y = cold)) +
+  geom_point(size = 2)+
+  theme_cowplot()+
+  geom_hline(yintercept = 12)+
+  ylim(0,20)+
+  xlim(0,20)+
+  ylab("cold tolerance")+
+  xlab("heat tolerance")
+```
+
 
 
 Survival curve bounds development curve. However, Sopt is often smaller than Dopt. What factors influence variation in the distance between Dopt and Sopt?
 
 ```{r}
-di <- tibble(Temperature = seq(14,34, by = 1),
+di <- tibble(Temperature = seq(10,34, by = 1),
              survival = c(0,0.1, 0.5, 0.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.75,0.5,0.1,0), 
              dr = Gaus(Temperature, 1, 30, 3), 
              drTrop = Gaus(Temperature, 1, 33, 6),
              performance = dr * survival, 
-             dr2 = Gaus(Temperature, 1, 33, 4), 
-             performance2 = dr2 * survival, 
+             dr2 = Gaus(Temperature, 1, 25, 5),
+             dr2t = ifelse(Temperature > 14 & Temperature < 29, dr2, NA),
+             performance2 = dr2 * survival,
+             performance2t = dr2t *survival,
              performance3 = drTrop * survival)
 Popt <-   filter(di, performance == max(performance, na.rm = T))[["Temperature"]]
 maxP <-   filter(di, performance == max(performance, na.rm = T))[["performance"]]
@@ -49,6 +239,29 @@ ggplot(di, aes(x = Temperature, y = survival))+
   ylab("performance, survival, dr")+
   theme_cowplot()
 ```
+
+
+
+```{r}
+ggplot(di, aes(x = Temperature, y = survival))+
+  geom_line(col = "gray")+
+  geom_line(aes(x = Temperature, y = dr2t), col = "grey")+
+  geom_line(aes(x = Temperature, y = performance2t))+
+  geom_hline(yintercept =  0.5, linetype = 2)+
+  #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance > 0.5, Temperature, 0)), fill = "red") +
+  #geom_polygon(data = triangle, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
+  ylab("performance, survival, dr")+
+  theme_cowplot()
+```
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
