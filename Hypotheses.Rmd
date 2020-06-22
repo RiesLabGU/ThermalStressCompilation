@@ -230,9 +230,9 @@ triangle <- data.frame(group = c(1,1,1), polygon.x = c(26.5,Popt,31.64), polygon
 
 
 ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "gray")+
-  geom_line(aes(x = Temperature, y = dr), col = "grey")+
-  geom_line(aes(x = Temperature, y = performance))+
+  geom_line(col = "black", size = 2, linetype = 2)+
+  geom_line(aes(x = Temperature, y = performance),size = 2, col = "grey")+
+  geom_line(aes(x = Temperature, y = dr), col = "black", size = 2, linetype = 3)+
   geom_hline(yintercept =  0.5, linetype = 2)+
   #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance > 0.5, Temperature, 0)), fill = "red") +
   #geom_polygon(data = triangle, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
@@ -244,9 +244,10 @@ ggplot(di, aes(x = Temperature, y = survival))+
 
 ```{r}
 ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "gray")+
-  geom_line(aes(x = Temperature, y = dr2t), col = "grey")+
-  geom_line(aes(x = Temperature, y = performance2t))+
+  geom_line(col = "black", size = 2, linetype = 2)+
+  
+  geom_line(aes(x = Temperature, y = performance2t), size = 2, col = "grey")+
+  geom_line(aes(x = Temperature, y = dr2t), col = "black", size = 2, linetype = 3)+
   geom_hline(yintercept =  0.5, linetype = 2)+
   #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance > 0.5, Temperature, 0)), fill = "red") +
   #geom_polygon(data = triangle, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
@@ -285,9 +286,10 @@ ggplot(di, aes(x = Temperature, y = survival))+
 
 ```{r}
 ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "gray")+
-  geom_line(aes(x = Temperature, y = drTrop), col = "grey")+
-  geom_line(aes(x = Temperature, y = performance3))+
+  geom_line(linetype = 2, size = 2)+
+  
+  geom_line(aes(x = Temperature, y = performance3), col = "grey", size = 2)+
+  geom_line(aes(x = Temperature, y = drTrop), linetype = 3, size = 2)+
   geom_hline(yintercept =  0.5, linetype = 2)+
   #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance2 > 0.5, Temperature, 0)), fill = "red") +
   #geom_polygon(data = triangle2, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
