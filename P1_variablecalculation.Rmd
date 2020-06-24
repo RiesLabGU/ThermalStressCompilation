@@ -49,7 +49,7 @@ Ana_1 <- Ana_1 %>%
 
 # 2. Calculate P (only sets with survival and development time)
 
-2.1 Rescale D, then multiply!
+2.1 Rescale D and P, then multiply!
 ```{r}
 scale.dr <- function(table){
   table <- table[!is.na(table$dr) & !is.na(table$temp),] # Remove treatments with no performance data
@@ -60,26 +60,48 @@ scale.dr <- function(table){
   }
 }
 
+scale.su <- function(table){
+  table <- table[!is.na(table$survival) & !is.na(table$temp),] # Remove treatments with no performance data
+  if(nrow(table) > 1 ){
+  maxsur <- max(table$survival, na.rm = T)[[1]]
+  table$s_sur <- table$survival/maxsur
+  table
+  }
+}
 
 ```
 
 
 Apply the function to each set and add s_dt column (scaled dt)
 ```{r}
-Ana <- Ana_1 %>% 
+Ana_dr <- Ana_1 %>% 
   group_by(set) %>% 
   nest() %>% 
   mutate(s_dr = map(data, scale.dr)) %>% 
   unnest(cols = s_dr) %>% 
   select(-data)
+
+Ana_sur <- Ana_1 %>% 
+  group_by(set) %>% 
+  nest() %>% 
+  mutate(s_sur = map(data, scale.su)) %>% 
+  unnest(cols = s_sur) %>% 
+  select(-data) %>% 
+  select(set, s_sur, temp)
+
+Ana <- left_join(Ana_dr, Ana_sur, by = c("set", "temp"))
 ```
 
 
 
 
 ```{r}
-Ana$P <- Ana$s_dr * (Ana$survival/100)
+Ana$P_survival <- Ana$s_dr * (Ana$survival/100)
+Ana$P <- Ana$s_dr * Ana$s_sur
 ggplot(Ana, aes(x = dr, y = s_dr))+
+  geom_point()
+
+ggplot(Ana, aes(x = survival, y = s_sur))+
   geom_point()
 
 ```
@@ -389,5 +411,5 @@ head(Performance)
 
 
 ```{r}
-# write_csv(Performance,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Performance.csv")
+# write_csv(Performance,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PerformanceS.csv")
 ```
