@@ -2,11 +2,12 @@
 title: "Hypotheses plots"
 output: html_notebook
 ---
+Figure 1. Thermal tolerance indicators
+Figure 2. Hypotheses
 
-Performance. We calculated performance as a function of development rate and surivival. 
-We expect development rate to have steeper slopes at tropical than at temperate latitudes due to "higher is better".
 
 ```{r}
+# Function to make toy data
 # Gaussian --------------------------------------------------------------------------------------
 # a is the height of the curve
 # b is the position of the center of the peak
@@ -18,15 +19,22 @@ Gaus <- function(x, a, b, c) {
 
 ```
 
-Anna's plots
 
-A. Survival is fixed, dr is adaptive with latitude
+# Figure 1. Thermal tolerance indicators and their relationships (definitions)
+
 ```{r}
+# toy data
 temperature <- seq(10,40, by = 1)
 A_survival <- c(0, 0.25, 0.5, 0.75, 0.89,
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                 0.89, 0.75,0.5,0.25,0,NA)
+
+A_survival <- c(0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1,
+                0.89, 0.75,0.5,0.25,0,NA, NA, NA, NA)
+
 A_drGaus <- Gaus(temperature, 1, 30, 3)
 # This code is get the values of the vector above, but separated by commas, so the curve can be edited:
 paste(as.character(A_drGaus), sep="' '", collapse=", ")
@@ -42,14 +50,413 @@ A_drtemp <- c(NA, NA, NA, NA, NA,
               1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
               
               NA, NA, NA, NA, NA, NA)
+B_dr <- c( NA,0.0168798841487899, 0.0251304889852744, 0.036658041953378, 0.0523931410698256, 0.0733696513683829, 0.100668899772898, 0.135335283236613, 0.178263979585048, 0.230066298993809, 0.290923807046148, 0.360447788597821, 0.437564737700269, 0.520450121020702, 0.606530659712633, 0.692569324205198, 0.774837428883249, 0.849365816568312, 0.912254076828545, 0.960005441285478, 0.989847803378734, 1,0.989847803378734, 0.960005441285478,0.90, 0.800737402916808, 0.606530659712633, 0, 
+              NA, NA, NA)
+Figure1 <- tibble(temperature = temperature, 
+                  survival = A_survival, 
+                  tropical = B_dr, 
+                  temperate = A_drtemp, 
+                  P_tropical = survival * tropical, 
+                  P_temperate = survival * temperate)
+Dopt <- filter(Figure1, tropical == 1)
+Dlow <- filter(Figure1, tropical >= 0.5) [1,]
+Dhigh <- filter(Figure1, tropical >= 0.5) [14,]
+Dinterval <- rbind(Dlow, Dhigh)
 
+```
+
+Panel A (development rate)
+
+```{r}
+devrate <- ggplot(Figure1, aes(x = temperature, y = tropical))+
+  geom_line(linetype = 3, size = 2)+
+  
+  geom_text(Dopt, mapping = aes(x = 30, y = 0.55, label = "Dwidth"), size = 5)+
+  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "A"), size = 5)+
+  
+  geom_point(Dopt, mapping = aes(x = temperature, y = tropical), size = 4, shape = 1)+
+  geom_point(Dlow, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
+  geom_point(Dhigh, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
+  geom_point(Dhigh, mapping = aes(x = 14.5, y = 0), size = 4, shape = 1)+
+  
+  geom_segment(x = Dlow$temperature, xend = Dhigh$temperature, y = 0.5, yend = 0.5, linetype = 3)+
+  geom_segment(x = Dopt$temperature, xend = 14.5, y = 1, yend = 0)+
+  
+  theme_cowplot()+
+  ylab("Development rate")+
+  xlab("Temperature")+
+  ylim(0.0,1)+
+  #theme(axis.text.x=element_blank())+
+  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
+  scale_x_continuous(breaks = c(14.5, 23, 31, 36), labels = c(expression("T"[0]), expression("D"[low]), expression("D"[opt]), expression("D"[high])))
+
+devrate
+```
+
+
+Panel B: Survival
+
+```{r}
+surv <- ggplot(Figure1, aes(x = temperature, y = tropical))+
+  
+  geom_line(Figure1, mapping = aes(x = temperature, y = survival), size = 2, linetype = 2)+
+  
+  geom_text(Dopt, mapping = aes(x = 24, y = 0.55, label = "Swidth"), size = 5)+
+  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "B"), size = 5)+
+  
+  geom_point(Figure1, mapping = aes(x = 12, y = 0.5), size = 4)+
+  geom_point(Figure1, mapping = aes(x = 34, y = 0.5), size = 4)+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4)+
+  
+  geom_segment(x = 12, xend = 34, y = 0.5, yend = 0.5, linetype = 3)+
+  #geom_segment(x = Dopt$temperature, xend = 14.5, y = 1, yend = 0)+
+  #geom_point(Dopt, mapping = aes(x = temperature, y = 0), size = 4)+
+  theme_cowplot()+
+  ylab("Survival")+
+  xlab("Temperature")+
+  #ylim(0.04,1)+
+  
+  #theme(axis.text.x=element_blank())+
+  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
+  scale_x_continuous(breaks = c(12, 31, 34), labels = c(expression("S"[low]),expression("S"[opt]), expression("S"[high])))
+surv
+```
+
+Performance. 
+We calculated performance as a function of development rate and surivival. If development rate has a fixed function, P-width (the length of the temperature interval that allows for 50% efficiency in dr and survival) will depend on the relationship between Dopt and Sopt. 
+
+Panel C. Performance when Dopt < Sopt
+
+```{r}
+Figure1$s2 <- c(0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1,1,1,1,1,
+                0.89, 0.75,0.5,0.25,0)
+
+Figure1$P2 <- Figure1$s2 * Figure1$tropical
+
+per1 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
+  geom_line(Figure1, mapping = aes(x = temperature, y = P2), size = 3, col = "gray")+
+  geom_line(linetype = 3, size = 1)+
+  geom_line(Figure1, mapping = aes(x = temperature, y = s2), size = 1, linetype = 2)+
+  
+  geom_point(Figure1, mapping = aes(x = 35, y = 1), size = 4, col = "black")+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "grey")+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
+  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
+  
+  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
+  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "C"), size = 5)+
+  
+  theme_cowplot()+
+  ylab("Performance")+
+  xlab("Temperature")+
+  #ylim(0.04,1)+
+  
+  #theme(axis.text.x=element_blank())+
+  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
+  scale_x_continuous(breaks = c(31, 36), labels = c(expression("D/P"[opt]), expression("S"[opt])))
+
+per1
+
+```
+
+
+
+
+Panel D. Performance when Dopt = Popt
+
+```{r}
+per2 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
+  geom_line(Figure1, mapping = aes(x = temperature, y = P_tropical), size = 3, col = "gray")+
+  geom_line(linetype = 3, size = 1)+
+  geom_line(Figure1, mapping = aes(x = temperature, y = survival), size = 1, linetype = 2)+
+  
+  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "D"), size = 5)+
+  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
+  
+  geom_point(Figure1, mapping = aes(x = 33.5, y = 0.5), size = 5, col = "grey")+
+  geom_point(Figure1, mapping = aes(x = 23, y = 0.5), size = 5, col = "grey")+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 5, col = "grey")+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
+  
+  geom_segment(x = 23, xend = 33.5, y = 0.5, yend = 0.5, linetype = 3)+
+  
+  theme_cowplot()+
+  ylab("Performance")+
+  xlab("Temperature")+
+
+  scale_x_continuous(breaks = c(23, 31, 33.5), labels = c(expression("P"[low]),expression("P"[opt]),expression("P"[high])))
+per2
+
+```
+
+
+
+Panel E. Performance when Dopt > Sopt
+```{r}
+
+Figure1$s3 <-  c(0, 0.25, 0.5, 0.75, 0.89,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1,  
+                0.89, 0.75,0.5,0.25,0,NA, NA, NA, NA, 
+                NA, NA, NA, NA)
+Figure1$d3 <- ifelse(Figure1$temperature <= 32, Figure1$tropical, NA)
+
+Figure1$P3 <- Figure1$s3 *Figure1$tropical
+per3 <- ggplot(Figure1, aes(x = temperature, y = d3))+
+  geom_line(Figure1, mapping = aes(x = temperature, y = P3), size = 3, col = "grey")+
+  geom_line(linetype = 3, size = 1, alpha = 1)+
+  geom_line(Figure1, mapping = aes(x = temperature, y = s3), size = 1, linetype = 2, alpha = 1)+
+  
+  geom_point(Figure1, mapping = aes(x = 27, y = 1), size = 4, col = "black", shape = 16)+
+  geom_point(Figure1, mapping = aes(x = 27, y = 0.849), size = 5, col = "grey", shape = 16)+
+  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
+  
+  geom_segment(x = 23, xend = 30, y = 0.5, yend = 0.5, linetype = 3)+
+  geom_text(Dopt, mapping = aes(x = 27, y = 0.55, label = "Pwidth"), size = 5)+
+  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "E"), size = 5)+
+  
+  theme_cowplot()+
+  ylab("Performance")+
+  xlab("Temperature")+
+ # xlim(10,30)+
+  
+  #theme(axis.text.x=element_blank())+
+  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
+  scale_x_continuous(limits = c(10,33),breaks = c(31, 27), labels = c( expression("D"[opt]),  expression("S/P"[opt])))
+per3
+```
+
+
+```{r}
+# run this in .R document to get proper figure (no overlaping letters)
+
+grid.arrange(
+  arrangeGrob(
+    devrate, 
+    arrangeGrob(surv, nrow=1),
+    ncol=2 ,widths=c(1.5,1.5)),
+  arrangeGrob(per1, per2 ,per3 ,ncol=3, widths=rep(1,3)),
+  nrow=2)
+```
+
+
+# Figure 2. Hypotheses
+
+```{r}
+hyp <- tibble(Dopt = rnorm(50, mean = 30, sd = 2), 
+              Sopt = Dopt,
+              Dhigh = rnorm(50, mean = 34, sd = 1), 
+              Shigh = Dhigh -2, 
+              Dwidth = rnorm(50, mean = 7, sd = 2),
+              Swidth = Dwidth *2,
+              latopt = Sopt/2)
+
+opt <- ggplot(hyp, aes(x = Sopt, y = Dopt))+
+  geom_line(size = 2)+
+  
+  ylab(expression("D"[opt]))+
+  xlab(expression("S"[opt]))+
+  
+  theme_cowplot()+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+opt
+```
+
+
+```{r}
+high <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
+  geom_line(size = 2)+
+  
+  ylab(expression("D"[high]))+
+  xlab(expression("S"[high]))+
+  
+  theme_cowplot()+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+high
+```
+
+
+```{r}
+width <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
+  geom_hline(yintercept = 4,size = 2)+
+  theme_cowplot()+
+  
+  ylab(expression("D"[width]))+
+  xlab(expression("S"[width]))+
+  
+  
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+width
+```
+
+
+
+```{r}
+widthlat <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
+  geom_line(size = 2)+
+  theme_cowplot()+
+  ylab(expression(P[width]))+
+  xlab("Absolute latitude")+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+widthlat
+```
+
+
+
+
+```{r}
+
+
+lab <- expression(paste( S[opt],", ", D[opt],", ", P[opt]))
+threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
+  geom_point(col = "white")+
+  geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2)+
+  #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
+  theme_cowplot()+
+  ylab(lab)+
+  xlab("Absolute latitude")+
+  ylim(25, 35)+
+  xlim(25, 35)+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+     axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+
+threelat
+```
+
+
+
+
+Skew inset 1 (small skew)
+```{r}
+inset <- ggplot(Figure1, aes(x = temperature, y = P2))+
+  geom_line(size = 3, col = "grey")+
+  geom_segment(x = 31, xend = 31, y = 0, yend = 1, col = "black")+ # opt line
+  geom_point(x = 31, y = 1, col = "black")+ # opt line
+  geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
+  geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
+  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
+  
+  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
+  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
+  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
+  
+  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
+  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
+  
+  annotate("text", x = 27, y = 0.5, label = "cold \ntolerance")+
+  annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
+  annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
+  
+  theme_cowplot()+
+  ylab("Performance")+
+  xlab("Temperature")+
+  scale_x_continuous(breaks = c(23, 31, 36), labels = c(expression("P"[low]), expression("P"[opt]), expression("S"[opt])))
+inset
+```
+
+
+Large skew
+```{r}
+inset2 <- ggplot(Figure1, aes(x = temperature, y = P2))+
+  geom_line(size = 3, col = "grey")+
+  geom_segment(x = 31, xend = 31, y = 0, yend = 1, col = "black")+ # opt line
+  geom_point(x = 31, y = 1, col = "black")+ # opt line
+  geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
+  geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
+  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
+  
+  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
+  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
+  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
+  
+  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
+  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
+  
+  annotate("text", x = 27, y = 0.5, label = "cold \ntolerance")+
+  annotate("text", x = 34, y = 0.55, label = "heat")+
+  #annotate("text", x = 16, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
+  
+  theme_cowplot()+
+  ylab("Performance")+
+  xlab("Temperature")+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+inset2
+```
+
+
+skew (proportion of tolerance that represents cold tolerance)
+```{r}
+skew1 <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
+  geom_line(size = 2)+
+  
+  ylab(expression("skew"))+
+  xlab(expression("Absolute latitude"))+
+  annotate("text", x = 31, y = 35, label = "skew = cold tolerance/ \n        Pwidth")+
+  theme_cowplot()+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+       axis.text.y = element_blank(), axis.ticks.y = element_blank())
+skew1
+```
+
+```{r}
+
+skew <- ggdraw(skew1 + theme_half_open(12)) +
+  draw_plot(inset2, 0.5, 0.1, 0.45,.45) +
+  draw_plot_label(
+    c("A", "B"),
+    c(1, 0),
+    c(0, 0),
+    size = 12
+  )
+
+skew
+```
+
+
+```{r}
+lifesta <- tibble(lifestage = c("egg", "larva", "pupa"), 
+                  meanPw = c(10, 4, 10), 
+                  min = c(8, 2, 8),
+                  max = c(12, 6, 12))
+
+life <- ggplot(lifesta, aes(x = lifestage, y = meanPw))+
+  geom_pointrange(lifesta, mapping = aes(ymin = min, ymax= max))+
+  theme_cowplot()+
+  ylim(0,13)+
+  ylab(expression("P"[width]))+
+  xlab("")+
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), axis.title.x = element_blank())
+life  
+```
+
+
+```{r}
+plot_grid(opt, high, width, threelat, widthlat,life, ncol = 3)
+
+```
+
+# Old code below:
+
+Anna's plots
+
+A. Survival is fixed, dr is adaptive with latitude
+
+
+```{r}
 FigureA <- tibble(temperature = temperature, 
                   survival = A_survival, 
                   tropical = A_drtrop, 
                   temperate = A_drtemp, 
                   P_tropical = survival * tropical, 
                   P_temperate = survival * temperate)
-
 
 ggplot(FigureA, aes(x = temperature, y = survival))+
   geom_line(linetype = 2, size = 2)+
@@ -204,252 +611,5 @@ ggplot(Tolerance, aes(x = hot3, y = cold)) +
   xlim(0,20)+
   ylab("cold tolerance")+
   xlab("heat tolerance")
-```
-
-
-
-Survival curve bounds development curve. However, Sopt is often smaller than Dopt. What factors influence variation in the distance between Dopt and Sopt?
-
-```{r}
-di <- tibble(Temperature = seq(10,34, by = 1),
-             survival = c(0,0.1, 0.5, 0.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.75,0.5,0.1,0), 
-             dr = Gaus(Temperature, 1, 30, 3), 
-             drTrop = Gaus(Temperature, 1, 33, 6),
-             performance = dr * survival, 
-             dr2 = Gaus(Temperature, 1, 25, 5),
-             dr2t = ifelse(Temperature > 14 & Temperature < 29, dr2, NA),
-             performance2 = dr2 * survival,
-             performance2t = dr2t *survival,
-             performance3 = drTrop * survival)
-Popt <-   filter(di, performance == max(performance, na.rm = T))[["Temperature"]]
-maxP <-   filter(di, performance == max(performance, na.rm = T))[["performance"]]
-Plower <- filter(di, performance >= maxP/2)[1, 1][[1]]
-Pupper <- max(filter(di, performance <= maxP/2)[, 1])
-
-triangle <- data.frame(group = c(1,1,1), polygon.x = c(26.5,Popt,31.64), polygon.y = c(0.5,maxP,0.5))
-
-
-ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "black", size = 2, linetype = 2)+
-  geom_line(aes(x = Temperature, y = performance),size = 2, col = "grey")+
-  geom_line(aes(x = Temperature, y = dr), col = "black", size = 2, linetype = 3)+
-  geom_hline(yintercept =  0.5, linetype = 2)+
-  #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance > 0.5, Temperature, 0)), fill = "red") +
-  #geom_polygon(data = triangle, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
-  ylab("performance, survival, dr")+
-  theme_cowplot()
-```
-
-
-
-```{r}
-ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "black", size = 2, linetype = 2)+
-  
-  geom_line(aes(x = Temperature, y = performance2t), size = 2, col = "grey")+
-  geom_line(aes(x = Temperature, y = dr2t), col = "black", size = 2, linetype = 3)+
-  geom_hline(yintercept =  0.5, linetype = 2)+
-  #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance > 0.5, Temperature, 0)), fill = "red") +
-  #geom_polygon(data = triangle, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
-  ylab("performance, survival, dr")+
-  theme_cowplot()
-```
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-Popt <-   filter(di, performance2 == max(performance2, na.rm = T))[["Temperature"]]
-maxP <-   filter(di, performance2 == max(performance2, na.rm = T))[["performance2"]]
-Plower <- filter(di, performance2 >= maxP/2)[1, 1][[1]]
-Pupper <- max(filter(di, performance2 <= maxP/2)[, 1])
-
-triangle2 <- data.frame(group = c(1,1,1), polygon.x = c(28.3,Popt,31.9), polygon.y = c(0.5,maxP,0.5))
-
-ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(col = "gray")+
-  geom_line(aes(x = Temperature, y = dr2), col = "grey")+
-  geom_line(aes(x = Temperature, y = performance2))+
-  geom_hline(yintercept =  0.5, linetype = 2)+
-  #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance2 > 0.5, Temperature, 0)), fill = "red") +
-  #geom_polygon(data = triangle2, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
-  ylab("performance, survival, dr")+
-  theme_cowplot()
-```
-
-```{r}
-ggplot(di, aes(x = Temperature, y = survival))+
-  geom_line(linetype = 2, size = 2)+
-  
-  geom_line(aes(x = Temperature, y = performance3), col = "grey", size = 2)+
-  geom_line(aes(x = Temperature, y = drTrop), linetype = 3, size = 2)+
-  geom_hline(yintercept =  0.5, linetype = 2)+
-  #geom_area(mapping = aes(Temperature = ifelse(Temperature >26.5 & Temperature< 31.64 & performance2 > 0.5, Temperature, 0)), fill = "red") +
-  #geom_polygon(data = triangle2, aes(x = polygon.x, y = polygon.y, group = group), alpha = 0.3)+
-  ylab("performance, survival, dr")+
-  theme_cowplot()
-```
-
-
-
-
-
-```{r}
-survival <- tibble(Temperature = c(12,13,14,  15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,27,28,29, 31,32,33,34,35,36,37,38,39), 
-            Stemperate =  c(0,0.1, 0.5, 0.75, 1, 1,   1, 1,   1, 1,   1, 1, 1, 1, 1, 1, 1, 1, 0.75,0.5,0.1,0,NA,NA,NA, NA,NA), 
-            Stropical =    c(NA,NA,NA,0, 0.1, 0.5, 0.75, 1,   1, 1,   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.75,0.5,0.1,0, NA, NA), 
-            Ss =    c(NA,NA, NA,NA,NA, NA, NA, NA, NA,0, 0.1, 0.5, 0.75,  1, 1, 1, 1, 1, 1, 1, 1, 0.75,0.5,0.1,0, NA,NA), 
-            Short =    Gaus(Temperature, 1, 25, 5)) 
-
-ggplot(survival, aes(x = Temperature, y = Stemperate))+
-  geom_line(linetype = 2)+
-  geom_line(data = survival, mapping= aes(x = Temperature, y = Stropical),linetype = 4)+
-  geom_line(data = survival, mapping= aes(x = Temperature, y = Short), linetype = 3)+
-  geom_line(data = survival, mapping= aes(x = Temperature, y = Ss), linetype = 1)+
-  theme_cowplot()
-
-```
-
-For tropical (solid line), the valid development range is from 17 to 36. For temperate (dashed line), the valid development range is from 14 to 33
-
-
-```{r}
-
-
-Gaus <- function(x, a, b, c) {
-  output <- a * exp(1)^(-0.5 * (abs(x - b)/ c)^2)
-  print(output)
-}
-
-x <- seq(10,40,by = 1)
-tropical <- tibble(Temperature = c(10,  14,  15, 20, 25, 33,32,33,37), 
-                   survival =     c(0, 0.5, 0.75, 1, 1,  1, 0.75,0.5,0 )) 
-# Choose the mean as 2.5 and standard deviation as 2. 
-
-first <- tibble(ratetemp = Gaus(x, 1, 30, 5), 
-                temp = x,
-                ratetrop1 = Gaus(x, 1, 33, 5),
-                ratetrop = ifelse(temp > 32, (ratetemp + ratetrop1 + ratetemp)/3, ratetrop1))
-
-ggplot(first, aes(x = temp, y = ratetemp))+
-  geom_line()+
-  geom_line(aes(x = temp, y = ratetrop1), col = "orange")
-```
-
-
-```{r}
-frankencurves <- tibble(Temperature = first$temp,
-                        Dtemperate = ifelse(Temperature < 34, first$ratetemp, NA), 
-                        Dtropical = ifelse(Temperature < 37, first$ratetrop1, NA))
-
-
-
-
-```
-
-```{r}
-tropiOpt <- filter(frankencurves, Dtropical == max(Dtropical, na.rm = T))[[1,1]]
-tropiRate <- filter(frankencurves, Dtropical == max(Dtropical, na.rm = T))[[1,3]]
-tempeOpt <- filter(frankencurves, Dtemperate == max(Dtemperate, na.rm = T))[[1,1]]
-tempeRate <- filter(frankencurves, Dtemperate == max(Dtemperate, na.rm = T))[[1,2]]
-ggplot(frankencurves, aes(x = Temperature, y = Dtemperate))+
-  geom_line(linetype = 2)+
-  geom_line(data = frankencurves, mapping = aes(x = Temperature, y = Dtropical), linetype = 1)+
-  #geom_line(data = frankencurves, mapping = aes(x = Temperature, y = temperate), linetype = 4, col = grey, alpha = 0.5)+
-  #geom_line(data = frankencurves, mapping = aes(x = Temperature, y = tropical), linetype = 3, col = grey, alpha = 0.5)+
-  #geom_line(data = first, mapping = aes(x = temp, y = ratetrop1), linetype = 3)+
-  #geom_segment(x = tropiOpt, xend = tropiOpt, y = 0, yend = tropiRate)+
-  #geom_segment(x = tempeOpt, xend = tempeOpt, y = 0, yend = tempeRate, linetype = 2)+
-  theme_cowplot()+
-  ylab("Standardized development rate")+
-  xlab("Temperature")
-
-
-```
-
-
-```{r}
-
-
-Temperature <-  seq(from = 0, to = 40, by = 1) 
-
-hypot <- merge(survival, frankencurves, by = "Temperature")
-
-hyp <- tibble(temp = hypot$Temperature, 
-              S1 = hypot$Stropical, 
-              S2 = hypot$Stemperate, 
-              SS = hypot$Short,
-              Ss = hypot$Ss,
-              D1 = ifelse(is.na(S1), NA, ifelse(S1 > 0, hypot$Dtropical, NA)),
-              D2 = ifelse(is.na(S2), NA, ifelse(S2 > 0, hypot$Dtemperate, NA)),
-              
-              P1 = S1 * D1, 
-              P2 = S2 * D2, 
-              P1s = SS * D1, 
-              P2s = SS * D2, 
-              P1ss = Ss *D1)
-  
-  
-  
-ggplot(hyp, aes(x = temp, y = S1))+
-  geom_line(col = "grey")+
-  geom_line(aes(x = temp, y = D1), linetype = 1, col = "grey")+
-  geom_line(aes(x = temp, y = P1), linetype = 1, col = "black")+
-  geom_line(aes(x = temp, y = D2), linetype = 2, col = "grey")+
-  geom_line(aes(x = temp, y = P2), linetype = 2, col = "black")+
-  geom_line(aes(x = temp, y = S2), linetype = 2, col = "grey")+
-  #geom_line(aes(x = temp, y = S2), linetype = 1, col = "red")+
-  #geom_line(aes(x = temp, y = D2), linetype = 1, col = "orange")+
-  #geom_line(aes(x = temp, y = P2), linetype = 1, col = "orange")+
-  theme_cowplot()
-  
-
-
-```
-
-```{r}
-ggplot(hyp, aes(x = temp, y = S2))+
-  geom_line(col = "grey", linetype = 2)+
-  geom_line(aes(x = temp, y = D2), linetype = 2, col = "grey")+
-  geom_line(aes(x = temp, y = P2), linetype = 2, col = "black")+
-  
-  theme_cowplot()
-```
-
-
-```{r}
-ggplot(hyp, aes(x = temp, y = Ss))+
-  geom_line(col = "grey")+
-  geom_line(aes(x = temp, y = D1), linetype = 1, col = "grey")+
-  #geom_line(aes(x = temp, y = P1s), linetype = 2, col = "black")+
-  geom_line(aes(x = temp, y = P1ss), linetype = 1, col = "black")+
-  theme_cowplot()
-```
-
-
-
-
-```{r}
-ggplot(hyp, aes(x = temp, y = S1))+
-  geom_line(col = "grey")+
-  geom_line(aes(x = temp, y = D1), linetype = 1, col = "grey")+
-  #geom_line(aes(x = temp, y = P1s), linetype = 2, col = "black")+
-  geom_line(aes(x = temp, y = P1), linetype = 1, col = "black")+
-  theme_cowplot()
-
-```
-
-Is there a trade-off between cold and heat tolerance?
-Cold tolerance = topt - 
-
-```{r}
-
 ```
 
