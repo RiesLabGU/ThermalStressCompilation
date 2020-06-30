@@ -75,9 +75,9 @@ devrate <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "A"), size = 5)+
   
   geom_point(Dopt, mapping = aes(x = temperature, y = tropical), size = 4, shape = 1)+
-  geom_point(Dlow, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
-  geom_point(Dhigh, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
-  geom_point(Dhigh, mapping = aes(x = 14.5, y = 0), size = 4, shape = 1)+
+  #geom_point(Dlow, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
+  #geom_point(Dhigh, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
+  geom_point(Dhigh, mapping = aes(x = 14.5, y = 0), size = 4, shape = 17)+
   
   geom_segment(x = Dlow$temperature, xend = Dhigh$temperature, y = 0.5, yend = 0.5, linetype = 3)+
   geom_segment(x = Dopt$temperature, xend = 14.5, y = 1, yend = 0)+
@@ -86,7 +86,7 @@ devrate <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   ylab("Development rate")+
   xlab("Temperature")+
   ylim(0.0,1)+
-  #theme(axis.text.x=element_blank())+
+  theme(axis.text = element_text(size = 16))+
   #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
   scale_x_continuous(breaks = c(14.5, 23, 31, 36), labels = c(expression("T"[0]), expression("D"[low]), expression("D"[opt]), expression("D"[high])))
 
@@ -104,8 +104,8 @@ surv <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   geom_text(Dopt, mapping = aes(x = 24, y = 0.55, label = "Swidth"), size = 5)+
   geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "B"), size = 5)+
   
-  geom_point(Figure1, mapping = aes(x = 12, y = 0.5), size = 4)+
-  geom_point(Figure1, mapping = aes(x = 34, y = 0.5), size = 4)+
+  #geom_point(Figure1, mapping = aes(x = 12, y = 0.5), size = 4)+
+  #geom_point(Figure1, mapping = aes(x = 34, y = 0.5), size = 4)+
   geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4)+
   
   geom_segment(x = 12, xend = 34, y = 0.5, yend = 0.5, linetype = 3)+
@@ -115,7 +115,7 @@ surv <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   ylab("Survival")+
   xlab("Temperature")+
   #ylim(0.04,1)+
-  
+  theme(axis.text = element_text(size = 16))+
   #theme(axis.text.x=element_blank())+
   #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
   scale_x_continuous(breaks = c(12, 31, 34), labels = c(expression("S"[low]),expression("S"[opt]), expression("S"[high])))
@@ -147,15 +147,17 @@ per1 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   
   geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
   geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "C"), size = 5)+
+  annotate("text", x = 31, y = 0.01, label = expression("D"[opt]))+
+  annotate("text", x = 35, y = 0.01, label = expression("S"[opt]))+
   
   theme_cowplot()+
   ylab("Performance")+
   xlab("Temperature")+
   #ylim(0.04,1)+
-  
+  theme(axis.text = element_text(size = 16))+
   #theme(axis.text.x=element_blank())+
   #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(breaks = c(31, 36), labels = c(expression("D/P"[opt]), expression("S"[opt])))
+  scale_x_continuous(breaks = c(23,31, 36), labels = c(expression("P"[low]), expression("P"[opt]), expression("P"[high])))
 
 per1
 
@@ -174,9 +176,12 @@ per2 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   
   geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "D"), size = 5)+
   geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
+  annotate("text", x = 31, y = 0.06, label = expression("D"[opt]))+
+  annotate("text", x = 31, y = 0.01, label = expression("S"[opt]))+
+  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
   
-  geom_point(Figure1, mapping = aes(x = 33.5, y = 0.5), size = 5, col = "grey")+
-  geom_point(Figure1, mapping = aes(x = 23, y = 0.5), size = 5, col = "grey")+
+  #geom_point(Figure1, mapping = aes(x = 33.5, y = 0.5), size = 5, col = "grey")+
+  #geom_point(Figure1, mapping = aes(x = 23, y = 0.5), size = 5, col = "grey")+
   geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 5, col = "grey")+
   geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
   
@@ -185,7 +190,7 @@ per2 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
   theme_cowplot()+
   ylab("Performance")+
   xlab("Temperature")+
-
+  theme(axis.text = element_text(size = 12))+
   scale_x_continuous(breaks = c(23, 31, 33.5), labels = c(expression("P"[low]),expression("P"[opt]),expression("P"[high])))
 per2
 
@@ -217,14 +222,18 @@ per3 <- ggplot(Figure1, aes(x = temperature, y = d3))+
   geom_text(Dopt, mapping = aes(x = 27, y = 0.55, label = "Pwidth"), size = 5)+
   geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "E"), size = 5)+
   
+  annotate("text", x = 31, y = 0.01, label = expression("D"[opt]))+
+  annotate("text", x = 27, y = 0.01, label = expression("S"[opt]))+
   theme_cowplot()+
+  theme(axis.text = element_text(size = 16))+
+  
   ylab("Performance")+
   xlab("Temperature")+
  # xlim(10,30)+
   
   #theme(axis.text.x=element_blank())+
   #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(limits = c(10,33),breaks = c(31, 27), labels = c( expression("D"[opt]),  expression("S/P"[opt])))
+  scale_x_continuous(limits = c(10,33),breaks = c(23, 27, 30), labels = c(expression("P"[low]), expression("P"[opt]),  expression("P"[high])))
 per3
 ```
 
@@ -258,11 +267,12 @@ opt <- ggplot(hyp, aes(x = Sopt, y = Dopt))+
   
   ylab(expression("D"[opt]))+
   xlab(expression("S"[opt]))+
-  
+  geom_text(Dopt, mapping = aes(x = 24, y = 34.5, label = "A"), size = 5)+
   theme_cowplot()+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
 opt
+
 ```
 
 
@@ -272,7 +282,7 @@ high <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
   
   ylab(expression("D"[high]))+
   xlab(expression("S"[high]))+
-  
+  geom_text(Dopt, mapping = aes(x = 28.5, y = 37, label = "B"), size = 5)+
   theme_cowplot()+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
@@ -288,7 +298,9 @@ width <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
   ylab(expression("D"[width]))+
   xlab(expression("S"[width]))+
   
-  
+  annotate("text", x = 0, y = 8, label = "C", size = 5)+
+  ylim(0,8)+
+  xlim(0, 8)+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
 width
@@ -300,6 +312,7 @@ width
 widthlat <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
   geom_line(size = 2)+
   theme_cowplot()+
+  annotate("text", x = 28.5, y = 36, label = "E", size = 5)+
   ylab(expression(P[width]))+
   xlab("Absolute latitude")+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
@@ -319,6 +332,7 @@ threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
   geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2)+
   #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
   theme_cowplot()+
+  annotate("text", x = 25, y = 35, label = "D", size = 5)+
   ylab(lab)+
   xlab("Absolute latitude")+
   ylim(25, 35)+
@@ -431,6 +445,7 @@ life <- ggplot(lifesta, aes(x = lifestage, y = meanPw))+
   geom_pointrange(lifesta, mapping = aes(ymin = min, ymax= max))+
   theme_cowplot()+
   ylim(0,13)+
+  annotate("text", x = 0.6, y = 13, label = "F", size = 5)+
   ylab(expression("P"[width]))+
   xlab("")+
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), axis.title.x = element_blank())
