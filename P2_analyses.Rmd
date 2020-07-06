@@ -408,6 +408,44 @@ dw_plot(fit5_red3.ML) +
 ```
  
  
+```{r}
+# Fit model with taxonomy as a nested random effect:
+P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family)
+# Split genus and species in separate columns
+library(stringr)
+
+P.set$genus <- word(P.set$sp, 1)
+P.set$species <- word(P.set$sp, 2)
+
+full.nested <- lme(Popt ~ -1+ lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = P.set) 
+
+```
+
+```{r}
+P.upper.set <- filter(P.set, !is.na(Pupper))
+full.nested <- lme(Pupper ~ -1+ lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = P.upper.set) 
+full.nested
+```
+
+
+
+```{r}
+mod.nest.lmer <- lmer(rel.fit ~ treat + (1 | gen)+ (1 | gen:treat), data = dat)
+
+adi.nested <- lme(Popt ~ lifestage + absLat, random = ~ 1|family/genus/species, data = P.set) 
+lat.nested <- lme(Popt ~ absLat, random = ~ 1|family/genus/species, data = P.set) 
+life.nested <- lme(Popt ~ lifestage , random = ~ 1|family/genus/species, data = P.set) 
+summary(full.nested)
+summary(adi.nested)
+summary(lat.nested)
+summary(life.nested)
+#anova(full.nested, adi.nested, lat.nested, life.nested, test.statistic = "Chisq")
+Anova(full.nested)
+
+latlifeI <- lmer(Popt ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
+
+
+```
  
 
  
