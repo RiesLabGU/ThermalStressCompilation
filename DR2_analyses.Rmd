@@ -4,10 +4,11 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
-2. Models with lifestage within species (lifestage|sp) as a random effect
-3. Models with species (1|sp) as a random effect
-4. Correlation coefficients of development variables
-5. PCA
+2. Models with taxonomic correction (nested random effect)
+3. Models with lifestage within species (lifestage|sp) as a random effect
+4. Models with species (1|sp) as a random effect
+5. Correlation coefficients of development variables
+6. PCA
 
 
 ```{r}
@@ -24,6 +25,7 @@ library(broom)
 library(effects)
 library(ggeffects)
 library(Hmisc)
+library(stringr)
 ```
 
 # 1. Import data and housekeeping
@@ -69,7 +71,70 @@ Latitude ranged from `r min(responses_table$absLat, na.rm = T)` to `r max(respon
 
 We first fitted a full model including latitude, life stage, and their interaction as fixed effects and lifestage within species as a random effect. 
 
-# 2. Models with lifestage within species (lifestage|sp) as a random effect
+# 2. Models with taxonomic correction
+
+```{r}
+
+# Models with taxonomy as a nested random effect
+
+# 1. Subset to D metrics and predictors only
+
+D.set <- select(responses_table, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp, family)
+D.set$genus <- word(D.set$sp, 1)
+D.set$species <- word(D.set$sp, 2)
+
+
+# Fit interaction, aditive and simple models with ML
+full.nested <- lme(Dopt ~ lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = D.set, method = 'ML')
+a.nested <- lme(Dopt ~ lifestage + absLat, random = ~ 1|family/genus/species, data = D.set,  method = 'ML')
+
+anova.lme(full.nested,a.nested, test = "TRUE") # Keep aditive model
+```
+We kept the aditive model
+
+```{r}
+# fit better model using REML
+nested <- lme(Dopt ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = D.set, method = "REML")
+
+nested
+```
+
+```{r}
+nested$coefficients$fixed
+tidy(nested)
+```
+
+Dopt decreased 0.7 degrees with every 10 degrees of latitude
+
+
+```{r}
+
+D.set$group <- factor(D.set$lifestage)
+pred <- ggpredict(nested, terms = c("absLat","lifestage"))
+
+
+ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab("Dopt")+
+  xlab("Absolute latitude")+
+ # ylim(5, 20)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
+  theme_cowplot()
+```
+
+
+
+
+
+
+
+
+
+
+# 4. Models with lifestage within species (lifestage|sp) as a random effect
 
 ```{r}
 # Models with lifestage within species (lifestage|sp) as a random effect
@@ -131,8 +196,11 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 # Models with species (1|species) as a random effect
 # 1. Subset to D metrics and predictors only
 
-D.set <- select(responses_table, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp)
+D.set <- select(responses_table, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp, family)
 
+
+D.set$genus <- word(D.set$sp, 1)
+D.set$species <- word(D.set$sp, 2)
 # Full model
 
 full <- lmer(Dopt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
@@ -149,14 +217,29 @@ anova(full, latlife, lat, life, test.statistic = "Chisq")
 
 latlifeI <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 
-Anova(full)
-summary(latlife)
-summary(latlifeI)
+
+# With taxonomy as a nested rando effect
+full.nested <- lme(Dopt ~ lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = D.set, method = 'ML')
+a.nested <- lme(Dopt ~ lifestage + absLat, random = ~ 1|family/genus/species, data = D.set,  method = 'ML')
+lat.nested <- lme(Dopt ~ absLat, random = ~ 1|family/genus/species, data = D.set, method = 'ML')
+life.nested <- lme(Dopt ~ lifestage, random = ~ 1|family/genus/species, data = D.set,  method = 'ML')
+anova(full.nested, a.nested, lat.nested, life.nested)
+anova(full.nested,a.nested)
+# Keep aditive model:
+aic.a.nested <- AIC(a.nested)
+# fit better model using REML
+nested <- lme(Dopt ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = D.set, method = "REML")
+summary(nested)
+nested
+```
+```{r}
+a.nested
 ```
  
 ```{r}
 # get data for effects plot
 latlifeI_effects <- tidy(latlifeI)
+latlifeI_effects <- tidy(nested)
 Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
@@ -182,7 +265,7 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
 ```{r}
 # Plot data and predictions
 D.set$group <- D.set$lifestage
-pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+pred <- ggpredict(nested, terms = c("absLat","lifestage"))
 
 
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
@@ -202,7 +285,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
  
 ```{r}
 #type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+plot_model(nested, type = "pred", terms = c("lifestage", "absLat"))+
   theme_cowplot()+
   scale_color_viridis_d()
 ```
