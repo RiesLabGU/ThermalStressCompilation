@@ -7,6 +7,23 @@ Figure 2. Hypotheses
 
 
 ```{r}
+# load packages
+library(tidyverse)
+library(readxl)
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+library(lme4)
+library(car)
+library("dotwhisker")  # to make coefficient plots
+library(sjPlot) #prediction plots
+library(sjmisc)
+library(broom)
+```
+
+
+```{r}
 # Function to make toy data
 # Gaussian --------------------------------------------------------------------------------------
 # a is the height of the curve
@@ -353,13 +370,26 @@ threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
 threelat
 ```
 
-
+```{r}
+skewhy <- ggplot(hyp, aes(x = Dopt, y = Sopt))+
+  
+  geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 1.3, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = 25, y = 35, label = "E", size = 5)+
+  ylab("Skew")+
+  xlab(expression("P"[high]))+
+  ylim(25, 35)+
+  xlim(25, 35)+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+     axis.text.y = element_blank(), axis.ticks.y = element_blank())
+skewhy
+```
 
 ```{r}
 # small Dwidth, skew = 0
 skew <- tibble(temperature = seq(0,20, by = 0.1), 
-               ssmall = Gaus(temperature, 1, 10, 3), #2
-               swide = Gaus(temperature, 1, 10, 9), # 4
+               ssmall = Gaus(temperature, 1, 10, 2), #2
+               swide = Gaus(temperature, 1, 10, 5), # 4
                wide_r = Gaus(temperature, 1, 15, 0.5), 
                wide_l = Gaus(temperature, 1, 15, 8), 
                wide = ifelse(temperature <= 15, wide_l, wide_r), 
@@ -367,9 +397,9 @@ skew <- tibble(temperature = seq(0,20, by = 0.1),
                small_l = Gaus(temperature, 1, 15, 3.25), 
                small = ifelse(temperature <= 15, small_l, small_r))
 inset1 <- ggplot(skew, aes(x = temperature, y = ssmall))+
-  geom_line(size = 2)+
+  geom_line(size = 1, col = "grey")+
  
-  #geom_segment(x = 7.6, xend = 12.4, y = 0.5, yend = 0.5, col = "black", size = 1)+ # opt line
+  geom_segment(x = 8, xend = 12, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
   #geom_point(x = 31, y = 1, col = "black")+ # opt line
   #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
   #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
@@ -402,9 +432,9 @@ inset1
 ```{r}
 # large Dwidth, skew = 0
 inset2 <- ggplot(skew, aes(x = temperature, y = swide))+
-  geom_line(size = 2)+
+  geom_line(size = 1, col = "grey")+
  
-  #geom_segment(x = 5.2, xend = 14.8, y = 0.5, yend = 0.5, col = "black", size = 1)+ # opt line
+  geom_segment(x = 5, xend = 15, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
   #geom_point(x = 31, y = 1, col = "black")+ # opt line
   #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
   #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
@@ -435,9 +465,9 @@ inset2
 ```{r}
 # large Dwidth, skew = 0.7
 inset3 <- ggplot(skew, aes(x = temperature, y = wide))+
-  geom_line(size = 2)+
+  geom_line(size = 1, col = "grey")+
  
-  #geom_segment(x = 5, xend = 15, y = 0.5, yend = 0.5, col = "black", size = 1)+ # opt line
+  geom_segment(x = 6, xend = 15.5, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
   #geom_point(x = 31, y = 1, col = "black")+ # opt line
   #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
   #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
@@ -467,8 +497,8 @@ inset3
 ```{r}
 # small Dwidth, skew = 0.7
 inset4 <- ggplot(skew, aes(x = temperature, y = small))+
-  geom_line(size = 2)+
-  #geom_segment(x = 15, xend = 15, y = 0, yend = 1,linetype = 1, size =2, col = "grey")+
+  geom_line(size = 1, col = "grey")+
+  geom_segment(x = 11.2, xend = 15.2, y = 0.5, yend = 0.5,linetype = 3, size =1, col = "black")+
   #geom_segment(x = 11.2, xend = 16.2, y = 0.5, yend = 0.5, col = "black", size = 1)+ # opt line
   #geom_point(x = 31, y = 1, col = "black")+ # opt line
   #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
@@ -502,6 +532,7 @@ inset4
 
 
 ```{r}
+library(cowplot)
 inside <- plot_grid(inset4, inset3, inset1, inset2, ncol = 2)
 inside
 ```
@@ -517,6 +548,8 @@ outside <- ggplot(out, aes(x = Dwidth, y = skew))+
   theme_cowplot()+
   ylim(0,1)+
   xlim(0,10)+
+  scale_x_continuous(limits = c(0,10),breaks = c( 2.5, 7.5), labels = c("small", "large"))+
+  scale_y_continuous(limits = c(0,1),breaks = c( 0.25, 0.75), labels = c("0", "1"))
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
        axis.text.y = element_blank(), axis.ticks.y = element_blank())
 outside
@@ -524,8 +557,8 @@ outside
 
 ```{r}
 panelf <- ggdraw(outside) +
-  draw_plot(inset1, 0.05, 0.05, 0.5,.5) +
-  draw_plot(inset2, 0.5, 0.05, 0.5,.5) +
+  draw_plot(inset1, 0.05, 0.1, 0.5,.5) +
+  draw_plot(inset2, 0.5, 0.1, 0.5,.5) +
   draw_plot(inset3, 0.45, 0.5, 0.5,.5) +
   draw_plot(inset4, 0, 0.5, 0.5,.5) +
   #draw_plot(inside, 0.5, 0.1, 0.45,.45) +
@@ -543,7 +576,13 @@ panelf
 
 
 ```{r}
-plot_grid(opt, high, width,  widthlat,threelat,panelf, ncol = 3)
+plot_grid(devrate, surv, per1, per2, per3, panelf, ncol = 3)
+```
+
+
+
+```{r}
+plot_grid(opt, high, width,  widthlat,threelat,skewhy, ncol = 3)
 
 ```
 
