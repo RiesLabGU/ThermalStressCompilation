@@ -26,6 +26,7 @@ library(effects)
 library(ggeffects)
 library(Hmisc)
 library(stringr)
+library(nlme)
 ```
 
 # 1. Import data and housekeeping
