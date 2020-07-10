@@ -574,7 +574,7 @@ panelf
 ```
 
 
-
+Run this in a regular .R file to prevent crowdine
 ```{r}
 plot_grid(devrate, surv, per1, per2, per3, panelf, ncol = 3)
 ```
