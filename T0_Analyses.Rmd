@@ -2,12 +2,17 @@
 title: "T0 Analyses"
 output: html_notebook
 ---
-## Contents
+
 1. Import data and housekeeping
-2. Models with lifestage within species (lifestage|sp) as a random effect
-3. Models with species (1|sp) as a random effect
+
+2.  Model selection
+3.  Phylogenetic correction
+4. Taxonomic correction for comparison
 
 ```{r}
+# load packages
+# 
+#library(INLA) # install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable')
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -21,15 +26,19 @@ library(broom)
 library(effects)
 library(ggeffects)
 library(Hmisc)
-
+library(phyr)
+library(ape)
+library(nlme)
+library(stringr)
 ```
+
 
 # 1. Import data and housekeeping
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
-
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 ```
 
 
@@ -48,36 +57,34 @@ responses_table <- responses %>%
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
+T.set <- filter(responses_table, !is.na(T0))
+T.set <- select(T.set, T0, lifestage, absLat, sp, family)
+length(unique(T.set$sp))
+T.set$genus <- word(T.set$sp, 1)
+T.set$species <- word(T.set$sp, 2)
+
 ```
 
-# 2. Models with lifestage within species (lifestage|sp) as a random effect
+# 2 T0 Temperature threshold to accumulate degree-days
+T0 ranged from `r min(T.set$T0, na.rm = T)` to `r max(T.set$T0, na.rm = T)`, mean =  `r mean(T.set$T0, na.rm = T)`, SD = `r sd(T.set$T0, na.rm = T)`
+Latitude ranged from `r min(T.set$absLat, na.rm = T)` to `r max(T.set$absLat, na.rm = T)`
+
+## Model selection
 
 ```{r}
-names(responses_table)
-# 1. Subset to T0 metrics and predictors only
-T.set <- with(responses_table, cbind(T0, G, Max_dr, lifestage, absLat, sp))
 
-# Full models, with random intercept, and then random slopes
+T0_i <- lmer(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = T.set) #
+T0_a <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), data = T.set) #
 
-## random slopes: need to input dataset as dataframe
+anova(T0_a, T0_i, test.statistic = "Chisq")# keep aditive model
 
-fit1_fullrandom <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (lifestage|sp), data = as.data.frame(T.set)) #
-
-summary(fit1_fullrandom)
-
-fit_red1random <- lmer(T0 ~ lifestage + absLat + (lifestage|sp), data = as.data.frame(T.set), REML = F)
-
-anova(fit1_fullrandom, fit_red1random, test.statistic = "Chisq")
-## interaction term is worse fit by AIC ro BIC, use reduced model
-
-# fit better model with ML
-fit1_red1randomML <- lmer(T0 ~  lifestage + absLat + (lifestage|sp), REML = F, data = as.data.frame(T.set))
-summary(fit1_red1randomML)
-Anova(fit1_red1randomML)
+T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), REML = F, data = T.set)
+summary(T0_a_ML)
+Anova(T0_a_ML)
 
 
-dw_plot(fit1_red1randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+dw_plot(T0_a_ML) +
+  #geom_vline(xintercept= mean(T.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
   scale_color_viridis_d()+
@@ -86,29 +93,9 @@ dw_plot(fit1_red1randomML) +
 
 ```
 
-# 3. Models with species (1|sp) as a random effect
-```{r}
-
-# Full model
-
-full <- lmer(T0 ~ lifestage + absLat + lifestage:absLat + (1|sp), data = responses_table) #
-latlife <- lmer(T0 ~ absLat + lifestage + (1|sp), data = responses_table) #
-lat <- lmer(T0 ~ absLat + (1|sp), data = responses_table) #
-life <- lmer(T0 ~ lifestage + (1|sp), data = responses_table) #
-
-anova(full, latlife, lat, life, test.statistic = "Chisq")
-
-latlifeI <- lmer(T0 ~ -1 + absLat + lifestage + (1|sp), REML = F, data = responses_table) #
-
-
-Anova(latlifeI)
-
-summary(latlifeI)
-```
- 
 ```{r}
 # get data for plot
-latlifeI_effects <- tidy(latlifeI)
+latlifeI_effects <- tidy(T0_a_ML)
 Esizes_wide <- tibble(o_mean = mean(responses_table$T0, na.rm = T),
                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
@@ -135,7 +122,7 @@ ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
 # Plot data and predictions
 
 responses_table$group <- responses_table$lifestage
-pred <- ggpredict(latlifeI, terms = c("absLat","lifestage"))
+pred <- ggpredict(T0_a_ML, terms = c("absLat","lifestage"))
 
 
 ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
@@ -155,16 +142,56 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
  
 ```{r}
 #type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(latlifeI, type = "pred", terms = c("lifestage", "absLat"))+
+plot_model(T0_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
   theme_cowplot()+
   scale_color_viridis_d()
 ```
  
 
+# 3 Phylogenetic correction
+### 3.1 Adjust data table 
+Change species' names of the following species to reflect substitutions due to lack of data and to correct mispellings
 
+Substitutions:
+ In tree                  In dataset    
+Ephestia columbiella for     Ephestia calidella #### Not in analyses because source population was "inferred"
+Episimus tyrius for          Episimus utilis 
+Euzopherodes allocrossa for Euzopherodes vapidella ### No development rate data available
+Marmara arbutiella for      Marmara gulosa
+Protodeltote albidula for   Naranga aenescens
 
+Mispellings: 
+Hyphantria cunea instead of   Hypantria cunea
+Ameyelois transitella instead of Amyelois transitella,
+```{r}
+T.set$original_species <- T.set$sp
+T.set$sp <- ifelse(T.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(T.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(T.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(T.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(T.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(T.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", as.character(T.set$original_species)))))))
 
+Dspecies <- tibble(sp = unique(T.set$sp))
+tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
+setdiff(Dspecies, tree_species)
+# all species in T.set are in the tree. 
+
+setdiff(tree_species, Dspecies) # the tree has 45 species more than T.set
+
+```
+
+### 2.2.2 Fit model
+
+```{r}
+T0_phylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = T.set)
+
+```
+
+# 3 Taxonomic correction
+
+```{r}
+# fit better model using REML
+T0_taxo <- lme(T0 ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = T.set, method = "REML")
+
+T0_taxo
+```
 
 # 4. Variation in maximum development rate (exploratory not in presentation)
 ```{r}
@@ -184,7 +211,7 @@ Anova(fit2_randomML)
 
 
 dw_plot(fit2_randomML) +
-  #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
+  #geom_vline(xintercept= mean(T.set$Dopt),lty=2)+
   geom_vline(xintercept= 0,lty=3)+
   theme_cowplot()+
   scale_color_viridis_d()+
