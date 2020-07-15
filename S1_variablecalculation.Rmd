@@ -2,8 +2,22 @@
 title: "Calculate survival responses"
 output: html_notebook
 ---
+## Contents
+1. Import data and housekeeping
+2. Dopt
+2.1  Model selection
+2.2  Phylogenetic correction
+2.3. Taxonomic correction for comparison
 
-We used r (tydiverse) for data wrangling, (ggplot2) for data visualization, (psych) for obtaining geometric mean, (readxl) to import data and (cowplot) to format ggplots.
+3. Dwidth
+3.1  Model selection
+3.2  Phylogenetic correction
+3.3. Taxonomic correction for comparison
+
+4. Dhigh (Dupper)
+4.1  Model selection
+4.2  Implement phylogenetic correction
+4.3  Taxonomic correction for comparison
 
 ```{r}
 # load packages
