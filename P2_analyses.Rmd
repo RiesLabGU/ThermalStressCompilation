@@ -24,7 +24,7 @@ output: html_notebook
 ```{r}
 # load packages
 # 
-#library(INLA) # install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable')
+#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -44,6 +44,7 @@ library(nlme)
 library(stringr)
 library(phylotools)
 library(phytools)
+library(rr2)
 ```
 
 # 1. Import files
@@ -140,7 +141,7 @@ ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
 
 Get fixed effects
 ```{r}
-tidy(Popt_i_ML)
+Popt_i_ML
 ```
 
 ## 2.2. Phylogenetic correction
@@ -200,10 +201,13 @@ plotTree(P.tree)
 
 ```{r}
 # With phylogenetic correction
-Popt_i_phylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= FALSE, data = P.set, cov_ranef = list(sp = new_tree3))
+Popt_i_phylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= F, data = P.set, cov_ranef = list(sp = P.tree), REML = F)
+
+Popt_i_phylo2 <- pglmm(Popt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data = P.set, cov_ranef = list(sp = P.tree), REML = F)
+
 
 # Without phylogenetic correction
-Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= FALSE, data = P.set)
+Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= F, data = P.set, REML = F)
 ```
 
 To compare the outputs of those models: For this code to run update R version to at least 4.0
@@ -211,17 +215,14 @@ To compare the outputs of those models: For this code to run update R version to
 Psp <- unique(P.set$sp)
 dw_plot(Popt_full_phylo2)
 library(rr2)
-remotes::install_github("arives/rr2")
-library(rr2)
-
-rr2::R2(mod, mod.r)
 
 # RUn this to asses the effect of phylogeny on Popt
 R2(Popt_i_phylo,Popt_i_nophylo)
-```
+partialR2(Popt_i_phylo, Popt_i_nophylo)
 
-```{r}
-Popt_i_nophylo
+
+R2(Popt_i_phylo,Popt_i_nophylo) # if this does not work unload and reload rr2
+
 ```
 
 
