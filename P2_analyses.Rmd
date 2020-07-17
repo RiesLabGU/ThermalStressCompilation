@@ -42,6 +42,8 @@ library(phyr)
 library(ape)
 library(nlme)
 library(stringr)
+library(phylotools)
+library(phytools)
 ```
 
 # 1. Import files
@@ -170,34 +172,57 @@ Ameyelois transitella instead of Amyelois transitella,
 P.set$original_species <- P.set$sp
 P.set$sp <- ifelse(P.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(P.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(P.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(P.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(P.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(P.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix",ifelse(P.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", as.character(P.set$original_species))))))))
 
+#Species list in the data set
+## as tibble so it can be used with setdiff()
 Pspecies <- tibble(sp = unique(P.set$sp))
+## as a vector so it can be manipulated with 
+V_species <- unique(P.set$sp)
+
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
 setdiff(Pspecies, tree_species)
+
 # all species in P.set are in the tree. 
 
-setdiff(tree_species, Dspecies) # the tree has 71 species more than P.set
-
+setdiff(tree_species, Pspecies) # the tree has 71 species more than P.set
 ```
- 
+
+Trim the tree so it only includes the species in the P.set. First the tips have to be relabeled so they include only the species names
+```{r}
+rename <- as.data.frame(tibble(oldname = tree$tip.label, 
+                 newname = tree_species$sp))
+tree_relabel <- sub.taxa.label(tree, rename)
+P.tree <- keep.tip(tree_relabel, V_species)
+plotTree(P.tree)
+```
+
+# Fit phylogenetic correction
 
 ```{r}
-Popt_i_phylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = P.set)
+# With phylogenetic correction
+Popt_i_phylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= FALSE, data = P.set, cov_ranef = list(sp = new_tree3))
 
-
-
-
-
-
-summary(Popt_full_phylo2)
-pglmm.plot.ranef(x = Popt_full_phylo2, sp.var = "sp", site.var = "locality", show.sim.image = T, add.tree.sp = T, add.tree.site = T)
-pglmm.plot.re(x = Popt_full_phylo, sp.var = "sp", site.var = "locality",show.sim.image = T, add.tree.sp = T, add.tree.site = T, tree = tree)
-
-Psp <- unique(P.set$sp)
-dw_plot(Popt_full_phylo2)
-unique()
+# Without phylogenetic correction
+Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= FALSE, data = P.set)
 ```
 
+To compare the outputs of those models: For this code to run update R version to at least 4.0
+```{r}
+Psp <- unique(P.set$sp)
+dw_plot(Popt_full_phylo2)
+library(rr2)
+remotes::install_github("arives/rr2")
+library(rr2)
+
+rr2::R2(mod, mod.r)
+
+# RUn this to asses the effect of phylogeny on Popt
+R2(Popt_i_phylo,Popt_i_nophylo)
+```
+
+```{r}
+Popt_i_nophylo
+```
 
 
 # 2. Taxonomic correction
