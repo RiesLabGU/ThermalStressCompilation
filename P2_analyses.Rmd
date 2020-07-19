@@ -24,7 +24,7 @@ output: html_notebook
 ```{r}
 # load packages
 # 
-#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), #INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -59,13 +59,13 @@ tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
 ```{r}
 # Mariana's laptop
-responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+#responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
 ```
 
 ```{r}
 # Anna's Laptop
 
-responses <- read_csv("~/Desktop/ThermalResponsesIII.csv")
+#responses <- read_csv("~/Desktop/ThermalResponsesIII.csv")
 ```
 
 Discarded "eggtoemergence" and sets with "inferred" or "combination" localities
@@ -213,13 +213,9 @@ Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|s
 To compare the outputs of those models: For this code to run update R version to at least 4.0
 ```{r}
 Psp <- unique(P.set$sp)
-dw_plot(Popt_full_phylo2)
-library(rr2)
+
 
 # RUn this to asses the effect of phylogeny on Popt
-R2(Popt_i_phylo,Popt_i_nophylo)
-partialR2(Popt_i_phylo, Popt_i_nophylo)
-
 
 R2(Popt_i_phylo,Popt_i_nophylo) # if this does not work unload and reload rr2
 
@@ -258,15 +254,6 @@ anova(Pwidth_a, Pwidth_i, test.statistic = "Chisq") # keep aditive model
 Pwidth_a_ML <- lmer(Popt ~ -1 + absLat + lifestage +  (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 summary(Pwidth_a_ML)
-dw_plot(Popt_a_ML) +
-  #geom_vline(xintercept= mean(P.set$Pwidth),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-
-# 
 
 ```
 
@@ -274,15 +261,35 @@ dw_plot(Popt_a_ML) +
 ## 3.2  Phylogenetic correction
 
 ```{r}
-Pwidth_i_phylo <- pglmm(Pwidth ~ -1 + lifestage + absLat  + (1|sp__), tree = tree, bayes= TRUE, data = P.set)
+P.set2 <- filter(P.set, !is.na(Pwidth)) # drop 23 sp that have no Pwidth data
+Pwidth_species <- unique(P.set2$sp)
+Pwidth.tree <- keep.tip(tree_relabel, Pwidth_species)
+plotTree(Pwidth.tree)
 
+
+
+```
+```{r}
+Pwidth_i_phylo <- pglmm(Pwidth ~ -1 + lifestage + absLat  + (1|sp__), cov_ranef  = list(sp = Pwidth.tree), bayes= F, data = P.set2, REML = F)
+
+Pwidth_i_phylo
+
+```
+```{r}
+Pwidth_i_nophylo <- pglmm(Pwidth ~ -1 + lifestage + absLat  + (1|sp),  bayes= F, data = P.set2, REML = F)
+Pwidth_i_nophylo
+```
+
+
+```{r}
+R2(Pwidth_i_nophylo, Pwidth_i_phylo)
 ```
 
 ## 3.3. Taxonomic correction for comparison
 
 
 ```{r}
-P.set2 <- filter(P.set, !is.na(Pwidth))
+
 Pwidth_i_taxo <- lme(Pwidth ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = P.set2) 
 
 summary(Pwidth_i_taxo) 
@@ -326,9 +333,30 @@ plot_model(Phigh_i_ML, type = "int")+
 # 4.2  Implement phylogenetic correction
 
 ```{r}
-Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = P.set)
+P.set3 <- filter(P.set, !is.na(Pupper)) # drop 24 sp that have no Pupper data
+Phigh_species <- unique(P.set3$sp)
+Phigh.tree <- keep.tip(tree_relabel, Phigh_species)
+plotTree(Pwidth.tree)
+```
+
+```{r}
+Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = T)
+
+Phigh_i_phylo
 
 ```
+
+```{r}
+Phigh_i_nophylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = T)
+Phigh_i_nophylo
+```
+
+
+```{r}
+R2(Phigh_i_phylo, Phigh_i_nophylo)
+```
+
+
 
 # 4.3  Taxonomic correction for comparison
 
