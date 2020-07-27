@@ -52,12 +52,12 @@ tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
 ```{r}
 # Mariana's laptop
-responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+#responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
 ```
 
 ```{r}
 # Anna's Laptop
-responses <- read_csv("~/Desktop/ThermalResponsesIII.csv")
+#responses <- read_csv("~/Desktop/ThermalResponsesIII.csv")
 ```
 
 
@@ -107,24 +107,24 @@ According to this mode, Dopt was close to 32.5 for all lifestages and Dopt incre
 
 ```{r}
 # Effects plot
-latlifeI_effects <- tidy(Dopt_a_ML)
-Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+#latlifeI_effects <- tidy(Dopt_a_ML)
+# Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
+#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
 
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
+#names(Esizes_wide)
+# 
+# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+# 
+# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+#   geom_bar(stat = "identity")+
+#   theme_cowplot()+
+#   ylim(-2,6)
 
 
 ```
@@ -151,22 +151,46 @@ D.set$original_species <- D.set$sp
 D.set$sp <- ifelse(D.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(D.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(D.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(D.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(D.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(D.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", as.character(D.set$original_species)))))))
 
 Dspecies <- tibble(sp = unique(D.set$sp))
+V_species <- unique(D.set$sp)
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
 setdiff(Dspecies, tree_species)
 # all species in D.set are in the tree. 
 
 setdiff(tree_species, Dspecies) # the tree has 45 species more than D.set
+```
 
+Trim the tree so it only includes the species in the P.set. First the tips have to be relabeled so they include only the species names
+```{r}
+rename <- as.data.frame(tibble(oldname = tree$tip.label, 
+                 newname = tree_species$sp))
+tree_relabel <- sub.taxa.label(tree, rename)
+D.tree <- keep.tip(tree_relabel, V_species)
+plotTree(D.tree)
 ```
 
 ### 2.2.2 Fit model
 
 ```{r}
-Dopt_phylo <- pglmm(Dopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = D.set)
 
+
+Dopt_phylo <- pglmm(Dopt ~ -1 + lifestage + absLat +(1|sp__),  bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+
+
+Dopt_nophylo <- pglmm(Dopt ~ -1 + lifestage + absLat+ (1|sp),  bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+summary(Dopt_phylo)
 ```
 
+
+
+
+```{r}
+
+# RUn this to asses the effect of phylogeny on Popt
+
+R2(Dopt_phylo,Dopt_nophylo) # if this does not work unload and reload rr2
+
+```
 
 ## 2.3 Taxonomic correction
 
@@ -259,9 +283,19 @@ Effect sizes according to ML model
 ### 3.2.2 Fit model
 
 ```{r}
-Dwidth_phylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = D.set)
+Dwidth_phylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 
+
+Dwidth_nophylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+summary(Dwidth_phylo)
 ```
+
+# RUn this to asses the effect of phylogeny on Popt
+```{r}
+R2(Dwidth_phylo,Dwidth_nophylo) # if this does not work unload and reload rr2
+```
+
+
 
 ## 3.3 Taxonomic correction
 
@@ -316,8 +350,8 @@ Dupper_i <- lmer(Dupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), d
 Dupper_a <- lmer(Dupper ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
 Dupper_r <- lmer(Dupper ~ -1+ (1|sp), data = as.data.frame(D.set)) #
 
-anova(Dupper_i, Dupper_a, Dupper_r, test.statistic = "Chisq") # keep aditive model
-anova(Dupper_i, Dupper_a, test.statistic = "Chisq") # keep aditive model
+anova(Dupper_i, Dupper_a, Dupper_r, test.statistic = "Chisq") # keep additive model
+anova(Dupper_i, Dupper_a, test.statistic = "Chisq") # keep additive model
 
 Dupper_a_ML <- lmer(Dupper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 summary(Dupper_a_ML)
@@ -353,8 +387,16 @@ Effect sizes according to ML model
 ## 4.2 Phylogenetic correction
 
 ```{r}
-Dhigh_phylo <- pglmm(Dupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = D.set)
+Dhigh_phylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 
+
+Dhigh_nophylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+summary(Dwidth_phylo)
+```
+
+# RUn this to asses the effect of phylogeny on Popt
+```{r}
+R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
 ```
 
 
