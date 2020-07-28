@@ -21,6 +21,9 @@ output: html_notebook
 
 # 1. Import data and housekeeping
 ```{r}
+ 
+# 
+#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), #INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -34,10 +37,13 @@ library(broom)
 library(effects)
 library(ggeffects)
 library(Hmisc)
-library(stringr)
-library(nlme)
 library(phyr)
 library(ape)
+library(nlme)
+library(stringr)
+library(phylotools)
+library(phytools)
+library(rr2)
 ```
 
 
@@ -64,7 +70,7 @@ responses_table <- responses %>%
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
-S.set1 <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
+S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
 S.set2 <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
 
 
@@ -78,12 +84,12 @@ Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na
 
 ```{r}
 # When using responses table II these models work, but with table III (2 observations less because of a duplicated study :-/
-Sopt_i <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set1) #singular model
+Sopt_i <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #singular model
 Sopt_i2 <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set2) #
-Sopt_a <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set1) #
+Sopt_a <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set) #
 Sopt_a2 <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set2) #
 
-anova(Sopt_i2, Sopt_a2, test.statistic = "Chisq") # keep aditive model
+anova(Sopt_i2, Sopt_a2, test.statistic = "Chisq") # keep additive model
 
 Sopt_a_ML <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set2)
 
@@ -102,25 +108,25 @@ According to this model, Sopt increased across development, as it was 28.5 for e
 #   theme(legend.position = "none")
 ##type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
 
-# get data for plot
-latlifeI_effects <- tidy(Sopt_a_ML)
-Esizes_wide <- tibble(o_mean = mean(S.set2$Sopt),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
+# # get data for plot
+# latlifeI_effects <- tidy(Sopt_a_ML)
+# Esizes_wide <- tibble(o_mean = mean(S.set2$Sopt),
+#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+# 
+# names(Esizes_wide)
+# 
+# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+# 
+# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+#   geom_bar(stat = "identity")+
+#   theme_cowplot()+
+#   ylim(-2,6)
 
 
 ```
@@ -132,7 +138,7 @@ library(effects)
 library(ggeffects)
 
 S.set2$group <- S.set2$lifestage
-pred <- ggpredict(Sopt_i_ML, terms = c("absLat","lifestage"))
+pred <- ggpredict(Sopt_a_ML, terms = c("absLat","lifestage"))
 
 
 
@@ -173,27 +179,71 @@ Mispellings:
 Hyphantria cunea instead of   Hypantria cunea
 Ameyelois transitella instead of Amyelois transitella,
 ```{r}
-S.set <- S.set1
+S.set <- S.set
 S.set$original_species <- S.set$sp
 S.set$sp <- ifelse(S.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(S.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(S.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(S.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(S.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(S.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix",              ifelse(S.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", as.character(S.set$original_species))))))))
 
 Sspecies <- tibble(sp = unique(S.set$sp))
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
-
+V_species <- unique(S.set$sp)
 setdiff(Sspecies, tree_species)
 # all species in S.set are in the tree. 
 
 setdiff(tree_species, Sspecies) # the tree has 64 species more than S.set
 
 ```
+Trim the tree so it only includes the species in the P.set. First the tips have to be relabeled so they include only the species names
+```{r}
+rename <- as.data.frame(tibble(oldname = tree$tip.label, 
+                 newname = tree_species$sp))
+tree_relabel <- sub.taxa.label(tree, rename)
+S.tree <- keep.tip(tree_relabel, V_species)
+plotTree(S.tree)
+```
 
-###2.2.2 Fit Model
+# Fit phylogenetic correction
 
 ```{r}
-Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat +  (1|sp__), tree = tree, bayes = TRUE, data = S.set)
+# With phylogenetic correction
+Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+Sopt_nophylo <- pglmm(Sopt ~ -1 + lifestage + absLat  + lifestage:absLat + (1|sp), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+
+# Without phylogenetic correction
 
 summary(Sopt_phylo)
 ```
+
+
+```{r}
+
+
+qqnorm(residuals(Sopt_phylo))
+```
+
+
+```{r}
+
+# RUn this to asses the effect of phylogeny on Sopt
+
+R2(Sopt_phylo,Sopt_nophylo, phy = S.tree) # if this does not work unload and reload rr2
+R2(mod = Sopt_phylo,  mod.r = Sopt_nophylo, phy = S.tree) # if this does not work unload and reload rr2
+
+```
+
+Extract effect sizes for plot
+```{r}
+SoptFixedEffects <- tibble(Response = "Sopt", Term = row.names(Sopt_phylo$B), Effect = Sopt_phylo$B[1:6], 
+SE = Sopt_phylo$B.se[1:6])
+
+
+
+SoptRandomEffects <- tibble(Response = "Sopt", Term = c("sp", "sp__", "residual"), Variance = c(Sopt_phylo$s2r,Sopt_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
 ###2.3 Taxonomic correction
 
 ```{r}
@@ -278,10 +328,36 @@ plot_model(Swidth_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
 ###3.2 Phylogenetic correction
 
 ```{r}
-Swidth_phylo <- pglmm(Swidth ~ -1 + lifestage + absLat +  (1|sp__), tree = tree, bayes = TRUE, data = S.set)
+Swidth_phylo <- pglmm(Swidth ~ -1 + lifestage + absLat +  (1|sp__), bayes = F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+Swidth_nophylo <- pglmm(Swidth ~ -1 + lifestage + absLat +  (1|sp), bayes = F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+
+# Without phylogenetic correction
+
 
 summary(Swidth_phylo)
 ```
+
+```{r}
+
+R2(Swidth_phylo,Swidth_nophylo) # if this does not work unload and reload rr2
+
+```
+Extract effect sizes
+```{r}
+SwidthFixedEffects <- tibble(Response = "Swidth", Term = row.names(Swidth_phylo$B), Effect = Swidth_phylo$B[1:4], 
+SE = Swidth_phylo$B.se[1:4])
+
+
+
+SwidthRandomEffects <- tibble(Response = "Swidth", Term = c("sp", "sp__", "residual"), Variance = c(Swidth_phylo$s2r,Swidth_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
 ###3.3 Taxonomic correction
 
 ```{r}
@@ -306,7 +382,7 @@ Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na
 Shigh_i <- lmer(Supper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
 Shigh_a<- lmer(Supper ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
 
-anova(Shigh_i, Shigh_a, test.statistic = "Chisq")
+anova(Shigh_i, Shigh_a, test.statistic = "Chisq") # keep additive model
 
 Shigh_a_ML <- lmer(Supper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = S.set) #
 
@@ -370,10 +446,50 @@ plot_model(Shigh_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
 ###4.2 Phylogenetic correction
 
 ```{r}
-Shigh_phylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp__), tree = tree, bayes = TRUE, data = S.set)
+Shigh_phylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+Shigh_nophylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
 
 summary(Shigh_phylo)
 ```
+
+
+```{r}
+
+# Run this to asses the effect of phylogeny on Sopt
+
+R2(Shigh_phylo,Shigh_nophylo, phy = S.tree) # 
+ 
+
+```
+
+```{r}
+summary(Shigh_phylo)
+```
+
+Extract effect sizes
+```{r}
+ShighFixedEffects <- tibble(Response = "Shigh", Term = row.names(Shigh_phylo$B), Effect = Shigh_phylo$B[1:4], 
+SE = Shigh_phylo$B.se[1:4])
+
+
+
+ShighRandomEffects <- tibble(Response = "Shigh", Term = c("sp", "sp__", "residual"), Variance = c(Shigh_phylo$s2r, Shigh_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
+Consolidate effects and save table
+```{r}
+SFixedEffects <- rbind(SoptFixedEffects, SwidthFixedEffects, ShighFixedEffects)
+SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffects)
+# write_csv(SFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SFixedEffects.csv")
+# write_csv(SRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SRandomEffects.csv")
+```
+
 ###4.3 Taxonomic correction
 
 ```{r}
