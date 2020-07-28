@@ -100,20 +100,14 @@ anova(Popt_a, Popt_i, test.statistic = "Chisq") # keep interaction model
 Popt_i_ML <- lmer(Popt ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 summary(Popt_i_ML)
-# dw_plot(Popt_i_ML) +
-#   #geom_vline(xintercept= mean(P.set$Popt),lty=2)+
-#   geom_vline(xintercept= 0,lty=3)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+```
 
-# lifestage is numeric in P.set, so this plot does not work
-plot_model(Popt_i_ML, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-
+Model validation
+```{r}
+plot(Popt_i_ML)
+residualPlots(Popt_i_ML)
+influenceIndexPlot(Popt_i_ML)
+qqnorm(residuals(Popt_i_ML))
 ```
 
 According to this model, Popt was close to 30.7 for eggs and larvae and 34 for pupae. Popt decreased 0.05 per 10 degrees of latitude. Variation among species: 1.83
@@ -208,19 +202,28 @@ Popt_i_phylo2 <- pglmm(Popt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data
 
 # Without phylogenetic correction
 Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= F, data = P.set, REML = F)
+summary(Popt_i_phylo)
 ```
 
-To compare the outputs of those models: For this code to run update R version to at least 4.0
+
 ```{r}
-Psp <- unique(P.set$sp)
-
-
 # RUn this to asses the effect of phylogeny on Popt
 
 R2(Popt_i_phylo,Popt_i_nophylo) # if this does not work unload and reload rr2
 
 ```
 
+Extract effect sizes for plot
+```{r}
+PoptFixedEffects <- tibble(Response = "Popt", Term = row.names(Popt_i_phylo$B), Effect = Popt_i_phylo$B[1:6], 
+SE = Popt_i_phylo$B.se[1:6])
+
+PoptFixedEffects
+
+PoptRandomEffects <- tibble(Response = "Popt", Term = c("sp", "sp__", "residual"), Variance = c(Popt_i_phylo$s2r,Popt_i_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
 
 # 2. Taxonomic correction
 ```{r}
@@ -249,9 +252,9 @@ Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na
 Pwidth_i <- lmer(Pwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 Pwidth_a <- lmer(Pwidth ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
-anova(Pwidth_a, Pwidth_i, test.statistic = "Chisq") # keep aditive model
+anova(Pwidth_a, Pwidth_i, test.statistic = "Chisq") # keep additive model
 
-Pwidth_a_ML <- lmer(Popt ~ -1 + absLat + lifestage +  (1|sp) , REML = F, data = as.data.frame(P.set)) #
+Pwidth_a_ML <- lmer(Pwidth ~ -1 + absLat + lifestage +  (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 summary(Pwidth_a_ML)
 
@@ -282,8 +285,25 @@ Pwidth_i_nophylo
 
 
 ```{r}
-R2(Pwidth_i_nophylo, Pwidth_i_phylo)
+R2(Pwidth_i_phylo, Pwidth_i_nophylo)
 ```
+
+
+Extract effect sizes
+```{r}
+PwidthFixedEffects <- tibble(Response = "Pwidth", Term = row.names(Pwidth_i_phylo$B), Effect = Pwidth_i_phylo$B[1:4], 
+SE = Pwidth_i_phylo$B.se[1:4])
+
+
+
+PwidthRandomEffects <- tibble(Response = "Pwidth", Term = c("sp", "sp__", "residual"), Variance = c(Pwidth_i_phylo$s2r,Pwidth_i_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
+
 
 ## 3.3. Taxonomic correction for comparison
 
@@ -340,14 +360,14 @@ plotTree(Pwidth.tree)
 ```
 
 ```{r}
-Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = T)
+Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
 
 Phigh_i_phylo
 
 ```
 
 ```{r}
-Phigh_i_nophylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = T)
+Phigh_i_nophylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
 Phigh_i_nophylo
 ```
 
@@ -356,6 +376,28 @@ Phigh_i_nophylo
 R2(Phigh_i_phylo, Phigh_i_nophylo)
 ```
 
+Extract effect sizes
+```{r}
+PhighFixedEffects <- tibble(Response = "Phigh", Term = row.names(Phigh_i_phylo$B), Effect = Phigh_i_phylo$B[1:6], 
+SE = Phigh_i_phylo$B.se[1:6])
+
+
+
+PhighRandomEffects <- tibble(Response = "Phigh", Term = c("sp", "sp__", "residual"), Variance = c(Phigh_i_phylo$s2r,Phigh_i_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
+
+Consolidate effects and save table
+```{r}
+PFixedEffects <- rbind(PoptFixedEffects, PwidthFixedEffects, PhighFixedEffects)
+PRandomEffects <- rbind(PoptRandomEffects, PwidthRandomEffects, PhighRandomEffects)
+# write_csv(PFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PFixedEffects.csv")
+# write_csv(PRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PRandomEffects.csv")
+```
 
 
 # 4.3  Taxonomic correction for comparison
