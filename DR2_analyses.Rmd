@@ -21,6 +21,8 @@ output: html_notebook
 
 # 1. Import data and housekeeping
 ```{r}
+ 
+#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), #INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -34,10 +36,13 @@ library(broom)
 library(effects)
 library(ggeffects)
 library(Hmisc)
-library(stringr)
-library(nlme)
 library(phyr)
 library(ape)
+library(nlme)
+library(stringr)
+library(phylotools)
+library(phytools)
+library(rr2)
 ```
 
 
@@ -97,8 +102,8 @@ Dopt_i <- lmer(Dopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data 
 Dopt_a <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
 Dopt_r <- lmer(Dopt ~ -1+ (1|sp), data = as.data.frame(D.set)) #
 
-anova(Dopt_i, Dopt_a, Dopt_r, test.statistic = "Chisq") # keep aditive model
-anova(Dopt_i, Dopt_a, test.statistic = "Chisq") # keep aditive model
+anova(Dopt_i, Dopt_a, Dopt_r, test.statistic = "Chisq") # keep additive model
+anova(Dopt_i, Dopt_a, test.statistic = "Chisq") # keep additive model
 
 Dopt_a_ML <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 summary(Dopt_a_ML)
@@ -128,7 +133,7 @@ According to this mode, Dopt was close to 32.5 for all lifestages and Dopt incre
 
 
 ```
-Effect sizes according to ML model 
+
 
 ## 2.2 Phylogenetic correction
 
@@ -183,7 +188,6 @@ summary(Dopt_phylo)
 
 
 
-
 ```{r}
 
 # RUn this to asses the effect of phylogeny on Popt
@@ -191,6 +195,20 @@ summary(Dopt_phylo)
 R2(Dopt_phylo,Dopt_nophylo) # if this does not work unload and reload rr2
 
 ```
+Extract effect sizes for plot
+```{r}
+DoptFixedEffects <- tibble(Response = "Dopt", Term = row.names(Dopt_phylo$B), Effect = Dopt_phylo$B[1:4], 
+SE = Dopt_phylo$B.se[1:4])
+
+DoptFixedEffects
+
+DoptRandomEffects <- tibble(Response = "Dopt", Term = c("sp", "sp__", "residual"), Variance = c(Dopt_phylo$s2r,Dopt_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
 
 ## 2.3 Taxonomic correction
 
@@ -254,25 +272,25 @@ summary(Dwidth_a_ML)
 According to this mode, Dwidth was 12.1 for egg and larvae and 11.1 for pupae (one degree smaller, `r ((12.1 - 11.1)/12.1) *100`% smaller)  and Dwidth increased 0.4 degrees C for every 10 degrees in latitude. Variation among species: 1.8
 
 ```{r}
-# Effects plot
-latlifeI_effects <- tidy(Dwidth_a_ML)
-Esizes_wide <- tibble(o_mean = mean(D.set$Dwidth, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
+# # Effects plot
+# latlifeI_effects <- tidy(Dwidth_a_ML)
+# Esizes_wide <- tibble(o_mean = mean(D.set$Dwidth, na.rm = T),
+#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+# 
+# names(Esizes_wide)
+# 
+# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+# 
+# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+#   geom_bar(stat = "identity")+
+#   theme_cowplot()+
+#   ylim(-2,6)
 
 
 ```
@@ -294,11 +312,20 @@ summary(Dwidth_phylo)
 ```{r}
 R2(Dwidth_phylo,Dwidth_nophylo) # if this does not work unload and reload rr2
 ```
+Extract effect sizes
+```{r}
+DwidthFixedEffects <- tibble(Response = "Dwidth", Term = row.names(Dwidth_phylo$B), Effect = Dwidth_phylo$B[1:4], 
+SE = Dwidth_phylo$B.se[1:4])
 
+
+
+DwidthRandomEffects <- tibble(Response = "Dwidth", Term = c("sp", "sp__", "residual"), Variance = c(Dwidth_phylo$s2r,Dwidth_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
 
 
 ## 3.3 Taxonomic correction
-
 
 ```{r}
 # fit better model using REML
@@ -359,25 +386,25 @@ summary(Dupper_a_ML)
 According to this mode, Dupper was 35 for pupae, 35.2 for larvae and 35.4 for eggs.  Dupper decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
 
 ```{r}
-# Effects plot
-latlifeI_effects <- tidy(Dupper_a_ML)
-Esizes_wide <- tibble(o_mean = mean(D.set$Dupper, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
+# # Effects plot
+# latlifeI_effects <- tidy(Dupper_a_ML)
+# Esizes_wide <- tibble(o_mean = mean(D.set$Dupper, na.rm = T),
+#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+# 
+# names(Esizes_wide)
+# 
+# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+# 
+# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+#   geom_bar(stat = "identity")+
+#   theme_cowplot()+
+#   ylim(-2,6)
 
 
 ```
@@ -399,7 +426,26 @@ summary(Dwidth_phylo)
 R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
 ```
 
+Extract effect sizes
+```{r}
+DhighFixedEffects <- tibble(Response = "Dhigh", Term = row.names(Dhigh_phylo$B), Effect = Dhigh_phylo$B[1:4], 
+SE = Dhigh_phylo$B.se[1:4])
 
+
+
+DhighRandomEffects <- tibble(Response = "Dhigh", Term = c("sp", "sp__", "residual"), Variance = c(Dhigh_phylo$s2r,Dhigh_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+Consolidate effects and save table
+```{r}
+DrFixedEffects <- rbind(DoptFixedEffects, DwidthFixedEffects, DhighFixedEffects)
+DrRandomEffects <- rbind(DoptRandomEffects, DwidthRandomEffects, DhighRandomEffects)
+# write_csv(DrFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/DrateFixedEffects.csv")
+# write_csv(DrRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/DrateRandomEffects.csv")
+```
 
 ## 4.3 Taxonomic correction
 
