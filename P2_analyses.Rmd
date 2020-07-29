@@ -88,7 +88,7 @@ P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat
 
 # Popt: temperature that maximizes performance
 Popt ranged from `r min(P.set$Popt, na.rm = T)` to `r max(P.set$Popt, na.rm = T)`, mean =  `r mean(P.set$Popt, na.rm = T)`, SD = `r sd(P.set$Popt, na.rm = T)`
-Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`
+Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`,  N =`r length(!is.na(P.set$Popt))`
 
 ```{r}
 
@@ -102,14 +102,28 @@ Popt_i_ML <- lmer(Popt ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp) , R
 summary(Popt_i_ML)
 ```
 
-Model validation
+# Predictions plot
 ```{r}
-plot(Popt_i_ML)
-residualPlots(Popt_i_ML)
-influenceIndexPlot(Popt_i_ML)
-qqnorm(residuals(Popt_i_ML))
-```
+P.set$group <- factor(P.set$lifestage)
+predpo <- ggpredict(Popt_i_ML, terms = c("absLat","lifestage"))
 
+
+Popt_plot <- ggplot(predpo, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab("Popt")+
+  xlab("Absolute latitude")+
+  annotate("text", x = 0, y = 40, label = "C", size = 5)+
+  ylim(10, 40)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Popt, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Popt_plot
+```
 According to this model, Popt was close to 30.7 for eggs and larvae and 34 for pupae. Popt decreased 0.05 per 10 degrees of latitude. Variation among species: 1.83
 
 
@@ -260,6 +274,27 @@ summary(Pwidth_a_ML)
 
 ```
 
+```{r}
+P.set$group <- factor(P.set$lifestage)
+predpw <- ggpredict(Pwidth_a_ML, terms = c("absLat","lifestage"))
+
+
+Pwidth_plot <- ggplot(predpw, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  annotate("text", x = 0, y = 17, label = "D", size = 5)+
+  ylab("Pwidth")+
+  xlab("Absolute latitude")+
+  #ylim(10, 40)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Pwidth, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Pwidth_plot
+```
 
 ## 3.2  Phylogenetic correction
 
