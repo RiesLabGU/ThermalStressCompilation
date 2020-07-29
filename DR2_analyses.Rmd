@@ -90,11 +90,11 @@ D.set$species <- word(D.set$sp, 2)
 ```
 
 # 2. Dopt: temperature that maximizes development rate
-Dopt ranged from `r min(D.set$Dopt, na.rm = T)` to `r max(D.set$Dopt, na.rm = T)`, mean =  `r mean(D.set$Dopt, na.rm = T)`, SD = `r sd(D.set$Dopt, na.rm = T)`
-Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na.rm = T)`
+Dopt ranged from `r min(D.set$Dopt, na.rm = T)` to `r max(D.set$Dopt, na.rm = T)`, mean =  `r mean(D.set$Dopt, na.rm = T)`, SD = `r sd(D.set$Dopt, na.rm = T)`, N =`r length(!is.na(D.set$Dopt))` 
+Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na.rm = T)`.
 
 ## 2.1 Model selection
-To asses the effect of latitude and lifestage on variation in Dopt, we fitted two linear mixed effects models one  including with both terms and their interaction as fixed effects and the other only both terms. In both cases we included species as a random effect, we used AIC and BIC as criteria for model selection.  We used the lmer function from package lme4 version `r packageVersion("lme4")`. We fitted the models without an intercept to facilitate effect comparisons among life stages. We kept the aditive model
+To asses the effect of latitude and lifestage on variation in Dopt, we fitted two linear mixed effects models one  including with both terms and their interaction as fixed effects and the other only both terms. In both cases we included species as a random effect, we used AIC and BIC as criteria for model selection.  We used the lmer function from package lme4 version `r packageVersion("lme4")`. We fitted the models without an intercept to facilitate effect comparisons among life stages. We kept the additive model
 
 ```{r}
 
@@ -111,27 +111,26 @@ summary(Dopt_a_ML)
 According to this mode, Dopt was close to 32.5 for all lifestages and Dopt increased 0.7 degrees C for every 10 degrees in latitude. Variation among species: 2.32
 
 ```{r}
-# Effects plot
-#latlifeI_effects <- tidy(Dopt_a_ML)
-# Esizes_wide <- tibble(o_mean = mean(D.set$Dopt),
-#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-#names(Esizes_wide)
-# 
-# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-# 
-# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-#   geom_bar(stat = "identity")+
-#   theme_cowplot()+
-#   ylim(-2,6)
+# Predictions plot
+D.set$group <- factor(D.set$lifestage)
+predo <- ggpredict(Dopt_a_ML, terms = c("absLat","lifestage"))
 
 
+Dopt_plot <- ggplot(predo, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab("Dopt")+
+  xlab("Absolute latitude")+
+  ylim(10, 40)+
+  annotate("text", x = 0, y = 40, label = "A", size = 5)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = c(0.8,0.3))
+
+Dopt_plot
 ```
 
 
@@ -207,8 +206,56 @@ SD = sqrt(Variance))
 
 ```
 
+Plot model predictions
+```{r}
+pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
+communityPGLMM.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
+pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")[[1]]
+
+fitted(Dopt_phylo)
+confint(Dopt_phylo)
+effects(Dopt_nophylo)
+
+predict(Dopt_phylo, interval = "confidence")
+fitted.communityPGLMM(Dopt_phylo)
+resid(Dopt_phylo)
+summary(Dopt_phylo)
+```
 
 
+```{r}
+
+
+```
+
+
+
+
+```{r}
+plot(
+  Dopt_phylo,
+  sp.var = "lifestage",
+  site.var = "absLat",
+  show.sp.names = FALSE,
+  show.site.names = FALSE,
+  digits = max(3, getOption("digits") - 3),
+  predicted = T,
+
+)[1]
+pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
+```
+
+```{r}
+pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")
+```
+
+```{r}
+pglmm.plot.ranef(x = Dopt_phylo, site.var = "lifestage")
+pglmm.plot.ranef(x = Dopt_phylo, site.var = "absLat")
+plot_model(Dopt_phylo, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
 
 ## 2.3 Taxonomic correction
 
