@@ -76,14 +76,15 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(Dopt)) %>% 
-  select(-T0, -G) %>% 
-  mutate(absLat = abs(lat))
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", 
+         #quality!= "inferred", 
+         quality != "combination", !is.na(Dopt)) %>% 
+  mutate(absLat = abs(lat)) 
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
 
 # Select variables to include in analyses
-D.set <- select(responses_table, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp, family)
+D.set <- select(responses_table, set, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp, family, quality)
 D.set$genus <- word(D.set$sp, 1)
 D.set$species <- word(D.set$sp, 2)
 
@@ -106,9 +107,10 @@ anova(Dopt_i, Dopt_a, Dopt_r, test.statistic = "Chisq") # keep additive model
 anova(Dopt_i, Dopt_a, test.statistic = "Chisq") # keep additive model
 
 Dopt_a_ML <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
+Anova(Dopt_a_ML)
 summary(Dopt_a_ML)
 ```
-According to this mode, Dopt was close to 32.5 for all lifestages and Dopt increased 0.7 degrees C for every 10 degrees in latitude. Variation among species: 2.32
+According to this mode, Dopt was close to 32. for all lifestages and Dopt increased 0.6 degrees C for every 10 degrees in latitude. Variation among species: 2.3
 
 ```{r}
 # Predictions plot
@@ -152,7 +154,7 @@ Hyphantria cunea instead of   Hypantria cunea
 Ameyelois transitella instead of Amyelois transitella,
 ```{r}
 D.set$original_species <- D.set$sp
-D.set$sp <- ifelse(D.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(D.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(D.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(D.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(D.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(D.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", as.character(D.set$original_species)))))))
+D.set$sp <- ifelse(D.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(D.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(D.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(D.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(D.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(D.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", ifelse(D.set$original_species == "Ephestia calidella","Ephestia columbiella", as.character(D.set$original_species))))))))
 
 Dspecies <- tibble(sp = unique(D.set$sp))
 V_species <- unique(D.set$sp)
