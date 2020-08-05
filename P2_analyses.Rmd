@@ -76,8 +76,10 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(Popt)) %>% 
-  select(Popt, Plower, Pupper, Pwidth, lifestage, sp, lat, family, locality) %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", 
+         #quality!= "inferred", 
+         quality != "combination", !is.na(Popt)) %>% 
+  select(set, Popt, Plower, Pupper, Pwidth, lifestage, sp, lat, family, locality, quality) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
