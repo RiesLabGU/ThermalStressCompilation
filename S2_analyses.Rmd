@@ -51,7 +51,7 @@ library(rr2)
 # Mariana's desktop
 
 responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
-responses2 <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
 ```
@@ -65,13 +65,15 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(maxSopt)) %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", 
+         #quality!= "inferred", 
+         quality != "combination", 
+         !is.na(maxSopt)) %>% 
   select(Sopt = maxSopt, Slower, Supper, Swidth, lifestage, sp, lat, family) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
 S.set <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
-S.set2 <- select(responses_table, Sopt, Supper, Swidth, Slower, lifestage, absLat, sp, family)
 
 
 ```
@@ -85,51 +87,18 @@ Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na
 ```{r}
 # When using responses table II these models work, but with table III (2 observations less because of a duplicated study :-/
 Sopt_i <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #singular model
-Sopt_i2 <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set2) #
+
 Sopt_a <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set) #
-Sopt_a2 <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set2) #
 
-anova(Sopt_i2, Sopt_a2, test.statistic = "Chisq") # keep additive model
 
-Sopt_a_ML <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set2)
+anova(Sopt_i, Sopt_a, test.statistic = "Chisq") # keep additive model
+
+Sopt_a_ML <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set)
 
 summary(Sopt_a_ML)
 ```
-According to this model, Sopt increased across development, as it was 28.5 for eggs, 29.9 for larvae and 31 for pupae. Sopt decreased 1.4 C per every 10 degrees latitude. Variation among species was small: 0.97
+According to this model, Sopt increased across development, as it was 28.6 for eggs, 30.2 for larvae and 30.5 for pupae. Sopt decreased 1.5 C per every 10 degrees latitude. Variation among species was small: 1.8
 
- 
-```{r}
-
-# dw_plot(Sopt_a_ML) +
-#   #geom_vline(xintercept= mean(D.set$Dopt),lty=2)+
-#   geom_vline(xintercept= 0,lty=3)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-##type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-
-# # get data for plot
-# latlifeI_effects <- tidy(Sopt_a_ML)
-# Esizes_wide <- tibble(o_mean = mean(S.set2$Sopt),
-#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-# 
-# names(Esizes_wide)
-# 
-# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-# 
-# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-#   geom_bar(stat = "identity")+
-#   theme_cowplot()+
-#   ylim(-2,6)
-
-
-```
  
  
 ```{r}
@@ -137,7 +106,7 @@ According to this model, Sopt increased across development, as it was 28.5 for e
 library(effects)
 library(ggeffects)
 
-S.set2$group <- S.set2$lifestage
+S.set$group <- S.set$lifestage
 predso <- ggpredict(Sopt_a_ML, terms = c("absLat","lifestage"))
 
 
@@ -152,7 +121,7 @@ Sopt_plot <- ggplot(predso, aes(x = x, y = predicted, colour = group, fill = gro
   annotate("text", x = 0, y = 40, label = "B", size = 5)+
   xlab("Absolute latitude")+
   ylim(10, 40)+
-  geom_point(data = S.set2, mapping = aes(x = absLat, y = Sopt, col =group ), alpha = 0.6)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col =group ), alpha = 0.6)+
   theme_cowplot()+
   theme(legend.position = "none")
 
@@ -184,7 +153,7 @@ Ameyelois transitella instead of Amyelois transitella,
 ```{r}
 S.set <- S.set
 S.set$original_species <- S.set$sp
-S.set$sp <- ifelse(S.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(S.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(S.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(S.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(S.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(S.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix",              ifelse(S.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", as.character(S.set$original_species))))))))
+S.set$sp <- ifelse(S.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(S.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(S.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(S.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(S.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(S.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix",              ifelse(S.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", ifelse(S.set$original_species == "Ephestia calidella","Ephestia columbiella", as.character(S.set$original_species)))))))))
 
 Sspecies <- tibble(sp = unique(S.set$sp))
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
