@@ -1,0 +1,153 @@
+---
+title: "Relationships among thermal variables"
+output: html_notebook
+---
+
+Manuscript Figure 3
+
+# 1. Import data and housekeeping
+```{r}
+ 
+library(tidyverse)
+library(readxl)
+library(cowplot)
+library(psych) # to get geometric mean
+#library(lme4)
+#library(car)
+#library("dotwhisker")  # to make coefficient plots
+#library(sjPlot) #prediction plots
+#library(sjmisc)
+#library(broom)
+#library(effects)
+#library(ggeffects)
+#library(Hmisc)
+#library(phyr)
+#library(ape)
+#library(nlme)
+#library(stringr)
+#library(phylotools)
+#library(phytools)
+#library(rr2)
+```
+
+
+
+
+```{r}
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv") 
+res <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality != "combination") %>% 
+  mutate(lifestage = factor(lifestage))
+names(res)
+```
+
+
+Dopt for eggs, larvae and pupae ranged from `r min(res$Dopt, na.rm = T)` to `r max(res$Dopt, na.rm = T)`, with a mean (+_SD) of `r min(res$Dopt, na.rm = T)` +- `r SD(res$Dopt, na.rm = T)`
+
+Predictions from figure 2. 
+# Figure 2A, Dopt ~ Sopt
+
+```{r}
+fita <- lm(Dopt ~ maxSopt, data = res)
+shapiro.test(fita$residuals)
+summary(fita)
+
+```
+Dopt and Sopt were significantly correlated adjuster R2 = 0.14, F = 12.7, degrees of freedom: 1,70, P < 0.0001, N = `r nrow(model.frame(fita))` ). Dopt was always higher than Sopt 
+
+
+
+
+```{r}
+
+
+res_plot <- res %>% 
+  filter( !is.na(Dopt),  !is.na(maxSopt))
+optima <- ggplot(res_plot, aes(x = maxSopt, y = Dopt))+
+  geom_smooth(method = lm, se = FALSE, col = "black")+
+  geom_point(aes(shape = lifestage))+
+  ylim(15,40)+
+  xlim(15,40)+
+  ylab(expression("D"[opt]))+
+  xlab(expression("S"[opt]))+
+  #scale_color_grey()+
+  scale_shape_manual(values = c(1,16,8))+
+  geom_segment(x = 10, xend = 40, y = 10, yend = 40, col = "black", linetype = 2)+
+   annotate("text", x = 15, y = 40, label = "A", size = 5)+
+  theme_cowplot()+
+  theme(legend.position = "none")
+
+optima
+
+```
+Figure 3A N = `r nrow(res_plot)`
+
+
+#Figure 2B, Dupper ~ Supper
+```{r}
+fitb <- lm(Dupper ~ Supper, data = res)
+shapiro.test(fitb$residuals)
+summary(fitb)
+```
+
+Dhigh and Shigh were significantly correlated adjusted R2 = 0.78, F = 119, degrees of freedom: 1,33, P < 0.0001, N = `r nrow(model.frame(fitb))`). Dopt was always higher than Sopt 
+
+```{r}
+res_plot2 <- res %>% 
+  filter( !is.na(Supper),  !is.na(Dupper))
+
+high <- ggplot(res_plot2, aes(x = Supper, y = Dupper))+
+  geom_point(aes(shape = lifestage))+
+  ylim(15,40)+
+  xlim(15,40)+
+  #scale_color_viridis_d()+
+  geom_smooth(method = lm, se = F, col = "black")+
+  scale_shape_manual(values = c(1,16,8))+
+  geom_segment(x = 10, xend = 40, y = 10, yend = 40, col = "black", linetype = 2)+
+  theme_cowplot()+
+  annotate("text", x = 15, y = 40, label = "B", size = 5)+
+  
+  ylab(expression("D"[high]))+
+  xlab(expression("S"[high]))+
+  theme(legend.position = "none")
+
+high
+```
+Figure 3B N = `r nrow(res_plot2)`
+
+#Figure 2C, Dwidth ~ Swidth
+
+```{r}
+fitc <- lm(Dwidth ~ Swidth, data = res)
+shapiro.test(fitc$residuals)
+summary(fitc)
+```
+Dwidth and Swidth were significantly correlated adjusted R2 = 0.14, F = 5.124, degrees of freedom: 1,24, P < 0.03, N = `r nrow(model.frame(fitc))`). Dopt was always higher than Sopt 
+
+
+```{r}
+res_plot3 <- res %>% 
+  filter(!is.na(Swidth),  !is.na(Dwidth))
+
+width <- ggplot(res_plot3, aes(x = Swidth, y = Dwidth))+
+  geom_point(aes(shape = lifestage))+
+  ylim(5,30)+
+  xlim(5,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("D"[width]))+
+   annotate("text", x = 5, y = 30, label = "C", size = 5)+
+  xlab(expression("S"[width]))+
+  theme(legend.position = "bottom")
+width
+```
+Figure 3B N = `r nrow(res_plot3)`
+```{r}
+
+detach("package:cowplot", unload = TRUE)
+library(cowplot)
+plot_grid(optima, high, width, ncol = 3)
+```
