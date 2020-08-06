@@ -43,8 +43,9 @@ library(stringr)
 library(phylotools)
 library(phytools)
 library(rr2)
-```
 
+```
+`r sessionInfo()`
 
 ```{r}
 # Mariana's desktop
@@ -187,6 +188,9 @@ Dopt_nophylo <- pglmm(Dopt ~ -1 + lifestage + absLat+ (1|sp),  bayes= F, data = 
 summary(Dopt_phylo)
 ```
 
+```{r}
+summary(Dopt_nophylo)
+```
 
 
 ```{r}
