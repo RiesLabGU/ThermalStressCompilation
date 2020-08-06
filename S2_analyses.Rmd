@@ -188,6 +188,12 @@ summary(Sopt_phylo)
 ```
 
 
+
+```{r}
+summary(Sopt_nophylo)
+```
+
+
 ```{r}
 
 
