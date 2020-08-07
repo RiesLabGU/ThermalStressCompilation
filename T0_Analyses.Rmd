@@ -53,7 +53,8 @@ responses <- responses %>%
 # discard non-pertinent data
 
 responses_table <- responses %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality!= "inferred", quality != "combination", !is.na(Dopt)) %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa",   #quality!= "inferred", 
+         quality != "combination", !is.na(Dopt)) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
@@ -80,41 +81,6 @@ anova(T0_a, T0_i, test.statistic = "Chisq")# keep aditive model
 
 T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), REML = F, data = T.set)
 summary(T0_a_ML)
-Anova(T0_a_ML)
-
-
-dw_plot(T0_a_ML) +
-  #geom_vline(xintercept= mean(T.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-
-```
-
-```{r}
-# get data for plot
-latlifeI_effects <- tidy(T0_a_ML)
-Esizes_wide <- tibble(o_mean = mean(responses_table$T0, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()+
-  ylim(-2,6)
-
-
 ```
  
  
@@ -125,27 +91,23 @@ responses_table$group <- responses_table$lifestage
 pred <- ggpredict(T0_a_ML, terms = c("absLat","lifestage"))
 
 
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
+T0_plot <- ggplot(pred, aes(x = x, y = predicted, colour = group, shape = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
-  ylab("T0")+
+  xlim(0,50)+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab(expression('T'[0]))+
+  annotate("text", x = 0, y = 16, label = "F", size = 5)+
   xlab("Absolute latitude")+
- # ylim(5, 20)+
   geom_point(data = responses_table, mapping = aes(x = absLat, y = T0, col =group ), alpha = 0.6)+
-  theme_cowplot()
-
-
-```
- 
- 
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(T0_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
   theme_cowplot()+
-  scale_color_viridis_d()
+  theme(legend.position = "none")
+
+T0_plot
 ```
+ 
  
 
 # 3 Phylogenetic correction
@@ -165,9 +127,10 @@ Hyphantria cunea instead of   Hypantria cunea
 Ameyelois transitella instead of Amyelois transitella,
 ```{r}
 T.set$original_species <- T.set$sp
-T.set$sp <- ifelse(T.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(T.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(T.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(T.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(T.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(T.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", as.character(T.set$original_species)))))))
+T.set$sp <- ifelse(T.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(T.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(T.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(T.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(T.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(T.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", ifelse(T.set$original_species == "Ephestia calidella", "Ephestia columbiella",as.character(T.set$original_species))))))))
 
 Dspecies <- tibble(sp = unique(T.set$sp))
+V_species <- unique(T.set$sp)
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
 setdiff(Dspecies, tree_species)
@@ -177,12 +140,46 @@ setdiff(tree_species, Dspecies) # the tree has 45 species more than T.set
 
 ```
 
-### 2.2.2 Fit model
 
 ```{r}
-T0_phylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), tree = tree, bayes= TRUE, data = T.set)
+rename <- as.data.frame(tibble(oldname = tree$tip.label, 
+                 newname = tree_species$sp))
+tree_relabel <- sub.taxa.label(tree, rename)
+T.tree <- keep.tip(tree_relabel, V_species)
+plotTree(T.tree)
+```
+
+
+
+### 2.2.2 Fit model
+# With phylogenetic correction
+Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+Sopt_nophylo <- pglmm(Sopt ~ -1 + lifestage + absLat  + lifestage:absLat + (1|sp), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+
+# Without phylogenetic correction
+
+summary(Sopt_phylo)
+
+```{r}
+# Whit phylogenetic correction
+T0_phylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
+
+
+T0_nophylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
+summary(T0_phylo)
 
 ```
+```{r}
+summary(T0_nophylo)
+```
+Is phylogenetic history important?
+```{r}
+R2(T0_phylo,T0_nophylo, phy = S.tree) 
+```
+
+
 
 # 3 Taxonomic correction
 
