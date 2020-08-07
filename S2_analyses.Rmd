@@ -117,7 +117,7 @@ Sopt_plot <- ggplot(predso, aes(x = x, y = predicted, colour = group, fill = gro
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   scale_shape_manual(values = c(1,16,8))+
-  ylab("Sopt")+
+  ylab(expression(S[opt]))+
   annotate("text", x = 0, y = 40, label = "B", size = 5)+
   xlab("Absolute latitude")+
   ylim(10, 40)+
