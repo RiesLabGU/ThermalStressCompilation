@@ -116,7 +116,7 @@ Popt_plot <- ggplot(predpo, aes(x = x, y = predicted, colour = group, fill = gro
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   scale_shape_manual(values = c(1,16,8))+
-  ylab("Popt")+
+  ylab(expression(P[opt]))+
   xlab("Absolute latitude")+
   annotate("text", x = 0, y = 40, label = "C", size = 5)+
   ylim(10, 40)+
@@ -128,26 +128,6 @@ Popt_plot
 ```
 According to this model, Popt was close to 30.7 for eggs and larvae and 34 for pupae. Popt decreased 0.05 per 10 degrees of latitude. Variation among species: 1.83
 
-
-
-```{r}
-# Plot data and predictions
-P.set$group <- P.set$lifestage
-pred <- ggpredict(Popt_i_ML, terms = c("absLat","lifestage"))
-
-
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("Popt")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = P.set, mapping = aes(x = absLat, y = Popt, col =group ), alpha = 0.6)+
-  theme_cowplot()
-
-```
 
 Get fixed effects
 ```{r}
@@ -181,7 +161,7 @@ Hyphantria cunea instead of   Hypantria cunea
 Ameyelois transitella instead of Amyelois transitella,
 ```{r}
 P.set$original_species <- P.set$sp
-P.set$sp <- ifelse(P.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(P.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(P.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(P.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(P.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(P.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix",ifelse(P.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", as.character(P.set$original_species))))))))
+P.set$sp <- ifelse(P.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(P.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(P.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(P.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(P.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(P.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", ifelse(P.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa", ifelse(P.set$original_species == "Ephestia calidella", "Ephestia columbiella", as.character(P.set$original_species)))))))))
 
 #Species list in the data set
 ## as tibble so it can be used with setdiff()
@@ -220,6 +200,11 @@ Popt_i_phylo2 <- pglmm(Popt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data
 Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= F, data = P.set, REML = F)
 summary(Popt_i_phylo)
 ```
+
+```{r}
+summary(Popt_i_nophylo)
+```
+
 
 
 ```{r}
@@ -288,7 +273,7 @@ Pwidth_plot <- ggplot(predpw, aes(x = x, y = predicted, colour = group, fill = g
   scale_fill_viridis_d()+
   scale_shape_manual(values = c(1,16,8))+
   annotate("text", x = 0, y = 17, label = "D", size = 5)+
-  ylab("Pwidth")+
+  ylab(expression(P[width]))+
   xlab("Absolute latitude")+
   #ylim(10, 40)+
   geom_point(data = P.set, mapping = aes(x = absLat, y = Pwidth, col = group), alpha = 0.6)+
@@ -367,23 +352,35 @@ Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na
 Phigh_i <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 Phigh_a <- lmer(Pupper ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
-anova(Phigh_a, Phigh_i, test.statistic = "Chisq") # keep interaction model
+anova(Phigh_a, Phigh_i, test.statistic = "Chisq") # keep additive model
 
 Phigh_i_ML <- lmer(Pupper ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp) , REML = F, data = as.data.frame(P.set)) #
+Phigh_a_ML <- lmer(Pupper ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
-summary(Phigh_i_ML)
-# dw_plot(Popt_i_ML) +
-#   #geom_vline(xintercept= mean(P.set$Pupper),lty=2)+
-#   geom_vline(xintercept= 0,lty=3)+
-#   theme_cowplot()+
-#   scale_color_viridis_d()+
-#   theme(legend.position = "none")
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+summary(Phigh_a_ML)
 
-# lifestage is numeric in P.set, so this plot does not work
-plot_model(Phigh_i_ML, type = "int")+
+```
+
+```{r}
+P.set$group <- factor(P.set$lifestage)
+predph <- ggpredict(Phigh_a_ML, terms = c("absLat","lifestage"))
+
+
+Phigh_plot <- ggplot(predph, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  annotate("text", x = 0, y = 40, label = "E", size = 5)+
+  ylab(expression(P[high]))+
+  xlab("Absolute latitude")+
+  ylim(10, 40)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Pupper, col = group), alpha = 0.6)+
   theme_cowplot()+
-  scale_color_viridis_d()
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Phigh_plot
 ```
 
 
@@ -393,18 +390,18 @@ plot_model(Phigh_i_ML, type = "int")+
 P.set3 <- filter(P.set, !is.na(Pupper)) # drop 24 sp that have no Pupper data
 Phigh_species <- unique(P.set3$sp)
 Phigh.tree <- keep.tip(tree_relabel, Phigh_species)
-plotTree(Pwidth.tree)
+plotTree(Phigh.tree)
 ```
 
 ```{r}
-Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
+Phigh_i_phylo <- pglmm(Pupper ~ -1 + lifestage + absLat  + (1|sp__), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
 
 Phigh_i_phylo
 
 ```
 
 ```{r}
-Phigh_i_nophylo <- pglmm(Pupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
+Phigh_i_nophylo <- pglmm(Pupper ~ -1 + lifestage + absLat + (1|sp), cov_ranef = list(sp = Phigh.tree), data = P.set3, bayes = F, REML = F)
 Phigh_i_nophylo
 ```
 
@@ -415,8 +412,8 @@ R2(Phigh_i_phylo, Phigh_i_nophylo)
 
 Extract effect sizes
 ```{r}
-PhighFixedEffects <- tibble(Response = "Phigh", Term = row.names(Phigh_i_phylo$B), Effect = Phigh_i_phylo$B[1:6], 
-SE = Phigh_i_phylo$B.se[1:6])
+PhighFixedEffects <- tibble(Response = "Phigh", Term = row.names(Phigh_i_phylo$B), Effect = Phigh_i_phylo$B[1:4], 
+SE = Phigh_i_phylo$B.se[1:4])
 
 
 
@@ -451,6 +448,38 @@ plot_model(Phigh_i_taxo, type = "int")+
 
 
 
+```{r}
+Plow_i <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
+Plow_a <- lmer(Plower ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
+
+anova(Plow_a, Plow_i, test.statistic = "Chisq") # keep additive model
+
+Plow_a_ML <- lmer(Plower ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
+
+summary(Plow_a_ML)
 
 
+```
+
+```{r}
+P.set$group <- factor(P.set$lifestage)
+predpl <- ggpredict(Plow_a_ML, terms = c("absLat","lifestage"))
+
+
+Plow_plot <- ggplot(predpl, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  annotate("text", x = 0, y = 40, label = "G", size = 5)+
+  ylab(expression(P[low]))+
+  xlab("Absolute latitude")+
+  ylim(10, 40)+
+  geom_point(data = P.set, mapping = aes(x = absLat, y = Plower, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Plow_plot
+```
 
