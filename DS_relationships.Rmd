@@ -39,6 +39,10 @@ res <- responses %>%
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality != "combination") %>% 
   mutate(lifestage = factor(lifestage))
 names(res)
+
+
+res$skew <- (res$Popt - res$Plower) /res$Pwidth
+
 ```
 
 
@@ -141,13 +145,56 @@ width <- ggplot(res_plot3, aes(x = Swidth, y = Dwidth))+
   ylab(expression("D"[width]))+
    annotate("text", x = 5, y = 30, label = "C", size = 5)+
   xlab(expression("S"[width]))+
-  theme(legend.position = "bottom")
+  theme(legend.position = "none")
 width
 ```
 Figure 3B N = `r nrow(res_plot3)`
+
+
+
+to describe the unbalance in thermal tolerance at supra vs sub optimal temperatures, we defined skew as Skew = (Phigh – Popt) /(Popt – Plow). A skew value of 1, occurs when Pwidth occurs solely at optimal and suboptimal temperatures; 0 occurs when Pwidth is equally distributed between sub and supra-optimal temperatures (Figure 1F). Negative skew values would indicate the portion of Pwidth above Popt is larger than that below it.
+
+#Figure 2D, skew ~ Pupper
+
+```{r}
+fitd <- lm(skew ~ Pupper, data = res)
+shapiro.test(fitc$residuals)
+summary(fitd)
+```
+Skew and Phigh varied independently, F = 0.02, degrees of freedom: 1, 58, P < 0.88, N = `r nrow(model.frame(fitd))`).  
+
+
+```{r}
+res_plot4 <- res %>% 
+  filter(!is.na(skew),  !is.na(Supper))
+
+skew <- ggplot(res_plot4, aes(x = Supper, y = skew))+
+  geom_point(aes(shape = lifestage))+
+  ylim(0,1)+
+  #xlim(5,30)+
+  
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  geom_segment(x = 25, xend = 37, y = 1, yend = 0, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab("skew")+
+  annotate("text", x = 24.5, y = 1, label = "D", size = 5)+
+  xlab(expression("P"[high]))+
+  theme(legend.position = "bottom")
+skew
+```
+Figure 3B N = `r nrow(res_plot3)`
+
+`r min(res$skew, na.rm = T)`
+
+`r mean(res$skew, na.rm = T)`
+`r sd(res$skew, na.rm = T)`
+`r max(res$skew, na.rm = T)`
+`r sum(!is.na(res$skew))`
+
 ```{r}
 
 detach("package:cowplot", unload = TRUE)
 library(cowplot)
-plot_grid(optima, high, width, ncol = 3)
+plot_grid(optima, high, width,skew, ncol = 2 )
 ```
