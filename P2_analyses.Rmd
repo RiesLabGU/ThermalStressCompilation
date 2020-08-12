@@ -243,7 +243,7 @@ summary(Popt_i_taxo)
 
 ## 3. Pwidth
 
-Pwidth ranged from `r min(P.set$Pwidth, na.rm = T)` to `r max(P.set$Pwidth, na.rm = T)`, mean =  `r mean(P.set$Pwidth, na.rm = T)`, SD = `r sd(P.set$Pwidth, na.rm = T)`
+Pwidth ranged from `r min(P.set$Pwidth, na.rm = T)` to `r max(P.set$Pwidth, na.rm = T)`, mean =  `r mean(P.set$Pwidth, na.rm = T)`, SD = `r sd(P.set$Pwidth, na.rm = T)`,  N =`r length(!is.na(P.set$Pwidth))`
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`
 
 ## 3.1  Model selection
@@ -344,7 +344,7 @@ summary(Pwidth_i_taxo)
 
 # 4. Phigh (Pupper)
 
-Popt ranged from `r min(P.set$Pupper, na.rm = T)` to `r max(P.set$Pupper, na.rm = T)`, mean =  `r mean(P.set$Pupper, na.rm = T)`, SD = `r sd(P.set$Pupper, na.rm = T)`
+Popt ranged from `r min(P.set$Pupper, na.rm = T)` to `r max(P.set$Pupper, na.rm = T)`, mean =  `r mean(P.set$Pupper, na.rm = T)`, SD = `r sd(P.set$Pupper, na.rm = T)`,  N =`r length(!is.na(P.set$Pupper))`
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`
 
 # 4.1  Model selection
@@ -482,4 +482,6 @@ Plow_plot <- ggplot(predpl, aes(x = x, y = predicted, colour = group, fill = gro
 
 Plow_plot
 ```
+
+
 
