@@ -67,7 +67,7 @@ T.set$species <- word(T.set$sp, 2)
 ```
 
 # 2 T0 Temperature threshold to accumulate degree-days
-T0 ranged from `r min(T.set$T0, na.rm = T)` to `r max(T.set$T0, na.rm = T)`, mean =  `r mean(T.set$T0, na.rm = T)`, SD = `r sd(T.set$T0, na.rm = T)`
+T0 ranged from `r min(T.set$T0, na.rm = T)` to `r max(T.set$T0, na.rm = T)`, mean =  `r mean(T.set$T0, na.rm = T)`, SD = `r sd(T.set$T0, na.rm = T)` N =`r length(!is.na(T.set$T0))`
 Latitude ranged from `r min(T.set$absLat, na.rm = T)` to `r max(T.set$absLat, na.rm = T)`
 
 ## Model selection
@@ -77,7 +77,7 @@ Latitude ranged from `r min(T.set$absLat, na.rm = T)` to `r max(T.set$absLat, na
 T0_i <- lmer(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = T.set) #
 T0_a <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), data = T.set) #
 
-anova(T0_a, T0_i, test.statistic = "Chisq")# keep aditive model
+anova(T0_a, T0_i, test.statistic = "Chisq")# keep additive model
 
 T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), REML = F, data = T.set)
 summary(T0_a_ML)
@@ -108,6 +108,10 @@ T0_plot <- ggplot(pred, aes(x = x, y = predicted, colour = group, shape = group)
 T0_plot
 ```
  
+```{r}
+plot_model(T0_a_ML, type = "pred", levels = "absLat", "lifestage")
+plot_model(T0_a_ML, type = "eff")
+```
  
 
 # 3 Phylogenetic correction
@@ -164,10 +168,10 @@ summary(Sopt_phylo)
 
 ```{r}
 # Whit phylogenetic correction
-T0_phylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
+T0_phylo <- pglmm(T0 ~ -1 + lifestage + absLat + (1|sp__),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
 
 
-T0_nophylo <- pglmm(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
+T0_nophylo <- pglmm(T0 ~ -1 + lifestage + absLat + (1|sp),  bayes= F, data = T.set, cov_ranef = list(sp = T.tree), REML = F)
 summary(T0_phylo)
 
 ```
