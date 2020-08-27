@@ -259,13 +259,13 @@ per3
 ```{r}
 # run this in .R document to get proper figure (no overlaping letters)
 
-grid.arrange(
-  arrangeGrob(
-    devrate, 
-    arrangeGrob(surv, nrow=1),
-    ncol=2 ,widths=c(1.5,1.5)),
-  arrangeGrob(per1, per2 ,per3 ,ncol=3, widths=rep(1,3)),
-  nrow=2)
+# grid.arrange(
+#   arrangeGrob(
+#     devrate, 
+#     arrangeGrob(surv, nrow=1),
+#     ncol=2 ,widths=c(1.5,1.5)),
+#   arrangeGrob(per1, per2 ,per3 ,ncol=3, widths=rep(1,3)),
+#   nrow=2)
 ```
 
 
@@ -280,49 +280,97 @@ hyp <- tibble(Dopt = rnorm(50, mean = 30, sd = 2),
               Swidth = Dwidth *2,
               latopt = Sopt/2)
 
-opt <- ggplot(hyp, aes(x = Sopt, y = Dopt))+
-  geom_line(size = 2)+
-  
-  ylab(expression("D"[opt]))+
-  xlab(expression("S"[opt]))+
-  geom_text(Dopt, mapping = aes(x = 24, y = 34.5, label = "A"), size = 5)+
+ylab <- expression(paste( D[low],", ", D[opt],", ", D[high]))
+xlab <- expression(paste( S[low],", ", S[opt],", ", S[high]))
+
+opt <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
+  #geom_hline(yintercept = 4,size = 2)+
   theme_cowplot()+
+  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
+  ylab(ylab)+
+  xlab(xlab)+
+  annotate("text", x = 0, y = 8, label = "A", size = 5)+
+  ylim(0,8)+
+  xlim(0, 8)+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  
+  
 opt
 
 ```
 
 
 ```{r}
-high <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
-  geom_line(size = 2)+
-  
+high <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
+  #geom_hline(yintercept = 4,size = 2)+
+  theme_cowplot()+
+  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
   ylab(expression("D"[high]))+
   xlab(expression("S"[high]))+
-  geom_text(Dopt, mapping = aes(x = 28.5, y = 37, label = "B"), size = 5)+
-  theme_cowplot()+
+  annotate("text", x = 0, y = 8, label = "B", size = 5)+
+  ylim(0,8)+
+  xlim(0, 8)+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  
 high
 ```
 
 
 ```{r}
 width <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  geom_hline(yintercept = 4,size = 2)+
+  #geom_hline(yintercept = 4,size = 2)+
   theme_cowplot()+
-  
+  geom_segment(x = 4, xend = 8, y = 2, yend = 3, size = 1.3, col = "black")+
   ylab(expression("D"[width]))+
   xlab(expression("S"[width]))+
   
-  annotate("text", x = 0, y = 8, label = "C", size = 5)+
+  annotate("text", x = 0, y = 8, label = "B", size = 5)+
   ylim(0,8)+
   xlim(0, 8)+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
         axis.text.y = element_blank(), axis.ticks.y = element_blank())
 width
 ```
+
+
+```{r}
+mini <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
+  #geom_hline(yintercept = 4,size = 2)+
+  theme_cowplot()+
+  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
+  ylab(expression("D"[low]))+
+  xlab(expression("S"[low]))+
+  annotate("text", x = 0, y = 8, label = "D", size = 5)+
+  ylim(0,8)+
+  xlim(0, 8)+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+mini
+```
+
+```{r}
+Tmin <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
+  #geom_hline(yintercept = 4,size = 2)+
+  theme_cowplot()+
+  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
+  ylab(expression("D"[low]))+
+  xlab(expression("T"[0]))+
+  annotate("text", x = 0, y = 8, label = "C", size = 5)+
+  ylim(0,8)+
+  xlim(0, 8)+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+        axis.text.y = element_blank(), axis.ticks.y = element_blank())
+Tmin
+```
+
+Figure 2
+```{r}
+
+plot_grid(opt, width,Tmin, ncol = 3)
+```
+
 
 
 
@@ -334,7 +382,7 @@ widthlat <- ggplot(hyp, aes(x = Shigh, y = Dhigh -1, col = "larva"))+
   #scale_color_discrete()+
   scale_color_manual(values = c("grey", "grey50", "black"))+
   theme_cowplot()+
-  annotate("text", x = 28.5, y = 37, label = "D", size = 5)+
+  annotate("text", x = 28.5, y = 37, label = "A", size = 5)+
   ylab(expression(P[width]))+
   xlab("Absolute latitude")+
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
@@ -345,20 +393,17 @@ widthlat
 
 
 
-
 ```{r}
-
-
 lab <- expression(paste( S[opt],", ", D[opt],", ", P[opt]))
 threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
   geom_point(col = "white")+
-  geom_segment(x = 26, xend = 34, y = 34-1.5, yend = 26-1.5, size = 1.3, col = "grey50")+
-  geom_segment(x = 26, xend = 34, y = 34+1.5, yend = 26+1.5, size = 1.3, col = "black")+
-  geom_segment(x = 26, xend = 34, y = 34+1, yend = 26+1, size = 1.3, col = "grey")+
+  geom_segment(x = 26, xend = 34, y = 32-1, yend = 29-1, size = 1.3, col = "grey50")+
+  geom_segment(x = 26, xend = 34, y = 32-0.2, yend = 29-0.2, size = 1.3, col = "black")+
+  geom_segment(x = 26, xend = 34, y = 32, yend = 29, size = 1.3, col = "grey")+
   #geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2, linetype = 1)+
   #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
   theme_cowplot()+
-  annotate("text", x = 25, y = 35, label = "E", size = 5)+
+  annotate("text", x = 25, y = 35, label = "B", size = 5)+
   ylab(lab)+
   xlab("Absolute latitude")+
   ylim(25, 35)+
@@ -369,6 +414,43 @@ threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
 
 threelat
 ```
+
+
+
+
+```{r}
+
+
+lab2 <- expression(paste( S[low],", ", D[low],", ", P[low]))
+lowlat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
+  geom_point(col = "white")+
+  geom_segment(x = 26, xend = 34, y = 34-1, yend = 26-1, size = 1.3, col = "grey50")+
+  geom_segment(x = 26, xend = 34, y = 34-0.2, yend = 26-0.2, size = 1.3, col = "black")+
+  geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 1.3, col = "grey")+
+  #geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2, linetype = 1)+
+  #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = 25, y = 35, label = "C", size = 5)+
+  ylab(lab2)+
+  xlab("Absolute latitude")+
+  ylim(25, 35)+
+  xlim(25, 35)+
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+     axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+
+lowlat
+```
+
+
+
+Figure 3
+```{r}
+
+plot_grid(widthlat, threelat,lowlat, ncol = 3)
+```
+
+
 
 ```{r}
 skewhy <- ggplot(hyp, aes(x = Dopt, y = Sopt))+
