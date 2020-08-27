@@ -77,7 +77,7 @@ optima <- ggplot(res_plot, aes(x = maxSopt, y = Dopt))+
   #scale_color_grey()+
   scale_shape_manual(values = c(1,16,8))+
   geom_segment(x = 10, xend = 40, y = 10, yend = 40, col = "black", linetype = 2)+
-   annotate("text", x = 15, y = 40, label = "A", size = 5)+
+   annotate("text", x = 15, y = 40, label = "B", size = 5)+
   theme_cowplot()+
   theme(legend.position = "none")
 
@@ -109,7 +109,7 @@ high <- ggplot(res_plot2, aes(x = Supper, y = Dupper))+
   scale_shape_manual(values = c(1,16,8))+
   geom_segment(x = 10, xend = 40, y = 10, yend = 40, col = "black", linetype = 2)+
   theme_cowplot()+
-  annotate("text", x = 15, y = 40, label = "B", size = 5)+
+  annotate("text", x = 15, y = 40, label = "C", size = 5)+
   
   ylab(expression("D"[high]))+
   xlab(expression("S"[high]))+
@@ -143,7 +143,7 @@ width <- ggplot(res_plot3, aes(x = Swidth, y = Dwidth))+
   geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
   theme_cowplot()+
   ylab(expression("D"[width]))+
-   annotate("text", x = 5, y = 30, label = "C", size = 5)+
+   annotate("text", x = 5, y = 30, label = "D", size = 5)+
   xlab(expression("S"[width]))+
   theme(legend.position = "none")
 width
@@ -154,7 +154,7 @@ Figure 3B N = `r nrow(res_plot3)`
 
 to describe the unbalance in thermal tolerance at supra vs sub optimal temperatures, we defined skew as Skew = (Phigh – Popt) /(Popt – Plow). A skew value of 1, occurs when Pwidth occurs solely at optimal and suboptimal temperatures; 0 occurs when Pwidth is equally distributed between sub and supra-optimal temperatures (Figure 1F). Negative skew values would indicate the portion of Pwidth above Popt is larger than that below it.
 
-#Figure 2D, skew ~ Pupper
+#Old Figure 2D, skew ~ Pupper, discarded
 
 ```{r}
 fitd <- lm(skew ~ Pupper, data = res)
@@ -192,9 +192,100 @@ Figure 3B N = `r nrow(res_plot3)`
 `r max(res$skew, na.rm = T)`
 `r sum(!is.na(res$skew))`
 
+#Figure 2D, Dlow ~ Slow
+
+```{r}
+fitdlows <- lm(Dlower ~ Slower, data = res)
+shapiro.test(fitdlows$residuals)
+summary(fitdlows)
+```
+Skew and Phigh varied independently, F = 0.02, degrees of freedom: 1, 58, P < 0.88, N = `r nrow(model.frame(fitd))`).  
+
+
+```{r}
+res_plot5 <- res %>% 
+  filter(!is.na(Dlower),  !is.na(Slower))
+max(res_plot5$Slower)
+lows <- ggplot(res_plot5, aes(x = Slower, y = Dlower))+
+  geom_point(aes(shape = lifestage))+
+  ylim(0,30)+
+  xlim(0,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  geom_segment(x = 0, xend = 25, y = 0, yend = 25, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("D"[low]))+
+  annotate("text", x = 0, y = 29, label = "A", size = 5)+
+  xlab(expression("S"[low]))+
+  theme(legend.position = "none")
+lows
+```
+Figure 3D N = `r nrow(res_plot5)`
+
+
+
+
+
+#Figure T0 T0 ~ Dlow
+
+```{r}
+fitT0 <- lm(T0 ~ Dlower, data = res)
+shapiro.test(fitT0$residuals)
+summary(fitT0)
+```
+Skew and Phigh varied independently, F = 0.02, degrees of freedom: 1, 58, P < 0.88, N = `r nrow(model.frame(fitd))`).  
+
+
+```{r}
+res_plot6 <- res %>% 
+  filter(!is.na(T0),  !is.na(Dlower))
+max(res_plot6$Dlower)
+Ts <- ggplot(res_plot6, aes(x = T0, y = Dlower))+
+  geom_point(aes(shape = lifestage))+
+  ylim(0,30)+
+  xlim(0,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  geom_segment(x = 0, xend = 25, y = 0, yend = 25, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("D"[low]))+
+  annotate("text", x = 0, y = 29, label = "E", size = 5)+
+  xlab(expression("T"[0]))+
+  theme(legend.position = "none")
+Ts
+```
+Figure 3D N = `r nrow(res_plot5)`
+
+
+```{r}
+
+legendplot <- ggplot(res_plot6, aes(x = T0, y = Dlower))+
+  geom_point(aes(shape = lifestage))+
+  ylim(0,30)+
+  xlim(0,30)+
+  
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  geom_segment(x = 0, xend = 25, y = 0, yend = 25, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("D"[low]))+
+  annotate("text", x = 0, y = 29, label = "A", size = 5)+
+  xlab(expression("T"[0]))+
+  theme(legend.position = "right")
+legend <- get_legend(legendplot)
+
+```
+
+
+
+
 ```{r}
 
 detach("package:cowplot", unload = TRUE)
 library(cowplot)
-plot_grid(optima, high, width,skew, ncol = 2 )
+#plot_grid(optima, high, width,lows, ncol = 2 )
+plot_grid(lows, optima, high, width,Ts,legend, ncol = 3 )
+
 ```
