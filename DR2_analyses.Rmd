@@ -214,17 +214,17 @@ SD = sqrt(Variance))
 
 Plot model predictions
 ```{r}
-pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
-communityPGLMM.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
-pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")[[1]]
-
-fitted(Dopt_phylo)
-confint(Dopt_phylo)
-effects(Dopt_nophylo)
-
-predict(Dopt_phylo, interval = "confidence")
-fitted.communityPGLMM(Dopt_phylo)
-resid(Dopt_phylo)
+# pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
+# communityPGLMM.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
+# pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")[[1]]
+# 
+# fitted(Dopt_phylo)
+# confint(Dopt_phylo)
+# effects(Dopt_nophylo)
+# 
+# predict(Dopt_phylo, interval = "confidence")
+# fitted.communityPGLMM(Dopt_phylo)
+# resid(Dopt_phylo)
 summary(Dopt_phylo)
 ```
 
@@ -256,50 +256,12 @@ pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")
 ```
 
 ```{r}
-pglmm.plot.ranef(x = Dopt_phylo, site.var = "lifestage")
-pglmm.plot.ranef(x = Dopt_phylo, site.var = "absLat")
-plot_model(Dopt_phylo, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
+#pglmm.plot.ranef(x = Dopt_phylo, site.var = "lifestage")
+#pglmm.plot.ranef(x = Dopt_phylo, site.var = "absLat")
+#plot_model(Dopt_phylo, type = "pred", terms = c("lifestage", "absLat"))+
+ # theme_cowplot()+
+  #scale_color_viridis_d()
 ```
-
-## 2.3 Taxonomic correction
-
-```{r}
-# fit better model using REML
-Dopt_taxo <- lme(Dopt ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = D.set, method = "REML")
-
-Dopt_taxo
-```
-
-According to the model with taxonomic correction, Dopt decreased 0.7 degrees with every 10 degrees of latitude and Dopt was close to 32.5 for all life stages. Variation among species: 1.5 [Very similar to model in section 2.1]
-
-```{r}
-
-D.set$group <- factor(D.set$lifestage)
-pred <- ggpredict(Dopt_taxo, terms = c("absLat","lifestage"))
-
-
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("Dopt")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6)+
-  theme_cowplot()
-```
-
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(Dopt_taxo, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
- 
 
 
 # 3. Dwidth
@@ -324,30 +286,6 @@ summary(Dwidth_a_ML)
 ```
 According to this mode, Dwidth was 12.1 for egg and larvae and 11.1 for pupae (one degree smaller, `r ((12.1 - 11.1)/12.1) *100`% smaller)  and Dwidth increased 0.4 degrees C for every 10 degrees in latitude. Variation among species: 1.8
 
-```{r}
-# # Effects plot
-# latlifeI_effects <- tidy(Dwidth_a_ML)
-# Esizes_wide <- tibble(o_mean = mean(D.set$Dwidth, na.rm = T),
-#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-# 
-# names(Esizes_wide)
-# 
-# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-# 
-# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-#   geom_bar(stat = "identity")+
-#   theme_cowplot()+
-#   ylim(-2,6)
-
-
-```
-Effect sizes according to ML model 
 
 ## 3.2 Phylogenetic correction
 
@@ -376,45 +314,6 @@ DwidthRandomEffects <- tibble(Response = "Dwidth", Term = c("sp", "sp__", "resid
 SD = sqrt(Variance))
 
 ```
-
-
-## 3.3 Taxonomic correction
-
-```{r}
-# fit better model using REML
-D.set2 <- filter(D.set, !is.na(Dwidth))
-Dwidth_taxo <- lme(Dwidth ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = D.set2, method = "REML")
-
-Dwidth_taxo
-```
-
-According to the model with taxonomic correction, Dwidth increased 0.2 degrees with every 10 degrees of latitude and it was 12.3 for egg and larvae and 11.4 for pupae. Variation among species: 1.3.
-
-```{r}
-
-D.set$group <- factor(D.set$lifestage)
-pred <- ggpredict(Dwidth_taxo, terms = c("absLat","lifestage"))
-
-
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("Dopt")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = D.set, mapping = aes(x = absLat, y = Dwidth, col = group), alpha = 0.6)+
-  theme_cowplot()
-```
-
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(Dwidth_taxo, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
 
 
 
@@ -492,6 +391,90 @@ SD = sqrt(Variance))
 ```
 
 
+# 4. Dlow (Dlower)
+Dhigh ranged from `r min(D.set$Dlower, na.rm = T)` to `r max(D.set$Dlower, na.rm = T)`, mean =  `r mean(D.set$Dlower, na.rm = T)`, SD = `r sd(D.set$Dlower, na.rm = T)`
+Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na.rm = T)`
+
+## 4.1 Model selection
+
+```{r}
+
+Dlower_i <- lmer(Dlower ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
+Dlower_a <- lmer(Dlower ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
+
+
+anova(Dlower_i, Dlower_a, test.statistic = "Chisq") # keep additive model
+
+
+Dlower_a_ML <- lmer(Dlower ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
+summary(Dlower_a_ML)
+```
+According to this mode, Dlower was 35 for pupae, 35.2 for larvae and 35.4 for eggs.  Dlower decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
+
+```{r}
+# Predictions plot
+D.set$group <- factor(D.set$lifestage)
+predlow <- ggpredict(Dlower_a_ML, terms = c("absLat","lifestage"))
+
+
+
+Dlow_plot <- ggplot(predlow, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab(expression(D[low]))+
+  xlab("Absolute latitude")+
+  ylim(0, 30)+
+  annotate("text", x = 0, y = 30, label = "G", size = 5)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dlower, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Dlow_plot
+
+
+```
+Effect sizes according to ML model 
+
+
+## 4.2 Phylogenetic correction
+
+```{r}
+Dhigh_phylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+
+
+Dhigh_nophylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+summary(Dwidth_phylo)
+```
+
+# RUn this to asses the effect of phylogeny on Popt
+```{r}
+R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
+```
+
+Extract effect sizes
+```{r}
+DhighFixedEffects <- tibble(Response = "Dhigh", Term = row.names(Dhigh_phylo$B), Effect = Dhigh_phylo$B[1:4], 
+SE = Dhigh_phylo$B.se[1:4])
+
+
+
+DhighRandomEffects <- tibble(Response = "Dhigh", Term = c("sp", "sp__", "residual"), Variance = c(Dhigh_phylo$s2r,Dhigh_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
+
+
+
+
+
+
+
 Consolidate effects and save table
 ```{r}
 DrFixedEffects <- rbind(DoptFixedEffects, DwidthFixedEffects, DhighFixedEffects)
@@ -500,46 +483,19 @@ DrRandomEffects <- rbind(DoptRandomEffects, DwidthRandomEffects, DhighRandomEffe
 # write_csv(DrRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/DrateRandomEffects.csv")
 ```
 
-## 4.3 Taxonomic correction
 
 
-```{r}
-# fit better model using REML
-D.set2 <- filter(D.set, !is.na(Dupper))
-Dupper_taxo <- lme(Dupper ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = D.set2, method = "REML")
 
-Dupper_taxo
-```
-
-According to the model with taxonomic correction, Dupper decreased 0.5 degrees with every 10 degrees of latitude and it was 35 for egg , 34.8 for larvae and 34,7 for pupae. Variation among species: 1.7.
-
-```{r}
-
-D.set$group <- factor(D.set$lifestage)
-pred <- ggpredict(Dupper_taxo, terms = c("absLat","lifestage"))
+plot_grid(Dopt_plot, Sopt_plot, Popt_plot, Pwidth_plot, Phigh_plot, T0_plot, Dlow_plot, Slow_plot, Plow_plot, ncol = 3)
 
 
-ggplot(pred, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab("Dhigh")+
-  xlab("Absolute latitude")+
- # ylim(5, 20)+
-  geom_point(data = D.set, mapping = aes(x = absLat, y = Dupper, col = group), alpha = 0.6)+
-  theme_cowplot()
-```
-
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-plot_model(Dupper_taxo, type = "pred", terms = c("lifestage", "absLat"))+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
 
 
- 
+
+
+
+
+
  
 #Old code 
  ****************************************************************************************************
