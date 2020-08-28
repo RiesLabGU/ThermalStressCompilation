@@ -253,24 +253,24 @@ summary(Swidth_a_ML)
 ```
  
 ```{r}
-# get data for plot
-latlifeI_effects <- tidy(Swidth_a_ML)
-Esizes_wide <- tibble(o_mean = mean(S.set$Swidth, na.rm = T),
-                   lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-                   lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-                   egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-                   larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-                   pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-                   SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-
-names(Esizes_wide)
-
-Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-
-ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-  geom_bar(stat = "identity")+
-  theme_cowplot()
+# # get data for plot
+# #latlifeI_effects <- tidy(Swidth_a_ML)
+# Esizes_wide <- tibble(o_mean = mean(S.set$Swidth, na.rm = T),
+#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
+#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
+#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
+#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
+#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
+#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
+# 
+# names(Esizes_wide)
+# 
+# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
+# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
+# 
+# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
+#   geom_bar(stat = "identity")+
+#   theme_cowplot()
 
 
 ```
@@ -459,24 +459,117 @@ SD = sqrt(Variance))
 ```
 
 
+## 5 Slow (Slower)
+Slow ranged from `r min(S.set$Slower, na.rm = T)` to `r max(S.set$Slower, na.rm = T)`, mean =  `r mean(S.set$Slower, na.rm = T)`, SD = `r sd(S.set$Slower, na.rm = T)`
+Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
+###4.1 Model selection
+
+```{r}
+Slow_i <- lmer(Slower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
+Slow_a<- lmer(Slower ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
+
+anova(Slow_i, Slow_a, test.statistic = "Chisq") # keep interaction model
+
+Slow_i_ML <- lmer(Slower ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp), REML = F, data = S.set) #
+
+Anova(Slow_i_ML)
+summary(Slow_i_ML)
+
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+S.set$group <- S.set$lifestage
+predSlow <- ggpredict(Slow_i_ML, terms = c("absLat","lifestage"))
+
+
+Slow_plot <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  ylab(expression(S[low]))+
+   annotate("text", x = 0, y = 30, label = "H", size = 5)+
+  scale_shape_manual(values = c(1,16,8))+
+  xlab("Absolute latitude")+
+  #ylim(0, 40)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col =group ), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.position = "none")
+
+Slow_plot
+```
+ 
+ 
+```{r}
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+plot_model(Slow_i_ML, type = "pred", terms = c("lifestage", "absLat"))+
+  theme_cowplot()+
+  scale_color_viridis_d()
+```
+ 
+###4.2 Phylogenetic correction
+
+
+```{r}
+Slow_phylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+Slow_nophylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+
+summary(Slow_phylo)
+```
+
+
+```{r}
+
+# Run this to asses the effect of phylogeny on Sopt
+
+R2(Slow_phylo,Slow_nophylo, phy = S.tree) # 
+ 
+
+```
+
+```{r}
+summary(Slow_phylo)
+```
+
+Extract effect sizes
+```{r}
+SlowFixedEffects <- tibble(Response = "Slow", Term = row.names(Slow_phylo$B), Effect = Slow_phylo$B[1:6], 
+SE = Slow_phylo$B.se[1:6])
+
+
+
+SlowRandomEffects <- tibble(Response = "Slow", Term = c("sp", "sp__", "residual"), Variance = c(Slow_phylo$s2r, Slow_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
+
+
 
 Consolidate effects and save table
 ```{r}
-SFixedEffects <- rbind(SoptFixedEffects, SwidthFixedEffects, ShighFixedEffects)
-SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffects)
+SFixedEffects <- rbind(SoptFixedEffects, SwidthFixedEffects, ShighFixedEffects, SlowFixedEffects)
+SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffects, SlowRandomEffects)
 # write_csv(SFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SFixedEffects.csv")
 # write_csv(SRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SRandomEffects.csv")
 ```
 
-###4.3 Taxonomic correction
 
-```{r}
-S.set$genus <- word(S.set$sp, 1)
-S.set$species <- word(S.set$sp, 2)
-Shigh_taxo <- lme(Supper ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = S.set3, method = "REML")
 
-Shigh_taxo
-```
+
+
+
+
+
+
+
+
 
 
  
