@@ -472,10 +472,10 @@ Plow_plot <- ggplot(predpl, aes(x = x, y = predicted, colour = group, fill = gro
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   scale_shape_manual(values = c(1,16,8))+
-  annotate("text", x = 0, y = 40, label = "G", size = 5)+
+  annotate("text", x = 0, y = 30, label = "I", size = 5)+
   ylab(expression(P[low]))+
   xlab("Absolute latitude")+
-  ylim(10, 40)+
+  ylim(0, 30)+
   geom_point(data = P.set, mapping = aes(x = absLat, y = Plower, col = group), alpha = 0.6)+
   theme_cowplot()+
   theme(legend.title = element_blank(), legend.position = "none")
