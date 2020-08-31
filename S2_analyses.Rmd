@@ -81,7 +81,6 @@ S.sets <- S.set %>%
   select(set)
 # write_csv(S.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_survival.csv")
 
-
 ```
 
 ## Sopt: temperature that maximizes development rate
