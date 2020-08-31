@@ -7,7 +7,7 @@ output: html_notebook
 
 2.  Model selection
 3.  Phylogenetic correction
-4. Taxonomic correction for comparison
+
 
 ```{r}
 # load packages
@@ -59,11 +59,15 @@ responses_table <- responses %>%
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
 T.set <- filter(responses_table, !is.na(T0))
-T.set <- select(T.set, T0, lifestage, absLat, sp, family)
+T.set <- select(T.set, set, T0, lifestage, absLat, sp, family)
 length(unique(T.set$sp))
 T.set$genus <- word(T.set$sp, 1)
 T.set$species <- word(T.set$sp, 2)
 
+# save a list of sets included in analyses
+T.sets <- T.set %>% 
+  select(set)
+# write_csv(P.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_Tnot.csv")
 ```
 
 # 2 T0 Temperature threshold to accumulate degree-days
@@ -78,7 +82,9 @@ T0_i <- lmer(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = T.
 T0_a <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), data = T.set) #
 
 anova(T0_a, T0_i, test.statistic = "Chisq")# keep additive model
+```
 
+```{r}
 T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), REML = F, data = T.set)
 summary(T0_a_ML)
 ```
@@ -88,10 +94,10 @@ summary(T0_a_ML)
 # Plot data and predictions
 
 responses_table$group <- responses_table$lifestage
-pred <- ggpredict(T0_a_ML, terms = c("absLat","lifestage"))
+predto <- ggpredict(T0_a_ML, terms = c("absLat","lifestage"))
 
 
-T0_plot <- ggplot(pred, aes(x = x, y = predicted, colour = group, shape = group)) +
+T0_plot <- ggplot(predto, aes(x = x, y = predicted, colour = group, shape = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
@@ -109,8 +115,8 @@ T0_plot
 ```
  
 ```{r}
-plot_model(T0_a_ML, type = "pred", levels = "absLat", "lifestage")
-plot_model(T0_a_ML, type = "eff")
+# plot_model(T0_a_ML, type = "pred", levels = "absLat", "lifestage")
+# plot_model(T0_a_ML, type = "eff")
 ```
  
 
@@ -137,10 +143,10 @@ Dspecies <- tibble(sp = unique(T.set$sp))
 V_species <- unique(T.set$sp)
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
-setdiff(Dspecies, tree_species)
+# setdiff(Dspecies, tree_species)
 # all species in T.set are in the tree. 
 
-setdiff(tree_species, Dspecies) # the tree has 45 species more than T.set
+# setdiff(tree_species, Dspecies) # the tree has 45 species more than T.set
 
 ```
 
@@ -156,15 +162,6 @@ plotTree(T.tree)
 
 
 ### 2.2.2 Fit model
-# With phylogenetic correction
-Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
-
-Sopt_nophylo <- pglmm(Sopt ~ -1 + lifestage + absLat  + lifestage:absLat + (1|sp), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
-
-
-# Without phylogenetic correction
-
-summary(Sopt_phylo)
 
 ```{r}
 # Whit phylogenetic correction
@@ -183,40 +180,45 @@ Is phylogenetic history important?
 R2(T0_phylo,T0_nophylo, phy = S.tree) 
 ```
 
-
-
-# 3 Taxonomic correction
-
-```{r}
-# fit better model using REML
-T0_taxo <- lme(T0 ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = T.set, method = "REML")
-
-T0_taxo
-```
-
 # 4. Variation in maximum development rate (exploratory not in presentation)
 ```{r}
-fit2_fullrandom <- lmer(Max_dr ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(T.set)) #
+fit2_fullrandom <- lmer(Max_dr ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(responses_table)) #
 
-summary(fit2_fullrandom)
+fit_red2random <- lmer(Max_dr ~ lifestage + absLat + (1|sp), data = as.data.frame(responses_table), REML = F)
 
-fit_red2random <- lmer(Max_dr ~ lifestage + absLat + (1|sp), data = as.data.frame(T.set), REML = F)
+anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq") # keep interaction model
+```
 
-anova(fit2_fullrandom, fit_red2random, test.statistic = "Chisq")
-## interaction term is worse fit by AIC ro BIC, use reduced model
+```{r}
 
 # fit better model with ML
-fit2_randomML <- lmer(Max_dr ~  lifestage + absLat + (1|sp), REML = F, data = as.data.frame(T.set))
-summary(fit2_randomML)
-Anova(fit2_randomML)
+fit2_i_randomML <- lmer(Max_dr ~  lifestage + absLat + lifestage:absLat + (1|sp), REML = F, data = as.data.frame(responses_table))
+summary(fit2_i_randomML)
+```
+
+```{r}
+# Plot data and predictions
+
+responses_table$group <- responses_table$lifestage
+predrate <- ggpredict(fit2_i_randomML, terms = c("absLat","lifestage"))
 
 
-dw_plot(fit2_randomML) +
-  #geom_vline(xintercept= mean(T.set$Dopt),lty=2)+
-  geom_vline(xintercept= 0,lty=3)+
-  theme_cowplot()+
+rate_plot <- ggplot(predrate, aes(x = x, y = predicted, colour = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #xlim(0,50)+
+  scale_shape_manual(values = c(1,16,8))+
+  #ylab(expression('T'[0]))+
+  ylab("Development rate")+
+  #annotate("text", x = 0, y = 16, label = "F", size = 5)+
+  xlab("Absolute latitude")+
+  geom_point(data = responses_table, mapping = aes(x = absLat, y = Max_dr, col =group ), alpha = 0.6)+
+  theme_cowplot()+
   theme(legend.position = "none")
+
+rate_plot
 ```
 
 
