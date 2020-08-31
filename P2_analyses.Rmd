@@ -8,17 +8,18 @@ output: html_notebook
 2. Popt
 2.1  Model selection
 2.2  Phylogenetic correction
-2.3. Taxonomic correction for comparison
 
 3. Pwidth
 3.1  Model selection
 3.2  Phylogenetic correction
-3.3. Taxonomic correction for comparison
 
 4. Phigh (Pupper)
 4.1  Model selection
 4.2  Implement phylogenetic correction
-4.3  Taxonomic correction for comparison
+
+5. Plow (Plower)
+5.1  Model selection
+5.2  Implement phylogenetic correction
 
 
 ```{r}
@@ -83,7 +84,12 @@ responses_table <- responses %>%
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
-P.set <- select(responses_table, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family, locality)
+P.set <- select(responses_table, set, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family, locality)
+
+# save a list of sets included in analyses
+P.sets <- P.set %>% 
+  select(set)
+# write_csv(P.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_performance.csv")
 
 ```
 
@@ -93,14 +99,14 @@ Popt ranged from `r min(P.set$Popt, na.rm = T)` to `r max(P.set$Popt, na.rm = T)
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`,  N =`r length(!is.na(P.set$Popt))`
 
 ```{r}
-
 Popt_i <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 Popt_a <- lmer(Popt ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
 anova(Popt_a, Popt_i, test.statistic = "Chisq") # keep interaction model
+```
 
+```{r}
 Popt_i_ML <- lmer(Popt ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp) , REML = F, data = as.data.frame(P.set)) #
-
 summary(Popt_i_ML)
 ```
 
@@ -171,11 +177,11 @@ V_species <- unique(P.set$sp)
 
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
-setdiff(Pspecies, tree_species)
+# setdiff(Pspecies, tree_species)
 
 # all species in P.set are in the tree. 
 
-setdiff(tree_species, Pspecies) # the tree has 71 species more than P.set
+# setdiff(tree_species, Pspecies) # the tree has 71 species more than P.set
 ```
 
 Trim the tree so it only includes the species in the P.set. First the tips have to be relabeled so they include only the species names
@@ -193,9 +199,6 @@ plotTree(P.tree)
 # With phylogenetic correction
 Popt_i_phylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__), bayes= F, data = P.set, cov_ranef = list(sp = P.tree), REML = F)
 
-Popt_i_phylo2 <- pglmm(Popt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data = P.set, cov_ranef = list(sp = P.tree), REML = F)
-
-
 # Without phylogenetic correction
 Popt_i_nophylo <- pglmm(Popt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), bayes= F, data = P.set, REML = F)
 summary(Popt_i_phylo)
@@ -205,13 +208,10 @@ summary(Popt_i_phylo)
 summary(Popt_i_nophylo)
 ```
 
-
+Assess the effect of phylogeny on Popt
 
 ```{r}
-# RUn this to asses the effect of phylogeny on Popt
-
 R2(Popt_i_phylo,Popt_i_nophylo) # if this does not work unload and reload rr2
-
 ```
 
 Extract effect sizes for plot
@@ -219,44 +219,27 @@ Extract effect sizes for plot
 PoptFixedEffects <- tibble(Response = "Popt", Term = row.names(Popt_i_phylo$B), Effect = Popt_i_phylo$B[1:6], 
 SE = Popt_i_phylo$B.se[1:6])
 
-PoptFixedEffects
-
 PoptRandomEffects <- tibble(Response = "Popt", Term = c("sp", "sp__", "residual"), Variance = c(Popt_i_phylo$s2r,Popt_i_phylo$s2resid) , 
 SD = sqrt(Variance))
 
 ```
 
-# 2. Taxonomic correction
-```{r}
-
-
-P.set$genus <- word(P.set$sp, 1)
-P.set$species <- word(P.set$sp, 2)
-P.set$Pwidth
-Popt_i_taxo <- lme(Popt ~ -1 + lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = P.set) 
-
-summary(Popt_i_taxo) 
-
-```
-
-
 
 ## 3. Pwidth
-
 Pwidth ranged from `r min(P.set$Pwidth, na.rm = T)` to `r max(P.set$Pwidth, na.rm = T)`, mean =  `r mean(P.set$Pwidth, na.rm = T)`, SD = `r sd(P.set$Pwidth, na.rm = T)`,  N =`r length(!is.na(P.set$Pwidth))`
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`
 
 ## 3.1  Model selection
 
 ```{r}
-
 Pwidth_i <- lmer(Pwidth ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 Pwidth_a <- lmer(Pwidth ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
 anova(Pwidth_a, Pwidth_i, test.statistic = "Chisq") # keep additive model
+```
 
+```{r}
 Pwidth_a_ML <- lmer(Pwidth ~ -1 + absLat + lifestage +  (1|sp) , REML = F, data = as.data.frame(P.set)) #
-
 summary(Pwidth_a_ML)
 
 ```
@@ -290,16 +273,17 @@ P.set2 <- filter(P.set, !is.na(Pwidth)) # drop 23 sp that have no Pwidth data
 Pwidth_species <- unique(P.set2$sp)
 Pwidth.tree <- keep.tip(tree_relabel, Pwidth_species)
 plotTree(Pwidth.tree)
-
-
-
 ```
+
+
+
 ```{r}
 Pwidth_i_phylo <- pglmm(Pwidth ~ -1 + lifestage + absLat  + (1|sp__), cov_ranef  = list(sp = Pwidth.tree), bayes= F, data = P.set2, REML = F)
 
 Pwidth_i_phylo
 
 ```
+
 ```{r}
 Pwidth_i_nophylo <- pglmm(Pwidth ~ -1 + lifestage + absLat  + (1|sp),  bayes= F, data = P.set2, REML = F)
 Pwidth_i_nophylo
@@ -323,28 +307,9 @@ SD = sqrt(Variance))
 
 ```
 
-
-
-
-
-## 3.3. Taxonomic correction for comparison
-
-
-```{r}
-
-Pwidth_i_taxo <- lme(Pwidth ~ -1 + lifestage + absLat, random = ~ 1|family/genus/species, data = P.set2) 
-
-summary(Pwidth_i_taxo) 
-
-```
-
-
-
-
-
 # 4. Phigh (Pupper)
 
-Popt ranged from `r min(P.set$Pupper, na.rm = T)` to `r max(P.set$Pupper, na.rm = T)`, mean =  `r mean(P.set$Pupper, na.rm = T)`, SD = `r sd(P.set$Pupper, na.rm = T)`,  N =`r length(!is.na(P.set$Pupper))`
+Phigh ranged from `r min(P.set$Pupper, na.rm = T)` to `r max(P.set$Pupper, na.rm = T)`, mean =  `r mean(P.set$Pupper, na.rm = T)`, SD = `r sd(P.set$Pupper, na.rm = T)`,  N =`r length(!is.na(P.set$Pupper))`
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`
 
 # 4.1  Model selection
@@ -353,8 +318,9 @@ Phigh_i <- lmer(Pupper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = 
 Phigh_a <- lmer(Pupper ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
 anova(Phigh_a, Phigh_i, test.statistic = "Chisq") # keep additive model
+```
 
-Phigh_i_ML <- lmer(Pupper ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp) , REML = F, data = as.data.frame(P.set)) #
+```{r}
 Phigh_a_ML <- lmer(Pupper ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 summary(Phigh_a_ML)
@@ -422,43 +388,19 @@ SD = sqrt(Variance))
 
 ```
 
-
-
-
-Consolidate effects and save table
-```{r}
-PFixedEffects <- rbind(PoptFixedEffects, PwidthFixedEffects, PhighFixedEffects)
-PRandomEffects <- rbind(PoptRandomEffects, PwidthRandomEffects, PhighRandomEffects)
-# write_csv(PFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PFixedEffects.csv")
-# write_csv(PRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PRandomEffects.csv")
-```
-
-
-# 4.3  Taxonomic correction for comparison
-
-```{r}
-P.set3 <- filter(P.set, !is.na(Pupper))
-Phigh_i_taxo <- lme(Pupper ~ -1 + lifestage + absLat + lifestage:absLat, random = ~ 1|family/genus/species, data = P.set3) 
-
-summary(Phigh_i_taxo) 
-plot_model(Phigh_i_taxo, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-
-
+# 5. Plow (Plower)
+Model selection
 ```{r}
 Plow_i <- lmer(Plower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
 Plow_a <- lmer(Plower ~ absLat + lifestage + (1|sp), data = as.data.frame(P.set)) #
 
 anova(Plow_a, Plow_i, test.statistic = "Chisq") # keep additive model
+```
 
+```{r}
 Plow_a_ML <- lmer(Plower ~ -1 + absLat + lifestage + (1|sp) , REML = F, data = as.data.frame(P.set)) #
 
 summary(Plow_a_ML)
-
-
 ```
 
 ```{r}
@@ -483,5 +425,51 @@ Plow_plot <- ggplot(predpl, aes(x = x, y = predicted, colour = group, fill = gro
 Plow_plot
 ```
 
+# 5.2  Implement phylogenetic correction
+
+```{r}
+P.set4 <- filter(P.set, !is.na(Plower)) 
+Plow_species <- unique(P.set4$sp)
+Plow.tree <- keep.tip(tree_relabel, Plow_species)
+plotTree(Plow.tree)
+```
+
+```{r}
+Plow_a_phylo <- pglmm(Plower ~ -1 + lifestage + absLat  + (1|sp__), cov_ranef = list(sp = Plow.tree), data = P.set4, bayes = F, REML = F)
+
+Plow_a_phylo
+
+```
+
+```{r}
+Plow_a_nophylo <- pglmm(Plower ~ -1 + lifestage + absLat + (1|sp), cov_ranef = list(sp = Plow.tree), data = P.set4, bayes = F, REML = F)
+Plow_a_nophylo
+```
+
+
+```{r}
+R2(Plow_a_phylo, Plow_a_nophylo)
+```
+
+Extract effect sizes
+```{r}
+PlowFixedEffects <- tibble(Response = "Plow", Term = row.names(Plow_a_phylo$B), Effect = Plow_a_phylo$B[1:4], 
+SE = Plow_a_phylo$B.se[1:4])
+
+PlowRandomEffects <- tibble(Response = "Plow", Term = c("sp", "sp__", "residual"), Variance = c(Plow_a_phylo$s2r,Plow_a_phylo$s2resid) , 
+SD = sqrt(Variance))
+```
+
+
+
+
+
+Consolidate effects and save table
+```{r}
+PFixedEffects <- rbind(PoptFixedEffects, PwidthFixedEffects, PhighFixedEffects, PlowFixedEffects)
+PRandomEffects <- rbind(PoptRandomEffects, PwidthRandomEffects, PhighRandomEffects, PlowRandomEffects)
+# write_csv(PFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PFixedEffects.csv")
+# write_csv(PRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/PRandomEffects.csv")
+```
 
 
