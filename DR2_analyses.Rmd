@@ -4,20 +4,23 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
+
 2. Dopt
 2.1  Model selection
 2.2  Phylogenetic correction
-2.3. Taxonomic correction for comparison
 
 3. Dwidth
 3.1  Model selection
 3.2  Phylogenetic correction
-3.3. Taxonomic correction for comparison
 
 4. Dhigh (Dupper)
 4.1  Model selection
 4.2  Implement phylogenetic correction
-4.3  Taxonomic correction for comparison
+
+5. Dlow (Dlower)
+5.1  Model selection
+5.2  Implement phylogenetic correction
+
 
 # 1. Import data and housekeeping
 ```{r}
@@ -43,9 +46,9 @@ library(stringr)
 library(phylotools)
 library(phytools)
 library(rr2)
-
+# sessionInfo()
 ```
-`r sessionInfo()`
+
 
 ```{r}
 # Mariana's desktop
@@ -54,7 +57,6 @@ responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerforma
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
 ```
-
 
 ```{r}
 # Mariana's laptop
@@ -66,9 +68,7 @@ tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 #responses <- read_csv("~/Desktop/ThermalResponsesIII.csv")
 ```
 
-
 We discarded "eggtoemergence" category in the subsequent analyses because it is a combination of the other three. We also discarded data from sets of uncertain locality ("inferred") or that were a combination of localities "combination".
-
 
 ```{r}
 # convert character to factor
@@ -89,6 +89,11 @@ D.set <- select(responses_table, set, Dopt, Dupper, Dwidth, Dlower, lifestage, a
 D.set$genus <- word(D.set$sp, 1)
 D.set$species <- word(D.set$sp, 2)
 
+# save a list of sets included in analyses
+D.sets <- D.set %>% 
+  select(set)
+# write_csv(D.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_development.csv")
+
 ```
 
 # 2. Dopt: temperature that maximizes development rate
@@ -102,16 +107,17 @@ To asses the effect of latitude and lifestage on variation in Dopt, we fitted tw
 
 Dopt_i <- lmer(Dopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
 Dopt_a <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-Dopt_r <- lmer(Dopt ~ -1+ (1|sp), data = as.data.frame(D.set)) #
 
-anova(Dopt_i, Dopt_a, Dopt_r, test.statistic = "Chisq") # keep additive model
 anova(Dopt_i, Dopt_a, test.statistic = "Chisq") # keep additive model
+```
 
+
+```{r}
 Dopt_a_ML <- lmer(Dopt ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
-Anova(Dopt_a_ML)
+# Anova(Dopt_a_ML)
 summary(Dopt_a_ML)
 ```
-According to this mode, Dopt was close to 32. for all lifestages and Dopt increased 0.6 degrees C for every 10 degrees in latitude. Variation among species: 2.3
+According to this model, Dopt was close to 32. for all lifestages and Dopt increased 0.6 degrees C for every 10 degrees in latitude. Variation among species: 2.3
 
 ```{r}
 # Predictions plot
@@ -138,9 +144,8 @@ Dopt_plot
 
 
 ## 2.2 Phylogenetic correction
-
 ### 2.2.1 Adjust data table 
-Change species' names of the following species to reflect substitutions due to lack of data and to correct mispellings
+Change species' names of the following species to reflect substitutions due to lack of data and to correct misspellings
 
 Substitutions:
  In tree                  In dataset    
@@ -161,13 +166,13 @@ Dspecies <- tibble(sp = unique(D.set$sp))
 V_species <- unique(D.set$sp)
 tree_species <-  tibble(sp = as.character(paste(word(tree$tip.label, sep = "_", 4), word(tree$tip.label, sep = "_", 5))))
 
-setdiff(Dspecies, tree_species)
+#setdiff(Dspecies, tree_species)
 # all species in D.set are in the tree. 
 
-setdiff(tree_species, Dspecies) # the tree has 45 species more than D.set
+#setdiff(tree_species, Dspecies) # the tree has 45 species more than D.set
 ```
 
-Trim the tree so it only includes the species in the P.set. First the tips have to be relabeled so they include only the species names
+Trim the tree so it only includes the species in D.set. First the tips have to be relabeled so they include only the species names
 ```{r}
 rename <- as.data.frame(tibble(oldname = tree$tip.label, 
                  newname = tree_species$sp))
@@ -176,15 +181,13 @@ D.tree <- keep.tip(tree_relabel, V_species)
 plotTree(D.tree)
 ```
 
-### 2.2.2 Fit model
+### 2.2.2 Fit models
 
 ```{r}
-
-
+# 1. with phylogenetic correction
 Dopt_phylo <- pglmm(Dopt ~ -1 + lifestage + absLat +(1|sp__),  bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
-
-
-Dopt_nophylo <- pglmm(Dopt ~ -1 + lifestage + absLat+ (1|sp),  bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
+# 2. With sp as a random effect 
+Dopt_nophylo <- pglmm(Dopt ~ -1 + lifestage + absLat + (1|sp),  bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 summary(Dopt_phylo)
 ```
 
@@ -195,72 +198,21 @@ summary(Dopt_nophylo)
 
 ```{r}
 
-# RUn this to asses the effect of phylogeny on Popt
+# Run this to asses the effect of phylogeny on Dopt
 
 R2(Dopt_phylo,Dopt_nophylo) # if this does not work unload and reload rr2
 
 ```
+Small values or R2_lik indicate almost no effect of phylogeny on response variable
+
 Extract effect sizes for plot
 ```{r}
 DoptFixedEffects <- tibble(Response = "Dopt", Term = row.names(Dopt_phylo$B), Effect = Dopt_phylo$B[1:4], 
 SE = Dopt_phylo$B.se[1:4])
 
-DoptFixedEffects
-
 DoptRandomEffects <- tibble(Response = "Dopt", Term = c("sp", "sp__", "residual"), Variance = c(Dopt_phylo$s2r,Dopt_phylo$s2resid) , 
 SD = sqrt(Variance))
 
-```
-
-Plot model predictions
-```{r}
-# pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
-# communityPGLMM.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
-# pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")[[1]]
-# 
-# fitted(Dopt_phylo)
-# confint(Dopt_phylo)
-# effects(Dopt_nophylo)
-# 
-# predict(Dopt_phylo, interval = "confidence")
-# fitted.communityPGLMM(Dopt_phylo)
-# resid(Dopt_phylo)
-summary(Dopt_phylo)
-```
-
-
-```{r}
-
-
-```
-
-
-
-
-```{r}
-plot(
-  Dopt_phylo,
-  sp.var = "lifestage",
-  site.var = "absLat",
-  show.sp.names = FALSE,
-  show.site.names = FALSE,
-  digits = max(3, getOption("digits") - 3),
-  predicted = T,
-
-)[1]
-pglmm.predicted.values(Dopt_phylo, gaussian.pred = "nearest_node")
-```
-
-```{r}
-pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")
-```
-
-```{r}
-#pglmm.plot.ranef(x = Dopt_phylo, site.var = "lifestage")
-#pglmm.plot.ranef(x = Dopt_phylo, site.var = "absLat")
-#plot_model(Dopt_phylo, type = "pred", terms = c("lifestage", "absLat"))+
- # theme_cowplot()+
-  #scale_color_viridis_d()
 ```
 
 
@@ -268,38 +220,56 @@ pglmm.predicted.values(Dopt_phylo, gaussian.pred = "tip_rm")
 Dwidth ranged from `r min(D.set$Dwidth, na.rm = T)` to `r max(D.set$Dwidth, na.rm = T)`, mean =  `r mean(D.set$Dwidth, na.rm = T)`, SD = `r sd(D.set$Dwidth, na.rm = T)`
 Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na.rm = T)`
 
-
 ## 3.1 Model selection
 
-
 ```{r}
-
 Dwidth_i <- lmer(Dwidth ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
 Dwidth_a <- lmer(Dwidth ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-Dwidth_r <- lmer(Dwidth ~ -1+ (1|sp), data = as.data.frame(D.set)) #
 
-anova(Dwidth_i, Dwidth_a, Dwidth_r, test.statistic = "Chisq") # keep aditive model
-anova(Dwidth_i, Dwidth_a, test.statistic = "Chisq") # keep aditive model
+anova(Dwidth_i, Dwidth_a, test.statistic = "Chisq") # keep additive model
+```
 
+```{r}
 Dwidth_a_ML <- lmer(Dwidth ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 summary(Dwidth_a_ML)
 ```
 According to this mode, Dwidth was 12.1 for egg and larvae and 11.1 for pupae (one degree smaller, `r ((12.1 - 11.1)/12.1) *100`% smaller)  and Dwidth increased 0.4 degrees C for every 10 degrees in latitude. Variation among species: 1.8
 
+```{r}
+# Predictions plot
+D.set$group <- factor(D.set$lifestage)
+predw <- ggpredict(Dwidth_a_ML, terms = c("absLat","lifestage"))
+
+
+Dwidth_plot <- ggplot(predw, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab(expression(D[width]))+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  annotate("text", x = 0, y = 40, label = "X", size = 5)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dwidth, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Dwidth_plot
+```
 
 ## 3.2 Phylogenetic correction
 
 ### 3.2.2 Fit model
-
 ```{r}
+
 Dwidth_phylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 
-
 Dwidth_nophylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
-summary(Dwidth_phylo)
+
 ```
 
-# RUn this to asses the effect of phylogeny on Popt
+Asses the effect of phylogeny
 ```{r}
 R2(Dwidth_phylo,Dwidth_nophylo) # if this does not work unload and reload rr2
 ```
@@ -308,14 +278,10 @@ Extract effect sizes
 DwidthFixedEffects <- tibble(Response = "Dwidth", Term = row.names(Dwidth_phylo$B), Effect = Dwidth_phylo$B[1:4], 
 SE = Dwidth_phylo$B.se[1:4])
 
-
-
 DwidthRandomEffects <- tibble(Response = "Dwidth", Term = c("sp", "sp__", "residual"), Variance = c(Dwidth_phylo$s2r,Dwidth_phylo$s2resid) , 
 SD = sqrt(Variance))
 
 ```
-
-
 
 # 4. Dhigh (Dupper)
 Dhigh ranged from `r min(D.set$Dupper, na.rm = T)` to `r max(D.set$Dupper, na.rm = T)`, mean =  `r mean(D.set$Dupper, na.rm = T)`, SD = `r sd(D.set$Dupper, na.rm = T)`
@@ -324,56 +290,51 @@ Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na
 ## 4.1 Model selection
 
 ```{r}
-
 Dupper_i <- lmer(Dupper ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(D.set)) #
 Dupper_a <- lmer(Dupper ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame(D.set)) #
-Dupper_r <- lmer(Dupper ~ -1+ (1|sp), data = as.data.frame(D.set)) #
 
-anova(Dupper_i, Dupper_a, Dupper_r, test.statistic = "Chisq") # keep additive model
 anova(Dupper_i, Dupper_a, test.statistic = "Chisq") # keep additive model
+```
 
+```{r}
 Dupper_a_ML <- lmer(Dupper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 summary(Dupper_a_ML)
 ```
-According to this mode, Dupper was 35 for pupae, 35.2 for larvae and 35.4 for eggs.  Dupper decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
+According to this model, Dupper was 35 for pupae, 35.2 for larvae and 35.4 for eggs.  Dupper decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
 
 ```{r}
-# # Effects plot
-# latlifeI_effects <- tidy(Dupper_a_ML)
-# Esizes_wide <- tibble(o_mean = mean(D.set$Dupper, na.rm = T),
-#                    lat = filter(latlifeI_effects, term == "absLat")[[2]], 
-#                    lat10 = filter(latlifeI_effects, term == "absLat")[[2]]*10, 
-#                    egg = filter(latlifeI_effects, term == "lifestageegg")[[2]] - o_mean, 
-#                    larva = filter(latlifeI_effects, term == "lifestagelarva")[[2]] - o_mean, 
-#                    pupa = filter(latlifeI_effects, term == "lifestagepupa")[[2]] - o_mean, 
-#                    SD_sp = filter(latlifeI_effects, term == "sd_(Intercept).sp")[[2]])
-# 
-# names(Esizes_wide)
-# 
-# Esizes <- pivot_longer(Esizes_wide, c("o_mean", "lat", "lat10", "egg", "larva", "pupa", "SD_sp"), names_to = "effect", values_to = "degrees")
-# Esizes$effect <- factor(Esizes$effect, levels = c("lat", "lat10", "egg", "larva", "pupa", "SD_sp"))
-# 
-# ggplot(filter(Esizes, effect != "o_mean"), aes(x = effect, y = degrees))+
-#   geom_bar(stat = "identity")+
-#   theme_cowplot()+
-#   ylim(-2,6)
+# Predictions plot
+D.set$group <- factor(D.set$lifestage)
+predu <- ggpredict(Dupper_a_ML, terms = c("absLat","lifestage"))
 
 
+Dupper_plot <- ggplot(predu, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab(expression(D[high]))+
+  xlab("Absolute latitude")+
+  ylim(10, 40)+
+  annotate("text", x = 0, y = 40, label = "X", size = 5)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dupper, col = group), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+
+Dupper_plot
 ```
-Effect sizes according to ML model 
-
 
 ## 4.2 Phylogenetic correction
 
 ```{r}
 Dhigh_phylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 
-
 Dhigh_nophylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
-summary(Dwidth_phylo)
+
 ```
 
-# RUn this to asses the effect of phylogeny on Popt
+Asses the effect of phylogeny
 ```{r}
 R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
 ```
@@ -383,8 +344,6 @@ Extract effect sizes
 DhighFixedEffects <- tibble(Response = "Dhigh", Term = row.names(Dhigh_phylo$B), Effect = Dhigh_phylo$B[1:4], 
 SE = Dhigh_phylo$B.se[1:4])
 
-
-
 DhighRandomEffects <- tibble(Response = "Dhigh", Term = c("sp", "sp__", "residual"), Variance = c(Dhigh_phylo$s2r,Dhigh_phylo$s2resid) , 
 SD = sqrt(Variance))
 
@@ -392,7 +351,7 @@ SD = sqrt(Variance))
 
 
 # 4. Dlow (Dlower)
-Dhigh ranged from `r min(D.set$Dlower, na.rm = T)` to `r max(D.set$Dlower, na.rm = T)`, mean =  `r mean(D.set$Dlower, na.rm = T)`, SD = `r sd(D.set$Dlower, na.rm = T)`
+Dlow ranged from `r min(D.set$Dlower, na.rm = T)` to `r max(D.set$Dlower, na.rm = T)`, mean =  `r mean(D.set$Dlower, na.rm = T)`, SD = `r sd(D.set$Dlower, na.rm = T)`
 Latitude ranged from `r min(D.set$absLat, na.rm = T)` to `r max(D.set$absLat, na.rm = T)`
 
 ## 4.1 Model selection
@@ -404,12 +363,13 @@ Dlower_a <- lmer(Dlower ~ -1 + absLat + lifestage + (1|sp), data = as.data.frame
 
 
 anova(Dlower_i, Dlower_a, test.statistic = "Chisq") # keep additive model
+```
 
-
+```{r}
 Dlower_a_ML <- lmer(Dlower ~ -1 + absLat + lifestage + (1|sp), REML = F, data = as.data.frame(D.set)) #
 summary(Dlower_a_ML)
 ```
-According to this mode, Dlower was 35 for pupae, 35.2 for larvae and 35.4 for eggs.  Dlower decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
+According to this mode, Dlower was 35 for pupae, 35.2 for larvae and 35.4 for eggs. Dlower decreased 0.3 degrees C for every 10 degrees in latitude. Variation among species: 2.6
 
 ```{r}
 # Predictions plot
@@ -433,23 +393,18 @@ Dlow_plot <- ggplot(predlow, aes(x = x, y = predicted, colour = group, fill = gr
   theme(legend.title = element_blank(), legend.position = "none")
 
 Dlow_plot
-
-
 ```
 Effect sizes according to ML model 
 
-
 ## 4.2 Phylogenetic correction
-
 ```{r}
 Dhigh_phylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp__), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
 
-
 Dhigh_nophylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp), tree = tree, bayes= F, data = D.set, cov_ranef = list(sp = D.tree), REML = F)
-summary(Dwidth_phylo)
+
 ```
 
-# RUn this to asses the effect of phylogeny on Popt
+Asses the effect of phylogeny on Dhigh
 ```{r}
 R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
 ```
@@ -459,20 +414,10 @@ Extract effect sizes
 DhighFixedEffects <- tibble(Response = "Dhigh", Term = row.names(Dhigh_phylo$B), Effect = Dhigh_phylo$B[1:4], 
 SE = Dhigh_phylo$B.se[1:4])
 
-
-
 DhighRandomEffects <- tibble(Response = "Dhigh", Term = c("sp", "sp__", "residual"), Variance = c(Dhigh_phylo$s2r,Dhigh_phylo$s2resid) , 
 SD = sqrt(Variance))
 
 ```
-
-
-
-
-
-
-
-
 
 
 Consolidate effects and save table
@@ -484,22 +429,16 @@ DrRandomEffects <- rbind(DoptRandomEffects, DwidthRandomEffects, DhighRandomEffe
 ```
 
 
+### Run this for grid plot 
 
-
+(Run scripts for development, survival, performance and TO to get all objects)
+```{r}
 plot_grid(Dopt_plot, Sopt_plot, Popt_plot, Pwidth_plot, Phigh_plot, T0_plot, Dlow_plot, Slow_plot, Plow_plot, ncol = 3)
+```
 
-
-
-
-
-
-
-
-
+# * Old code *****************************************************************************************  
  
-#Old code 
- ****************************************************************************************************
-# 4. Correlation coefficients of development variables 
+Correlation coefficients of development variables 
  
 ```{r}
 names(D.set)
@@ -508,7 +447,7 @@ rcorr(as.matrix(D.set[1:4])) # correlation coefficients and then P values
 ```
 
 
-# 5. PCA
+# PCA
 PCA of development responses 
 ```{r}
 ## Omit NA rows for PCA. need dataframe for input
