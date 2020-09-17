@@ -154,7 +154,7 @@ Figure 3B N = `r nrow(res_plot3)`
 
 to describe the unbalance in thermal tolerance at supra vs sub optimal temperatures, we defined skew as Skew = (Phigh – Popt) /(Popt – Plow). A skew value of 1, occurs when Pwidth occurs solely at optimal and suboptimal temperatures; 0 occurs when Pwidth is equally distributed between sub and supra-optimal temperatures (Figure 1F). Negative skew values would indicate the portion of Pwidth above Popt is larger than that below it.
 
-#Old Figure 2D, skew ~ Pupper, discarded
+# Old Figure 2D, skew ~ Pupper, discarded
 
 ```{r}
 fitd <- lm(skew ~ Pupper, data = res)
@@ -192,7 +192,9 @@ Figure 3B N = `r nrow(res_plot3)`
 `r max(res$skew, na.rm = T)`
 `r sum(!is.na(res$skew))`
 
-#Figure 2D, Dlow ~ Slow
+
+
+
 
 ```{r}
 fitdlows <- lm(Dlower ~ Slower, data = res)
@@ -280,6 +282,97 @@ legend <- get_legend(legendplot)
 
 
 
+#Figure 4 F P~S; P~D [Low]
+
+```{r}
+res_plot7 <- res %>% 
+  filter(!is.na(Plower),  !is.na(Slower))
+
+Plow <- ggplot(res_plot7, aes(x = Slower, y = Plower))+
+  geom_point(aes(shape = lifestage), col = "black")+
+  geom_point(data = res_plot5, aes(x = Dlower, y = Plower, shape = lifestage), col = "grey")+
+  #ylim(5,30)+
+  #xlim(5,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  geom_smooth(data = res_plot5, aes(x = Dlower, y = Plower), col = "grey", method = lm, se = F)+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("P"[low]))+
+   annotate("text", x = 5, y = 30, label = "F", size = 5)+
+  xlab(expression("S(black)/D(grey)"[low]))+
+  theme(legend.position = "none")
+Plow
+```
+
+
+#Figure 4 G P~S; P~D [Low]
+
+```{r}
+res_plot8 <- res %>% 
+  filter(!is.na(Popt),  !is.na(maxSopt))
+
+Popt <- ggplot(res_plot8, aes(x = maxSopt, y = Dopt))+
+  geom_point(aes(shape = lifestage), col = "black")+
+  geom_point(data = res_plot5, aes(x = maxSopt, y = Dopt, shape = lifestage), col = "grey")+
+  #ylim(5,30)+
+  #xlim(5,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  geom_smooth(data = res_plot5, aes(x = maxSopt, y = Dopt), col = "grey", method = lm, se = F)+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("P"[opt]))+
+   annotate("text", x = 5, y = 36, label = "G", size = 5)+
+  xlab(expression("S(black)/D(grey)"[low]))+
+  theme(legend.position = "none")
+Popt
+```
+
+
+#Figure 4 F P~S; P~D [high]
+
+```{r}
+res_plot9 <- res %>% 
+  filter(!is.na(Pupper),  !is.na(Supper))
+
+Pupper <- ggplot(res_plot9, aes(x = Supper, y = Pupper))+
+  geom_point(aes(shape = lifestage), col = "black")+
+  geom_point(data = res_plot7, aes(x = Supper, y = Pupper, shape = lifestage), col = "grey", alpha = 0.5)+
+  #ylim(5,30)+
+  #xlim(5,30)+
+  geom_smooth(method = lm, se = F, col = "black")+
+  geom_smooth(data = res_plot5, aes(x = Supper, y = Pupper), col = "grey", method = lm, se = F)+
+  scale_shape_manual(values = c(1,16,8))+
+  #scale_color_viridis_d()+
+  #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("P"[high]))+
+   annotate("text", x = 5, y = 37, label = "H", size = 5)+
+  xlab(expression("S(black)/D(grey)"[high]))+
+  theme(legend.position = "none")
+Pupper
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 
@@ -287,5 +380,6 @@ detach("package:cowplot", unload = TRUE)
 library(cowplot)
 #plot_grid(optima, high, width,lows, ncol = 2 )
 plot_grid(lows, optima, high, width,Ts,legend, ncol = 3 )
+plot_grid(lows, optima, high, width,Ts,legend, Plow, Popt, Pupper, ncol = 3 )
 
 ```
