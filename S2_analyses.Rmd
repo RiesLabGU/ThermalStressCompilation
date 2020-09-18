@@ -442,6 +442,76 @@ SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffec
 
 
 
+All in one figures
+
+All survival variables in the same plot
+```{r}
+Stest1 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_line(data = predso, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+   #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #scale_shape_manual(values = c(1,16,8))+
+ ylab(expression(S[low/opt/high]))+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col = group), alpha = 0.6, shape = 1)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 8)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+Stest1
+
+```
+
+
+
+```{r}
+
+Stest2 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  #geom_line(data = predso, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+   #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #scale_shape_manual(values = c(1,16,8))+
+ ylab(expression(S[low/high]))+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
+  #geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col = group), alpha = 0.6, shape = 1)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 8)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+Stest2
+```
+
+
+```{r}
+Stest3 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_line(data = predso, mapping = aes(x = x, y = predicted), colour = "grey")+
+  geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+   #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #scale_shape_manual(values = c(1,16,8))+
+ ylab(expression(S[low/high]))+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt), alpha = 0.6, shape = 1, col = "grey")+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 8)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+Stest3
+```
 
 
 
