@@ -20,19 +20,7 @@ library("dotwhisker")  # to make coefficient plots
 library(sjPlot) #prediction plots
 library(sjmisc)
 library(broom)
-```
-
-
-```{r}
-# Function to make toy data
-# Gaussian --------------------------------------------------------------------------------------
-# a is the height of the curve
-# b is the position of the center of the peak
-# c is the standard deviation
-Gaus <- function(x, a, b, c) {
-  output <- a * exp(1)^(-0.5 * (abs(x - b)/ c)^2)
-  print(output)
-}
+library(devRate)
 
 ```
 
@@ -40,79 +28,147 @@ Gaus <- function(x, a, b, c) {
 # Figure 1. Thermal tolerance indicators and their relationships (definitions)
 
 ```{r}
-# toy data
-temperature <- seq(10,40, by = 1)
-A_survival <- c(0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                0.89, 0.75,0.5,0.25,0,NA)
+# Import Toy data (based on set 944)
+ToyData <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalStressCompilation/Toydata.xlsx", 
+                  sheet = "toy", na = c("NA", ""))
+# # Fill in data gaps using loess
+# 
+# 
+# model1 <- loess(dr3 ~ temp, data=ToyData)
+# xrange <- range(ToyData$temp)
+# xseq <- seq(from=4, to=39, length=36)
+# pred <- predict(model1, newdata = data.frame(temp = xseq), se=TRUE)
+# ToyData$dr <- pred$fit
+# data.frame(pred$fit)
+# 
+# model2 <- loess(survival2 ~ temp, data=ToyData)
+# pred2 <- predict(model2, newdata = data.frame(temp = xseq), se=TRUE)
+# ToyData$s11 <- pred2$fit
+# ToyData$s1 <- ifelse(ToyData$s11 < 0, 0, ifelse(ToyData$s11 > 100, 100, ToyData$s11))
+# 
+# model3 <- loess(drlow ~ temp, data=ToyData)
+# pred3 <- predict(model2, newdata = data.frame(temp = xseq), se=TRUE)
+# ToyData$s2 <- pred3$fit
+# 
+# model3 <- loess(drhigh ~ temp, data=ToyData)
+# pred3 <- predict(model3, newdata = data.frame(temp = xseq), se=TRUE)
+# ToyData$s3 <- pred2$fit
+# 
 
-A_survival <- c(0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1,
-                0.89, 0.75,0.5,0.25,0,NA, NA, NA, NA)
-
-A_drGaus <- Gaus(temperature, 1, 30, 3)
-# This code is get the values of the vector above, but separated by commas, so the curve can be edited:
-paste(as.character(A_drGaus), sep="' '", collapse=", ")
-A_drtrop <- c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
-              NA, NA, NA, NA,
-              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766,
-              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
-              NA, NA)
-
-A_drtemp <- c(NA, NA, NA, NA, NA, 
-              NA, NA, NA, NA, NA,
-              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766, 
-              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
-              
-              NA, NA, NA, NA, NA, NA)
-B_dr <- c( NA,0.0168798841487899, 0.0251304889852744, 0.036658041953378, 0.0523931410698256, 0.0733696513683829, 0.100668899772898, 0.135335283236613, 0.178263979585048, 0.230066298993809, 0.290923807046148, 0.360447788597821, 0.437564737700269, 0.520450121020702, 0.606530659712633, 0.692569324205198, 0.774837428883249, 0.849365816568312, 0.912254076828545, 0.960005441285478, 0.989847803378734, 1,0.989847803378734, 0.960005441285478,0.90, 0.800737402916808, 0.606530659712633, 0, 
-              NA, NA, NA)
-Figure1 <- tibble(temperature = temperature, 
-                  survival = A_survival, 
-                  tropical = B_dr, 
-                  temperate = A_drtemp, 
-                  P_tropical = survival * tropical, 
-                  P_temperate = survival * temperate, 
-                  skew0 = A_drGaus)
-Dopt <- filter(Figure1, tropical == 1)
-Dlow <- filter(Figure1, tropical >= 0.5) [1,]
-Dhigh <- filter(Figure1, tropical >= 0.5) [14,]
-Dinterval <- rbind(Dlow, Dhigh)
 
 ```
 
-Panel A (development rate)
 
 ```{r}
-devrate <- ggplot(Figure1, aes(x = temperature, y = tropical))+
-  geom_line(linetype = 3, size = 2)+
-  
-  geom_text(Dopt, mapping = aes(x = 30, y = 0.55, label = "Dwidth"), size = 5)+
-  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "A"), size = 5)+
-  
-  geom_point(Dopt, mapping = aes(x = temperature, y = tropical), size = 4, shape = 1)+
-  #geom_point(Dlow, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
-  #geom_point(Dhigh, mapping = aes(x = temperature, y = 0.5), size = 4, shape = 1)+
-  geom_point(Dhigh, mapping = aes(x = 14.5, y = 0), size = 4, shape = 17)+
-  
-  geom_segment(x = Dlow$temperature, xend = Dhigh$temperature, y = 0.5, yend = 0.5, linetype = 3)+
-  geom_segment(x = Dopt$temperature, xend = 14.5, y = 1, yend = 0)+
-  
+
+deve <- ggplot(ToyData, aes(x = temp, y = dr))+
+ geom_line(size = 2, alpha = 0.5, se = F, linetype = 1)+
   theme_cowplot()+
+  annotate("text", x = min(ToyData$temp), y = 1, label = "A")+
   ylab("Development rate")+
   xlab("Temperature")+
   ylim(0.0,1)+
-  theme(axis.text = element_text(size = 16))+
-  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(breaks = c(14.5, 23, 31, 36), labels = c(expression("T"[0]), expression("D"[low]), expression("D"[opt]), expression("D"[high])))
-
-devrate
+  geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+deve
 ```
 
 
-Panel B: Survival
+```{r}
+
+devesur <- ggplot(ToyData, aes(x = temp, y = dr))+
+  geom_line(size = 2, col = "grey", size = 2)+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = same/100), size = 2, col = "black", linetype = 2)+
+  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = min(ToyData$temp), y = 1, label = "B")+
+  ylab("Development rate")+
+  xlab("Temperature")+
+  ylim(0.0,1)+
+  geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+devesur
+  
+```
+Figure 1A
+```{r}
+detach(cowplot)
+library(cowplot)
+
+plot_grid(deve, devesur, ncol = 2)
+
+```
+
+
+
+Figure 2
+
+```{r}
+ToyData$p1 <- ToyData$dr2 *(ToyData$same/100)
+same <- ggplot(ToyData, aes(x = temp, y = p1))+
+  geom_line(size = 2, alpha = 0.5, col = "grey", se =F)+ # performance
+  geom_line(data = ToyData, mapping = aes(x = temp, y = same/100), size = 2, linetype = 2)+ # survival
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
+  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = min(ToyData$temp), y = 1, label = "B")+
+  ylab("Development rate")+
+  xlab("Temperature")+
+  ylim(0.0,1)+
+  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+same
+  
+```
+
+```{r}
+ToyData$p2 <- ToyData$dr2 *(ToyData$shigher/100)
+dhigher <- ggplot(ToyData, aes(x = temp, y = p2))+
+  geom_line(size = 2, alpha = 0.5, col = "grey", se =F)+ # performance
+  geom_line(data = ToyData, mapping = aes(x = temp, y = shigher/100), size = 2, linetype = 2)+ # survival
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
+  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = min(ToyData$temp), y = 1, label = "B")+
+  ylab("Development rate")+
+  xlab("Temperature")+
+  ylim(0.0,1)+
+  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+dhigher
+  max(ToyData$dr)
+```
+
+
+```{r}
+ToyData$p3 <- ToyData$dr2 *(ToyData$slower/100)
+dlower <- ggplot(ToyData, aes(x = temp, y = p3))+
+  geom_line(size = 2, alpha = 0.5, col = "grey", se =F)+ # performance
+  geom_line(data = ToyData, mapping = aes(x = temp, y = slower/100), size = 2, linetype = 2)+ # survival
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
+  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
+  theme_cowplot()+
+  annotate("text", x = min(ToyData$temp), y = 1, label = "B")+
+  ylab("Development rate")+
+  xlab("Temperature")+
+  ylim(0.0,1)+
+  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+dlower
+  max(ToyData$dr)
+```
+
+
 
 ```{r}
 surv <- ggplot(Figure1, aes(x = temperature, y = tropical))+
