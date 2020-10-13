@@ -221,4 +221,28 @@ rate_plot <- ggplot(predrate, aes(x = x, y = predicted, colour = group, shape = 
 rate_plot
 ```
 
+Add Dlow (run DR2_analyses.Rmd to have all data)
+```{r}
+T.set$group <- T.set$lifestage
+Ttest <- ggplot(predto, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+  geom_line(data = predlow, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  geom_line(data = predto, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+   #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  #scale_shape_manual(values = c(1,16,8))+
+  ylab("T0 & Dlow")+
+  #ylab(paste(expression(T[0]), "/", expression(D[low])))+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  annotate("text", x = 0, y = 40, label = "A", size = 5)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dlower, col = group), alpha = 0.6, shape =16)+
+  
+  geom_point(data = T.set, mapping = aes(x = absLat, y = T0, col = group), alpha = 0.6, shape = 8)+
+  theme_cowplot()+
+  theme(legend.title = element_blank(), legend.position = "none")
+Ttest
+```
+
 
