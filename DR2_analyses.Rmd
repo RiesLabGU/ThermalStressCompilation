@@ -88,7 +88,7 @@ responses_table$sp <- factor(responses_table$sp)
 D.set <- select(responses_table, set, Dopt, Dupper, Dwidth, Dlower, lifestage, absLat, sp, family, quality)
 D.set$genus <- word(D.set$sp, 1)
 D.set$species <- word(D.set$sp, 2)
-
+filter(responses, set == 1005)
 # save a list of sets included in analyses
 D.sets <- D.set %>% 
   select(set)
@@ -458,19 +458,20 @@ Dtest1
 
 Dtest2 <- ggplot(predlow, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
-  #geom_line(data = predo, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  geom_line(data = predto, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
   geom_line(data = predu, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
    #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   #scale_shape_manual(values = c(1,16,8))+
-  ylab(expression(D[low/high]))+
+  ylab(expression(`T`[0]-D[low]-D[high]))+
   xlab("Absolute latitude")+
   ylim(0, 40)+
   annotate("text", x = 0, y = 40, label = "A", size = 5)+
   geom_point(data = D.set, mapping = aes(x = absLat, y = Dlower, col = group), alpha = 0.6, shape =16)+
   #geom_point(data = D.set, mapping = aes(x = absLat, y = Dopt, col = group), alpha = 0.6, shape = 1)+
-  geom_point(data = D.set, mapping = aes(x = absLat, y = Dupper, col = group), alpha = 0.6, shape = 8)+
+  geom_point(data = D.set, mapping = aes(x = absLat, y = Dupper, col = group), alpha = 0.6, shape = 1)+
+  geom_point(data = T.set, mapping = aes(x = absLat, y = T0, col = group), alpha = 0.6, shape = 6)+
   theme_cowplot()+
   theme(legend.title = element_blank(), legend.position = "none")
 Dtest2
