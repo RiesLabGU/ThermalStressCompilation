@@ -464,7 +464,11 @@ Dtest2 <- ggplot(predlow, aes(x = x, y = predicted, colour = group, fill = group
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   #scale_shape_manual(values = c(1,16,8))+
-  ylab(expression(`T`[0]-D[low]-D[high]))+
+  #ylab(expression(`T`[0]-D[low]-D[high]))+
+  annotate("text", x = 59, y = 10, label = expression(`T`[0]))+
+  annotate("text", x = 59, y = 20, label = expression(D[low]))+
+  annotate("text", x = 59, y = 35, label = expression(D[high]))+
+  ylab("Temperature")+
   xlab("Absolute latitude")+
   ylim(0, 40)+
   annotate("text", x = 0, y = 40, label = "A", size = 5)+
