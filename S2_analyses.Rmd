@@ -479,7 +479,12 @@ Stest2 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = grou
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   #scale_shape_manual(values = c(1,16,8))+
- ylab(expression(S[low]-S[high]))+
+ #ylab(expression(S[low]-S[high]))+
+  annotate("text", x = 59, y = 15, label = expression(S[low]))+
+  annotate("text", x = 59, y = 35, label = expression(S[high]))+
+  
+# ylab("Temperature")+
+ ylab("")+
   xlab("Absolute latitude")+
   ylim(0, 40)+
   annotate("text", x = 0, y = 40, label = "B", size = 5)+
