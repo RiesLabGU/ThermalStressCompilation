@@ -55,10 +55,16 @@ Predictions from figure 2.
 fitdlows <- lm(Dlower ~ Slower, data = res)
 shapiro.test(fitdlows$residuals)
 summary(fitdlows)
+
+res$Ddif <- res$Dlower - res$Slower
+min(res$Ddif, na.rm = T)
+mean(res$Ddif, na.rm = T)
 ```
 
+The lower limit for development Dlow ranged from `r min(res$Dlower, na.rm = T)` to `r max(res$Dlower, na.rm = T)` and on average it was `r mean(res$Ddif, na.rm = T)` degrees higher than the corresponding Slow; which in turn ranged from `r min(res$Slower, na.rm = T)` to `r max(res$Slower, na.rm = T)` 
+The higher limit for development Dhigh ranged from `r min(res$Dupper, na.rm = T)` to `r max(res$Dupper, na.rm = T)`  Shigh which in turn ranged from `r min(res$Supper, na.rm = T)` to `r max(res$Supper, na.rm = T)`
 
-
+T0 from `r min(res$T0, na.rm = T)` to `r max(res$T0, na.rm = T)`  
 #Dupper ~ Supper
 ```{r}
 fitb <- lm(Dupper ~ Supper, data = res)
