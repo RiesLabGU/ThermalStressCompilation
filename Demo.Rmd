@@ -1,0 +1,955 @@
+---
+title: "Example of threshold use"
+output: html_notebook
+---
+
+To demonstrate how Plow and Phigh can be implemented and combined with GDD models to predict phenology and relative abundance of ectotherms, we used model estimates (table x) to obtain T0, K, Plow and Phigh for a generic low (10degrees), mid (35 degrees) and high (45 degrees) latitude species. we used these thresholds to estimate generation time, phenology, voltinism and exposure to thermal stress  under two hypothetical scenarios (Figure x A)
+# Get T0, K, Plow and Phigh for average species of three latitudes: 10C, 25C, 45C
+According to model estimates: 
+T0 is 13,  -0.083 for each degree latitude
+Plow is 25, -0.12 for each degree latitude
+Phigh is 35, -0.07 for each degree latitude
+```{r}
+library(lubridate)
+library(readxl)
+library(readr)
+library(tidyverse)
+library(cowplot)
+```
+
+Define a reasonable G value
+```{r}
+
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+
+responses <- responses %>%
+  mutate_if(is.character, factor)
+# discard non-pertinent data
+
+responses_table <- responses %>% 
+  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", 
+         #quality!= "inferred", 
+         quality != "combination", !is.na(Dopt)) %>% 
+  mutate(absLat = abs(lat)) 
+responses_table$lifestage <- factor(responses_table$lifestage)
+responses_table$sp <- factor(responses_table$sp)
+
+ggplot(responses_table, aes(x = absLat, y = G, col = lifestage))+
+  scale_color_viridis_d()+
+  geom_point()
+```
+
+```{r}
+eggG <- responses_table %>% 
+  filter(lifestage == "egg") %>% 
+  summarise(max(G, na.rm = T))
+larvaG <- responses_table %>% 
+  filter(lifestage == "larva") %>% 
+  summarise(max(G, na.rm = T))
+pupaG <- responses_table %>% 
+  filter(lifestage == "pupa") %>% 
+  summarise(max(G, na.rm = T))
+
+a_G <- sum(eggG, larvaG, pupaG)
+```
+mean G is 621 degree-days
+max G is 1786.84
+Info table
+```{r}
+info <- tibble(lat = c(10, 30, 45),
+               generic_T0 = 13,
+               change_T0 = - 0.083,
+               generic_Plow = 30, 
+               change_Plow = -0.12,
+               generic_Phigh = 35,
+               change_Phigh = -0.07,
+               T0 = (lat*change_T0)+ generic_T0, 
+               Plow = (lat*change_Plow)+ generic_Plow, 
+               Phigh = (lat*change_Phigh)+ generic_Phigh, 
+               G = 621) %>% 
+  select(lat, T0, Plow, Phigh, G)
+               
+info
+```
+
+
+Import diurnal temperature oscillation data
+
+```{r}
+
+t <- read_xlsx("/Users/marianaabarcazama/Dropbox/SkipperHeatwaves/TemperatureRegimes.xlsx", sheet = "22-32")
+
+summary(t)
+t$hour <- format(t$hour, format = "%H:%M:%S")
+```
+
+```{r}
+
+# Barro Colorado, 10' latitude Make a growing season of 180 days
+
+typi1 <- tibble(hour = rep(c(1:24), times = 60), 
+               temp = rep(t$temperature, times = 60),
+               hr = 1:1440, 
+               day = rep(1:60, each = 24))
+
+typi2 <- tibble(hour = rep(c(1:24), times = 60), 
+               temp = rep(t$temperature, times = 60),
+               hr = 1441:2880, 
+               day = rep(61:120, each = 24))
+typi3 <- tibble(hour = rep(c(1:24), times = 60), 
+               temp = rep(t$temperature, times = 60),
+               hr = 2881:4320, 
+               day = rep(121:180, each = 24))
+
+
+constant <- rbind(typi1,typi2,typi3)
+
+
+warmer1 <- typi1 %>% 
+  mutate(temp = temp - 11) 
+warmer2 <- typi2 %>% 
+  mutate(temp = temp+2) 
+  
+warmer3 <- typi3 %>% 
+  mutate(temp = temp -2)
+
+seasonal2 <- rbind(warmer1, warmer2, warmer3)
+
+north1 <- typi1 %>% 
+  mutate(temp = temp - 17) 
+north2 <- typi2 %>% 
+  mutate(temp = temp -2) 
+  
+north3 <- typi3 %>% 
+  mutate(temp = temp -7)
+
+seasonal1 <- rbind(north1, north2, north3)
+
+# add a 5 day heatwave to all treatments in the middle of summer
+constant <- constant %>% 
+  mutate(hot = ifelse(hr >= 2400,1,0), 
+         hot2 = ifelse(hr <= 2520, 1, 0), 
+         sumhot= hot + hot2,
+         temperature = ifelse(sumhot == 2, temp+4, temp))
+
+seasonal1 <- seasonal1 %>% 
+  mutate(hot = ifelse(hr >= 2400 -120,1,0), 
+         hot2 = ifelse(hr <= 2520, 1, 0), 
+         sumhot= hot + hot2,
+         temperature = ifelse(sumhot == 2, temp+4, temp))
+
+seasonal2 <- seasonal2 %>% 
+  mutate(hot = ifelse(hr >= 2400 - 120,1,0), 
+         hot2 = ifelse(hr <= 2520, 1, 0), 
+         sumhot= hot + hot2,
+         temperature = ifelse(sumhot == 2, temp+4, temp))
+
+
+
+constant_plot <- ggplot(constant, aes(x = hr, y = temperature))+
+  geom_line( col = "red", alpha = 0.3)+
+  #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
+  #geom_line(data = seasonal2, aes(x = hr, y = temperature), col = "blue", alpha = 0.3)+
+  geom_hline(yintercept  = 23.8, col = "red")+
+  geom_hline(yintercept  = 34.3, col = "red")+
+  geom_hline(yintercept  = 22, col = "green")+
+  geom_hline(yintercept  = 33.2, col = "green")+
+  geom_hline(yintercept  = 19.6, col = "blue")+
+  geom_hline(yintercept  = 31.9, col = "blue")+
+  # T0
+  geom_hline(yintercept  = 9.27, col = "blue", linetype = 2)+
+  geom_hline(yintercept  = 10.51, col = "green", linetype = 2)+
+  geom_hline(yintercept  = 12.17, col = "red", linetype = 2)+
+  theme_cowplot()+
+  xlab("time (hr)")+
+  ylim(0,40)
+constant_plot
+```
+
+
+
+
+```{r}
+#show_col(viridis_pal(option = "inferno")(20))
+```
+
+
+
+Panel A. Species data
+
+```{r}
+info$name <- c("A","B", "C")
+infolong <- pivot_longer(info, cols = c(T0,Plow, Phigh), names_to = "threshold")
+speciesData <- ggplot(infolong, aes(x = name, y = value, shape = threshold, label = value))+
+  geom_point()+
+  geom_text(aes(x= name, y = value +2))+
+  scale_shape_manual(values = c(1, 16, 3))+
+  theme_cowplot()+
+  xlab("Species")+
+  ylab("Temperature")+
+  #annotate("text", x = 0.5, y = 40, label = "A", size = 5)+
+  #theme(legend.position = c(0.1, 0.05), legend.direction="horizontal", legend.title = element_blank())+
+  theme(legend.position = "none")+
+  ylim(0,40)
+
+speciesData
+
+```
+
+```{r}
+letter <- tibble(label = "A", 
+                 x = 0.5, 
+                 y = 40)
+scenario1 <- ggplot(seasonal1, aes(x = day, y = temperature))+
+  geom_line(seasonal1, mapping = aes(x = hr, y = temperature), alpha = 0.8, col =  "#190C3EFF")+
+ geom_text(data = letter, aes(label = "A", y = 40, x = 0.5), size = 4)+
+   #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
+  #geom_line(data = seasonal2, aes(x = hr, y = temperature), col = "blue", alpha = 0.3)+
+  #geom_hline(yintercept  = 23.8, col = "red")+
+  # geom_hline(yintercept  = 34.3, col = "red")+
+  # geom_hline(yintercept  = 22, col = "green")+
+  # geom_hline(yintercept  = 33.2, col = "green")+
+  # geom_hline(yintercept  = 19.6, , col = "blue")+
+  # geom_hline(yintercept  = 31.9, col = "blue")+
+  # # T0
+  # geom_hline(yintercept  = 9.27, col = "blue", linetype = 2)+
+  # geom_hline(yintercept  = 10.51, col = "green", linetype = 2)+
+  # geom_hline(yintercept  = 12.17, col = "red", linetype = 2)+
+  # annotate("text", x = 0.5, y = 40, label = "A", size = 5)+  
+  theme_cowplot()+
+  xlab("time (hr)")+
+  ylab("Temperature")+
+  ylim(0,40)
+
+scenario1
+
+```
+
+
+
+```{r}
+
+scenario2 <- ggplot(seasonal2, aes(x = hr, y = temperature))+
+  geom_line(alpha = 0.8, col =  "#E55C30FF")+
+  geom_text(data = letter, aes(label = "E", y = 40, x = 0.5), size = 4)+
+  #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
+  #geom_line(data = seasonal2, aes(x = hr, y = temperature), col = "blue", alpha = 0.3)+
+  #geom_hline(yintercept  = 23.8, col = "red")+
+  # geom_hline(yintercept  = 34.3, col = "red")+
+  # geom_hline(yintercept  = 22, col = "green")+
+  # geom_hline(yintercept  = 33.2, col = "green")+
+  # geom_hline(yintercept  = 19.6, , col = "blue")+
+  # geom_hline(yintercept  = 31.9, col = "blue")+
+  # # T0
+  # geom_hline(yintercept  = 9.27, col = "blue", linetype = 2)+
+  # geom_hline(yintercept  = 10.51, col = "green", linetype = 2)+
+  # geom_hline(yintercept  = 12.17, col = "red", linetype = 2)+
+  theme_cowplot()+
+  #annotate("text", x = 0.5, y = 40, label = "E", size = 5)+
+  xlab("time (hr)")+
+  ylab("Temperature")+
+  ylim(0,40)
+
+scenario2
+```
+There were two growing seasons of `r max(seasonal2$day)` 
+```{r}
+plot_grid(speciesData, scenario1, scenario2, ncol = 3, labels = "AUTO")
+```
+
+Make master table
+```{r}
+names(seasonal1)
+names(seasonal2)
+seasonal1$regime <- "seasonal 1"
+seasonal2$regime <- "seasonal 2"
+simulation <- rbind(seasonal1, seasonal2)
+
+simulation1 <- simulation %>% 
+  select(hr, day, regime, temperature) %>% 
+  mutate(sp = "Alpha", 
+         gdhi = temperature - 12.17, 
+         gdh = ifelse(gdhi < 0, 0, gdhi),
+         gdhcum = cumsum(gdh),
+         quality = ifelse(temperature < 28.8, "chill stress", ifelse(temperature > 34.3, "heat stress", "optimal range")))
+         
+simulation2 <- simulation %>% 
+  select(hr, day, regime, temperature) %>% 
+  mutate(sp = "Beta", 
+         gdhi = temperature - 10.51, 
+         gdh = ifelse(gdhi < 0, 0, gdhi),
+         gdhcum = cumsum(gdh),
+         quality = ifelse(temperature < 26.4, "chill stress", ifelse(temperature > 32.9, "heat stress", "optimal range")))
+         
+simulation3 <- simulation %>% 
+  select(hr, day, regime, temperature) %>% 
+  mutate(sp = "Gamma", 
+         gdhi = temperature - 9.27, 
+         gdh = ifelse(gdhi < 0, 0, gdhi),
+         gdhcum = cumsum(gdh),
+         quality = ifelse(temperature < 24.6, "chill stress", ifelse(temperature > 31.9, "heat stress", "optimal range")))
+         
+simulations <- rbind(simulation1, simulation2, simulation3)
+simulations <- simulations %>% 
+  mutate_if(is.character, factor)
+simulations$quality <- factor(simulations$quality, levels = c("heat stress", "chill stress","optimal range"))
+unique(simulations$quality)
+```
+
+
+
+```{r}
+ggplot(simulations, aes(x = hr, y = temperature, col = quality))+
+  geom_point()+
+  scale_color_viridis_d()+
+  facet_grid(sp~regime)+
+  theme_cowplot()
+```
+
+
+```{r}
+ggplot(filter(simulations, sp == "Alpha", regime == "seasonal 1"), aes(x = hr, y = temperature, col = quality))+
+  geom_line(alpha = 0.3)+
+  geom_line(data = simulations, mapping = aes(x = hr, y = gdhcum))+
+  scale_color_viridis_d()+
+  theme_cowplot()+
+  geom_segment(x = 0, xend = 103*24, y = 2, yend = 2, col = "black")+
+  geom_segment(x = 104*24, xend = 172*24, y = 2, yend = 2, col = "dark grey")+
+  ylim(0,41)
+```
+
+
+```{r}
+GDD_scenario1 <- seasonal1 %>% 
+  mutate(gdh_Ai = temperature - 12.17, 
+         gdh_A = ifelse(gdh_Ai < 0, 0, gdh_Ai),
+         gdh_A_cum = cumsum(gdh_A),
+         gdh_Bi = temperature -10.51, 
+         gdh_B = ifelse(gdh_Bi < 0, 0, gdh_Bi),
+         gdh_B_cum = cumsum(gdh_B), 
+         gdh_Ci = temperature  - 9.27, 
+         gdh_C = ifelse(gdh_Ci < 0, 0, gdh_Ci),
+         gdh_C_cum = cumsum(gdh_C),
+         Alpha = ifelse(temperature < 28.8, "chill stress", ifelse(temperature > 34.3, "heat stress", "optimal range")),
+         Beta = ifelse(temperature < 26.4, "chill stress", ifelse(temperature > 32.9, "heat stress", "optimal range")),
+         Gamma = ifelse(temperature < 24.6, "chill stress", ifelse(temperature > 31.9, "heat stress", "optimal range")))
+
+GDD_cap_scenario1_A <- seasonal1 %>% 
+  filter(temperature < 34.3) %>% 
+  mutate(gdh_Ai = temperature - 12.17, 
+         gdh_A = ifelse(gdh_Ai < 0, 0, gdh_Ai),
+         gdh_A_cum = cumsum(gdh_A))
+
+GDD_cap_scenario1_B <- seasonal1 %>% 
+  filter(temperature < 32.9) %>% 
+  mutate( gdh_Bi = temperature -10.51, 
+         gdh_B = ifelse(gdh_Bi < 0, 0, gdh_Bi),
+         gdh_B_cum = cumsum(gdh_B))
+
+GDD_cap_scenario1_C <- seasonal1 %>% 
+  filter(temperature < 31.9) %>% 
+  mutate(gdh_Ci = temperature  - 9.27, 
+         gdh_C = ifelse(gdh_Ci < 0, 0, gdh_Ci),
+         gdh_C_cum = cumsum(gdh_C))
+
+```
+
+
+```{r}
+GDD_scenario2 <- seasonal2 %>% 
+  mutate(gdh_Ai = temperature - 12.17, 
+         gdh_A = ifelse(gdh_Ai < 0, 0, gdh_Ai),
+         gdh_A_cum = cumsum(gdh_A),
+         gdh_Bi = temperature -10.51, 
+         gdh_B = ifelse(gdh_Bi < 0, 0, gdh_Bi),
+         gdh_B_cum = cumsum(gdh_B), 
+         gdh_Ci = temperature  - 9.27, 
+         gdh_C = ifelse(gdh_Ci < 0, 0, gdh_Ci),
+         gdh_C_cum = cumsum(gdh_C), 
+          Alpha = ifelse(temperature < 28.8, "chill stress", ifelse(temperature > 34.3, "heat stress", "optimal range")),
+         Beta = ifelse(temperature < 26.4, "chill stress", ifelse(temperature > 32.9, "heat stress", "optimal range")),
+         Gamma = ifelse(temperature < 24.6, "chill stress", ifelse(temperature > 31.9, "heat stress", "optimal range")))
+
+easonal2 <- seasonal2 %>%
+  mutate()
+
+
+GDD_cap_scenario2_A <- seasonal2 %>% 
+  filter(temperature < 34.3) %>% 
+  mutate(gdh_Ai = temperature - 12.17, 
+         gdh_A = ifelse(gdh_Ai < 0, 0, gdh_Ai),
+         gdh_A_cum = cumsum(gdh_A))
+
+GDD_cap_scenario2_B <- seasonal2 %>% 
+  filter(temperature < 32.9) %>% 
+  mutate(gdh_Bi = temperature -10.51, 
+         gdh_B = ifelse(gdh_Bi < 0, 0, gdh_Bi),
+         gdh_B_cum = cumsum(gdh_B))
+
+GDD_cap_scenario2_C <- seasonal2 %>% 
+  filter(temperature < 31.9) %>% 
+  mutate(gdh_Ci = temperature  - 9.27, 
+         gdh_C = ifelse(gdh_Ci < 0, 0, gdh_Ci),
+         gdh_C_cum = cumsum(gdh_C))
+
+```
+
+Alpha completed `r (max(GDD_cap_scenario1_A$gdh_A_cum)/24)/621 ` generations in under scenario 1 (warm), flying on days `r head(filter(GDD_cap_scenario1_A, gdh_A_cum/24 >= 621), n = 1)[["day"]]` and `r head(filter(GDD_cap_scenario1_A, gdh_A_cum/24 >= 1242), n = 1)[["day"]]`; and `r (max(GDD_cap_scenario2_A$gdh_A_cum)/24)/621 ` generations under scenario 2 (fliying on days (`r head(filter(GDD_cap_scenario2_A, gdh_A_cum/24 >= 621), n = 1)[["day"]]`,`r head(filter(GDD_cap_scenario2_A, gdh_A_cum/24 >= 1242), n = 1)[["day"]]`, `r head(filter(GDD_cap_scenario2_A, gdh_A_cum/24 >= 1863), n = 1)[["day"]]`). 
+
+Beta, completed `r (max(GDD_cap_scenario1_B$gdh_B_cum)/24)/621 ` generations under scenario 1, flying on days`r head(filter(GDD_cap_scenario1_B, gdh_B_cum/24 >= 621), n = 1)[["day"]]` and `r head(filter(GDD_cap_scenario1_B, gdh_B_cum/24 >= 1242), n = 1)[["day"]]` and `r (max(GDD_cap_scenario2_B$gdh_B_cum)/24)/621 ` generations under scenario 2 (flying time here `r head(filter(GDD_cap_scenario2_B, gdh_B_cum/24 >= 621), n = 1)[["day"]]`,`r head(filter(GDD_cap_scenario2_B, gdh_B_cum/24 >= 1242), n = 1)[["day"]]`, `r head(filter(GDD_cap_scenario2_B, gdh_B_cum/24 >= 1863), n = 1)[["day"]]`); 
+
+Gamma completed `r (max(GDD_cap_scenario1_C$gdh_C_cum)/24)/621 ` generations under scenario 1, flying on days(`r head(filter(GDD_cap_scenario1_C, gdh_C_cum/24 >= 621), n = 1)[["day"]]` and `r head(filter(GDD_cap_scenario1_C, gdh_C_cum/24 >= 1242), n = 1)[["day"]]`) and `r (max(GDD_cap_scenario2_C$gdh_C_cum)/24)/621` generations under scenario 2 (`r head(filter(GDD_cap_scenario2_C, gdh_C_cum/24 >= 621), n = 1)[["day"]]`,`r head(filter(GDD_cap_scenario2_C, gdh_C_cum/24 >= 1242), n = 1)[["day"]]`, `r head(filter(GDD_cap_scenario2_C, gdh_C_cum/24 >= 1863), n = 1)[["day"]]`);
+
+
+```{r}
+# Species Alpha, Scenario 1
+
+A_gdd <- ggplot(GDD_scenario1, aes(x = hr, y = gdh_A_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "A", y = 2500, x = 50), size = 4)+
+  geom_text(data = letter, mapping = aes(label = "Scenario 1", y = 2500, x = 2000), size = 4)+
+
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Alpha", regime == "seasonal 1"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  #Scenario 1
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_A_cum/24),  linetype = 1, alpha = 0.6)+ # "#190C3EFF"
+  geom_line(data = GDD_cap_scenario1_A, aes(x = hr, y = gdh_A_cum/24), linetype = 3)+ # "#190C3EFF"
+  
+  # #Scenario 2
+  # geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.6)+
+  # geom_line(data = GDD_cap_scenario2_A, mapping = aes(x = hr, y = gdh_A_cum/24), linetype = 3, col =  "#E55C30FF")+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 103*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 103*24, xend = 171*24, y = -50, yend = -50, col = "dark grey")+
+  geom_point(x = 103*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 171*24,  y = -50,  col = "dark grey")+
+  
+  #ylab("Alpha, GDD sum")+
+  #ylim(-3,2000)+
+  #scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" 
+  scale_color_manual(values = c("#440154FF" , "#277F8EFF"))+ # "#E55C30FF"
+  #scale_color_manual(values = c("grey","purple"))+ #, , "#190C3EFF"
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name = "Alpha \n GDD Accumulation", sec.axis = sec_axis(~./50, name = ""))  
+
+A_gdd
+```
+
+Panel B, Alpha in scenario2
+
+```{r}
+# Alpha, scenario 2
+unique(simulations$quality)
+B_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_A_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "B", y = 2500, x = 50), size = 4)+
+  geom_text(data = letter, mapping = aes(label = "Scenario 2", y = 2500, x = 2000), size = 4)+
+  
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Alpha", regime == "seasonal 2"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  # Scenario 2
+   geom_line(linetype = 1, alpha = 0.6)+
+   geom_line(data = GDD_cap_scenario2_A, mapping = aes(x = hr, y = gdh_A_cum/24), linetype = 3)+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 83*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 83*24, xend = 124*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 124*24, xend = 172*24, y = -50, yend = -50, col = "dark grey")+
+  
+  geom_point(x = 83*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 124*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 172*24,  y = -50,  col = "dark grey")+
+  
+  #ylab("GDD accumulation")+
+  #ylim(-3,2000)+
+ 
+  scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" ,
+  #scale_color_manual(values = c( "#440154FF", "#FDE725FF" ,"#277F8EFF"))+ #, Yellow:"#FDE725FF" 
+  #scale_color_manual(values = c("#E55C30FF", "#190C3EFF", "#440154FF"))+ # Green: #277F8EFF"
+  #scale_color_manual(values = c("red","grey", "purple" ))+ #, , Grey"#190C3EFF"
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name = "", sec.axis = sec_axis(~./50, name = "Temperature"))  
+
+B_gdd
+```
+
+  
+  
+Pahel C
+```{r}
+# Beta, scenario 1
+C_gdd <- ggplot(GDD_scenario1, aes(x = hr, y = gdh_B_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "C", y = 2500, x = 50), size = 4)+
+  
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Beta", regime == "seasonal 1"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  # Scenario 2
+   geom_line(linetype = 1, alpha = 0.6)+
+   geom_line(data = GDD_cap_scenario1_B, mapping = aes(x = hr, y = gdh_B_cum/24), linetype = 3)+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 98*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 98 * 24, xend = 152 * 24, y = -50, yend = -50, col = "dark grey")+
+  
+  
+  geom_point(x = 98*24 , y = -50,  col = "dark grey")+
+  geom_point(x = 152*24,  y = -50,  col = "dark grey")+
+  
+  #annotate("text", x = 2100, y = 2000, label = "Alpha", size = 4)+
+  #annotate("text", x = 50, y = 2000, label = "B", size = 4)+
+  #ggtitle("Species A", tag = "A")+
+  # annotate("text", x = 200, y = 1400, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1400, label = "= 12.2", size = 3)+
+  # annotate("text", x = 200, y = 1300, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1300, label = "= 34.3", size = 3)+
+  # annotate("text", x = 180, y = 1200, label = expression(`P`[low]), size = 3)+
+  # annotate("text", x = 980, y = 1200, label = "= 28.8", size = 3)+
+  #ylab("Cumulative \ndegree-days")+
+scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" ,
+  ylab("GDD accumulation")+
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name = "Beta \n GDD Accumulation", sec.axis = sec_axis(~./50, name = ""))  
+
+C_gdd
+```
+
+
+D beta scenario2
+```{r}
+D_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_B_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "D", y = 2500, x = 50), size = 4)+
+  
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Beta", regime == "seasonal 2"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  # Scenario 2
+   geom_line(linetype = 1, alpha = 0.6)+
+   geom_line(data = GDD_cap_scenario2_B, mapping = aes(x = hr, y = gdh_B_cum/24), linetype = 3)+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 82*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 82*24, xend = 130*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 130*24, xend = 173*24, y = -50, yend = -50, col = "dark grey")+
+  
+  geom_point(x = 82*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 130*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 173*24,  y = -50,  col = "dark grey")+
+  #annotate("text", x = 2100, y = 2000, label = "Alpha", size = 4)+
+  #annotate("text", x = 50, y = 2000, label = "B", size = 4)+
+  #ggtitle("Species A", tag = "A")+
+  # annotate("text", x = 200, y = 1400, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1400, label = "= 12.2", size = 3)+
+  # annotate("text", x = 200, y = 1300, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1300, label = "= 34.3", size = 3)+
+  # annotate("text", x = 180, y = 1200, label = expression(`P`[low]), size = 3)+
+  # annotate("text", x = 980, y = 1200, label = "= 28.8", size = 3)+
+  #ylab("Cumulative \ndegree-days")+
+  ylab("GDD accumulation")+
+  #ylim(-3,2000)+
+  scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" ,
+  
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name = "", sec.axis = sec_axis(~./50, name = "Temperature"))  
+
+D_gdd
+```
+
+Pahel E
+```{r}
+# Gamma, scenario 1
+E_gdd <- ggplot(GDD_scenario1, aes(x = hr, y = gdh_C_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "E", y = 2500, x = 50), size = 4)+
+  
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Gamma", regime == "seasonal 1"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  # Scenario 2
+   geom_line(data = GDD_scenario1, linetype = 1, alpha = 0.6)+
+   geom_line(data = GDD_cap_scenario1_C, mapping = aes(x = hr, y = gdh_C_cum/24), linetype = 3)+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 92*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 92 * 24, xend = 140 * 24, y = -50, yend = -50, col = "dark grey")+
+  
+  
+  geom_point(x = 92*24 , y = -50,  col = "dark grey")+
+  geom_point(x = 140*24,  y = -50,  col = "dark grey")+
+  scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" ,
+  #annotate("text", x = 2100, y = 2000, label = "Alpha", size = 4)+
+  #annotate("text", x = 50, y = 2000, label = "B", size = 4)+
+  #ggtitle("Species A", tag = "A")+
+  # annotate("text", x = 200, y = 1400, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1400, label = "= 12.2", size = 3)+
+  # annotate("text", x = 200, y = 1300, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1300, label = "= 34.3", size = 3)+
+  # annotate("text", x = 180, y = 1200, label = expression(`P`[low]), size = 3)+
+  # annotate("text", x = 980, y = 1200, label = "= 28.8", size = 3)+
+  #ylab("Cumulative \ndegree-days")+
+  ylab("GDD accumulation")+
+  xlab("time (hr)")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name ="Gamma \n GDD Accumulation", sec.axis = sec_axis(~./50, name = ""))  
+
+E_gdd
+```
+
+
+F gamma scenario2
+```{r}
+# Gamma, scenario 2
+F_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_B_cum/24))+
+  # Label
+  geom_text(data = letter, mapping = aes(label = "F", y = 2500, x = 50), size = 4)+
+  
+  #Background temperature regime, left axis
+  geom_line(data = filter(simulations, sp == "Gamma", regime == "seasonal 2"), aes(x = hr, y = temperature*50, col = quality), alpha = 0.3)+
+  
+  # Scenario 2
+   geom_line(linetype = 1, alpha = 0.6)+
+   geom_line(data = GDD_cap_scenario2_C, mapping = aes(x = hr, y = gdh_C_cum/24), linetype = 3)+
+  
+  # Voltinism
+  geom_segment(x = 0, xend = 78*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 78*24, xend = 127*24, y = -50, yend = -50, col = "dark grey")+
+  geom_segment(x = 127*24, xend = 167*24, y = -50, yend = -50, col = "dark grey")+
+  
+  geom_point(x = 78*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 127*24,  y = -50,  col = "dark grey")+
+  geom_point(x = 167*24,  y = -50,  col = "dark grey")+
+  #annotate("text", x = 2100, y = 2000, label = "Alpha", size = 4)+
+  #annotate("text", x = 50, y = 2000, label = "B", size = 4)+
+  #ggtitle("Species A", tag = "A")+
+  # annotate("text", x = 200, y = 1400, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1400, label = "= 12.2", size = 3)+
+  # annotate("text", x = 200, y = 1300, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1300, label = "= 34.3", size = 3)+
+  # annotate("text", x = 180, y = 1200, label = expression(`P`[low]), size = 3)+
+  # annotate("text", x = 980, y = 1200, label = "= 28.8", size = 3)+
+  #ylab("Cumulative \ndegree-days")+
+  ylab("GDD accumulation")+
+  #ylim(-3,2000)+
+  scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" ,
+  xlab("time (hr)")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  scale_y_continuous(name = "", sec.axis = sec_axis(~./50, name = "Temperature"))  
+
+F_gdd
+```
+
+
+
+```{r}
+plot_grid(A_gdd, B_gdd, C_gdd, D_gdd, E_gdd, F_gdd, ncol = 2)
+```
+
+
+
+
+```{r}
+# Species B (35C)
+B_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_B_cum/24))+
+  #annotate("text", x = 50, y = 2400, label = "C", size = 4)+
+  annotate("text", x = 2000, y = 2400, label = "Beta", size = 4)+
+  geom_text(data = letter, aes(label = "C", y = 2400, x = 50), size = 4)+
+  # annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1900, label = "= 10.5", size = 3)+
+  # 
+  # annotate("text", x = 200, y = 1700, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1700, label = "= 32.9", size = 3)+
+  # 
+  # annotate("text", x = 180, y = 1500, label = expression(P[low]), size = 3)+
+  # annotate("text", x = 980, y = 1500, label = "= 26.4", size = 3)+
+  
+  #Scenario 1
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_B_cum/24), col =  "#190C3EFF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario1_B, aes(x = hr, y = gdh_B_cum/24), linetype = 3, col =  "#190C3EFF")+
+  geom_line(data = GDD_scenario2, aes(x = hr, y = 0, col = Beta))+
+  
+  #Scenario 2
+  geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario2_B, aes(x = hr, y = gdh_B_cum/24), linetype = 3, col =  "#E55C30FF")+
+  
+  #ylab("Cumulative degree-days")
+ylab("")+
+  xlab("time (hr)")+
+  theme_cowplot()
+B_gdd
+```
+
+
+```{r}
+# Species c (45C)
+C_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_C_cum/24))+
+  #annotate("text", x = 0.5, y = 2500, label = "D", size = 4)+
+  annotate("text", x = 2000, y = 2500, label = "Gamma", size = 4)+
+  geom_text(data = letter, aes(label = "D", y = 2500, x = 0.5), size = 4)+
+  # annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1900, label = "= 9.3", size = 3)+
+  # 
+  # annotate("text", x = 200, y = 1700, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1700, label = "= 31.9", size = 3)+
+  # 
+  # annotate("text", x = 180, y = 1500, label = expression(P[low]), size = 3)+
+  # annotate("text", x = 980, y = 1500, label = "= 24.6", size = 3)+
+  #Scenario 1
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_C_cum/24), col =  "#190C3EFF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario1_C, aes(x = hr, y = gdh_C_cum/24), linetype = 3, col =  "#190C3EFF")+
+  
+  #Scenario 2
+  geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario2_C, aes(x = hr, y = gdh_C_cum/24), linetype = 3, col =  "#E55C30FF")+
+  ylab("")+
+  #ylab("Cumulative degree-days")+
+  xlab("time (hr)")+
+  theme_cowplot()
+C_gdd
+```
+
+
+```{r}
+plot_grid(speciesData, scenario1, scenario2, A_gdd, B_gdd, C_gdd, ncol = 3, labels = "AUTO")
+```
+
+
+
+```{r}
+seasonal1 <- seasonal1 %>%
+  mutate(Alpha = ifelse(temperature < 28.8, "chill stress", ifelse(temperature > 34.3, "heat stress", "optimal range")),
+         Beta = ifelse(temperature < 26.4, "chill stress", ifelse(temperature > 32.9, "heat stress", "optimal range")),
+         Gamma = ifelse(temperature < 24.6, "chill stress", ifelse(temperature > 31.9, "heat stress", "optimal range")))
+
+s1_longer <- seasonal1 %>% 
+  select(Alpha, Beta, Gamma, hr, day, temperature) %>% 
+  pivot_longer(cols = c(Alpha, Beta, Gamma), names_to = "species" )
+
+s1_longer$value <- factor(s1_longer$value, levels = c("heat stress", "chill stress", "optimal range"))
+
+
+ggplot(s1_longer, aes( x = species, fill = value))+
+  geom_bar(position = "fill")+
+  scale_fill_grey()+
+  theme_cowplot()+
+theme(legend.title = element_blank())
+  #geom_col()
+
+
+```
+
+
+```{r}
+seasonal2 <- seasonal2 %>%
+  mutate(Alpha = ifelse(temperature < 28.8, "chill stress", ifelse(temperature > 34.3, "heat stress", "optimal range")),
+         Beta = ifelse(temperature < 26.4, "chill stress", ifelse(temperature > 32.9, "heat stress", "optimal range")),
+         Gamma = ifelse(temperature < 24.6, "chill stress", ifelse(temperature > 31.9, "heat stress", "optimal range")))
+
+
+
+
+s2_longer <- seasonal2 %>% 
+  select(Alpha, Beta, Gamma, hr, day, temperature) %>% 
+  pivot_longer(cols = c(Alpha, Beta, Gamma), names_to = "species" )
+s2_longer$value <- factor(s2_longer$value, levels = c("heat stress", "chill stress", "optimal range"))
+
+
+ploti <- ggplot(s2_longer, aes( x = species, fill = value))+
+  geom_bar(position = "fill")+
+  scale_fill_grey()+
+  theme_cowplot()+
+  theme(legend.title = element_blank())
+  #geom_col()
+ploti
+
+```
+Combine s1_longer and s2_longer to plot each species in both scenarios
+
+```{r}
+
+names(s1_longer)
+names(s2_longer)
+s1_longer$scenario <- "Scenario 1"
+s2_longer$scenario <- "Scenario 2"
+
+both <- rbind(s1_longer, s2_longer)
+unique(both$value)
+```
+
+Panel G
+
+```{r}
+
+letter2 <- both[1,]
+
+stress_A <- ggplot(filter(both, species == "Alpha"), aes( x = scenario, fill = value))+
+  #annotate("text", x = "Scenario 1", y = 1, label = "G", size = 5)+
+  #geom_text(label = "F", y = 1, x = 0.5,  size = 4)+
+  geom_bar(position = "fill")+
+  geom_text(data = letter2, label = "F", y = 1, x = 0.5, size = 4)+
+  scale_fill_grey()+
+  theme_cowplot()+
+  xlab("Alpha")+
+  ylab("Proportion \n of time")+
+  #theme(legend.title = element_blank(), legend.position = c(0.15,0.5), legend.background = element_rect(fill = "white"))
+  theme(legend.position = "none")
+
+stress_A
+```
+
+```{r}
+stress_B <- ggplot(filter(both, species == "Beta"), aes( x = scenario, fill = value))+
+   #geom_text(label = "G", y = 1, x = 0.5,  size = 4)+
+  geom_bar(position = "fill")+
+  geom_text(data = letter2, label = "G", y = 1, x = 0.5, size = 4)+
+  
+  scale_fill_grey()+
+  theme_cowplot()+
+  xlab("Beta")+
+  ylab("")+
+  theme(legend.position = "none")
+stress_B
+```
+
+```{r}
+stress_C <- ggplot(filter(both, species == "Gamma"), aes( x = scenario, fill = value))+
+  #geom_text(label = "H", y = 1, x = 0.5,  size = 4)+
+  geom_bar(position = "fill")+
+   geom_text(data = letter2, label = "H", y = 1, x = 0.5, size = 4)+
+ 
+  scale_fill_grey()+
+  theme_cowplot()+
+  xlab("Gamma")+
+  ylab("")+
+  theme(legend.position = "none")
+stress_C
+
+
+```
+
+```{r}
+# Count days in which heat stress was experienced:
+daycount_A1 <- both %>% 
+  filter(scenario == "Scenario 1", species == "Alpha") %>% 
+  group_by(day)%>% 
+  summarise(temperature = max(temperature))
+
+add_A1 <- both %>% 
+  filter(scenario == "Scenario 1", species == "Alpha") %>% 
+  select(day, species, value, temperature)  
+
+names(daycount_A1)
+names(add_A1)
+tally_stress <- inner_join(daycount_A1,add_A1, by = c("day", "temperature"))
+ ggplot(tally_stress, aes(x = day, y = temperature, col = value))+
+  #geom_text(label = "H", y = 1, x = 0.5,  size = 4)+
+  geom_line()+
+  # geom_text(data = letter2, label = "H", y = 1, x = 0.5, size = 4)+
+ xlim(96,110)+
+  #scale_col_viridis_d()+
+  theme_cowplot()+
+  #xlab("Gamma")+
+  facet_grid(.~species)+
+  ylab("")#+
+  #theme(legend.position = "none")
+tally_stress
+filter(tally_stress, value == "heat stress")
+```
+
+
+```{r}
+
+A_gdd2 <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_A_cum/24))+
+  annotate("text", x = 2100, y = 2000, label = "Alpha", size = 4)+
+  #annotate("text", x = 50, y = 2000, label = "B", size = 4)+
+  geom_text(data = letter, aes(label = "B", y = 2000, x = 50), size = 4)+
+  geom_line(data = tally_stress, aes(x = day * 24, y = 200, col = value))+
+  #geom_rect(data = tally_stress, aes(x = day * 24, y = 200, col = value))+
+  scale_color_manual(values = c("grey", "black"))+
+  
+  # annotate("text", x = 200, y = 1400, label = expression(`T`[0]), size = 3)+
+  # annotate("text", x = 1000, y = 1400, label = "= 12.2", size = 3)+
+  # 
+  # annotate("text", x = 200, y = 1300, label = expression(P[high]), size = 3)+
+  # annotate("text", x = 1000, y = 1300, label = "= 34.3", size = 3)+
+  # 
+  # annotate("text", x = 180, y = 1200, label = expression(`P`[low]), size = 3)+
+  # annotate("text", x = 980, y = 1200, label = "= 28.8", size = 3)+
+  
+  #Scenario 1
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_A_cum/24), col =  "#190C3EFF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario1_A, aes(x = hr, y = gdh_A_cum/24), linetype = 3, col =  "#190C3EFF")+
+  
+  #Scenario 2
+  geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.5)+
+  geom_line(data = GDD_cap_scenario2_A, aes(x = hr, y = gdh_A_cum/24), linetype = 3, col =  "#E55C30FF")+
+  #ylab("Cumulative \ndegree-days")+
+  ylab("GDD accumulation")+
+  xlab("time (hr)")+
+  theme_cowplot()
+A_gdd2
+
+```
+
+
+
+```{r}
+# legend <- get_legend(ploti)
+# library(ggpubr)
+# legend_panel <- as_ggplot(legend)
+
+```
+
+```{r}
+Alpha_stress1 <- filter(both, species == "Alpha", scenario == "Scenario 1")
+Alpha_stress2 <- filter(both, species == "Alpha", scenario == "Scenario 2")
+
+Beta_stress1 <- filter(both, species == "Beta", scenario == "Scenario 1")
+Beta_stress2 <- filter(both, species == "Beta", scenario == "Scenario 2")
+
+Gamma_stress1 <- filter(both, species == "Gamma", scenario == "Scenario 1")
+Gamma_stress2 <- filter(both, species == "Gamma", scenario == "Scenario 2")
+
+Total <- max(Alpha_stress2$hr)
+
+```
+
+
+
+For Alpha, changing from scenario 1 to 2 involved experiencing a small amount of heat stress (`r (count(filter(Alpha_stress2, value == "heat stress"))[[1]]/4320) *100 ` %), and a more than 2-fold increase in the time spent under optimal temperatures (Figure 5B & F). 
+
+Beta, experienced heat stress `r (count(filter(Beta_stress1, value == "heat stress"))[[1]]/4320) *100 ` percent of time under scenario 1 and `r (count(filter(Beta_stress2, value == "heat stress"))[[1]]/4320) *100 ` under scenario2, which represents a `r (count(filter(Beta_stress2, value == "heat stress"))[[1]])/(count(filter(Beta_stress1, value == "heat stress"))[[1]])` fold increase. 
+At the same time, Beta experienced a `r (count(filter(Beta_stress2, value == "optimal range"))[[1]])/(count(filter(Beta_stress1, value == "optimal range"))[[1]])` fold increase in the time spent at optimal temperature. 
+
+Finally, for Gamma, a change in scenarios from 1 to 2 resulted in an `r (count(filter(Gamma_stress2, value == "heat stress"))[[1]])/(count(filter(Gamma_stress1, value == "heat stress"))[[1]])` fold increase in experienced heat stress and `r (count(filter(Gamma_stress2, value == "optimal range"))[[1]])/(count(filter(Gamma_stress1, value == "optimal range"))[[1]])` increase in the time spent at optimal temperature. 
+
+
+
+```{r}
+count(filter(Beta_stress1, value == "heat stress"))
+count(filter(Beta_stress2, value == "heat stress"))
+380/50
+```
+
+
+
+
+```{r}
+plot_grid(scenario1,  A_gdd,  B_gdd, C_gdd, scenario2, stress_A, stress_B,stress_C, ncol = 4)
+
+```
+
