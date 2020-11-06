@@ -80,11 +80,11 @@ responses_table <- responses %>%
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", 
          #quality!= "inferred", 
          quality != "combination", !is.na(Popt)) %>% 
-  select(set, Popt, Plower, Pupper, Pwidth, lifestage, sp, lat, family, locality, quality) %>% 
+  select(set, Popt, Plower, Pupper, Pwidth, lifestage, sp, lat, family, locality, quality, performance) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
-P.set <- select(responses_table, set, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family, locality)
+P.set <- select(responses_table, set, Popt, Pupper, Pwidth, Plower, lifestage, absLat, sp, family, locality,performance)
 
 # save a list of sets included in analyses
 P.sets <- P.set %>% 
@@ -97,6 +97,8 @@ P.sets <- P.set %>%
 # Popt: temperature that maximizes performance
 Popt ranged from `r min(P.set$Popt, na.rm = T)` to `r max(P.set$Popt, na.rm = T)`, mean =  `r mean(P.set$Popt, na.rm = T)`, SD = `r sd(P.set$Popt, na.rm = T)`
 Latitude ranged from `r min(P.set$absLat, na.rm = T)` to `r max(P.set$absLat, na.rm = T)`,  N =`r length(!is.na(P.set$Popt))`
+
+ Maximum performance values (peak of the performance curve) ranged from `r max(P.set$performance, na.rm = T)` to `r min(P.set$performance, na.rm = T)` with a mean of `r mean(P.set$performance, na.rm = T)` SD = `r sd(P.set$performance, na.rm = T)`
 
 ```{r}
 Popt_i <- lmer(Popt ~ lifestage + absLat + lifestage:absLat + (1|sp), data = as.data.frame(P.set)) #
