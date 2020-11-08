@@ -203,6 +203,7 @@ letter <- tibble(label = "A",
 scenario1 <- ggplot(seasonal1, aes(x = day, y = temperature))+
   geom_line(seasonal1, mapping = aes(x = hr, y = temperature), alpha = 0.8, col =  "#190C3EFF")+
  geom_text(data = letter, aes(label = "A", y = 40, x = 0.5), size = 4)+
+ #geom_text(data = letter, aes(label = "Scenario 1", y = 35, x = 100), size = 4)+
    #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
   #geom_line(data = seasonal2, aes(x = hr, y = temperature), col = "blue", alpha = 0.3)+
   #geom_hline(yintercept  = 23.8, col = "red")+
@@ -217,8 +218,10 @@ scenario1 <- ggplot(seasonal1, aes(x = day, y = temperature))+
   # geom_hline(yintercept  = 12.17, col = "red", linetype = 2)+
   # annotate("text", x = 0.5, y = 40, label = "A", size = 5)+  
   theme_cowplot()+
-  xlab("time (hr)")+
+  #xlab("time (hr)")+
+  xlab("Days")+
   ylab("Temperature")+
+  scale_x_continuous(labels=function(x)floor(x/24))+
   ylim(0,40)
 
 scenario1
@@ -231,8 +234,9 @@ scenario1
 
 scenario2 <- ggplot(seasonal2, aes(x = hr, y = temperature))+
   geom_line(alpha = 0.8, col =  "#E55C30FF")+
-  geom_text(data = letter, aes(label = "E", y = 40, x = 0.5), size = 4)+
-  #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
+  geom_text(data = letter, aes(label = "B", y = 40, x = 0.5), size = 4)+
+  #geom_text(data = letter, aes(label = "Scenario 2", y = 35, x = 100), size = 4)+
+   #geom_line(data = seasonal1, aes(x = hr, y = temperature), col = "orange", alpha = 0.3)+
   #geom_line(data = seasonal2, aes(x = hr, y = temperature), col = "blue", alpha = 0.3)+
   #geom_hline(yintercept  = 23.8, col = "red")+
   # geom_hline(yintercept  = 34.3, col = "red")+
@@ -247,7 +251,9 @@ scenario2 <- ggplot(seasonal2, aes(x = hr, y = temperature))+
   theme_cowplot()+
   #annotate("text", x = 0.5, y = 40, label = "E", size = 5)+
   xlab("time (hr)")+
+  xlab("Days")+
   ylab("Temperature")+
+  scale_x_continuous(labels=function(x)floor(x/24))+
   ylim(0,40)
 
 scenario2
@@ -661,35 +667,121 @@ plot_grid(A_gdd, B_gdd, C_gdd, D_gdd, E_gdd, F_gdd, ncol = 2)
 
 
 
+Degree-day sum in both scenarios same plot
+
+```{r}
+
+t1 <- expression(P[High])
+panC <- ggplot(GDD_scenario1, aes(x = hr, y = gdh_A_cum/24))+
+  # Labels
+  geom_text(data = letter, mapping = aes(label = "C", y = 2500, x = 50), size = 4)+
+  #geom_text(data = letter, mapping = aes(label = "Alpha", y = 2500, x = 2000), size = 4)+
+  #geom_text(data = letter, mapping = aes(label = "Phigh = 34.3", y = 2100, x = 500), size = 4)+ 
+  #geom_text(data = letter, mapping = aes(label = expression(P[high]), y = 2100, x = 500), size = 4)+
+  #geom_text(data = letter, mapping = aes(label = "Plow = 28.8", y = 1800, x = 500), size = 4)+
+  #geom_text(data = letter, mapping = aes(label = "T0 = 12.7", y = 1500, x = 500), size = 4)+
+  annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
+  annotate("text", x = 1000, y = 1900, label = "= 12.7", size = 3)+
+
+  annotate("text", x = 200, y = 1500, label = expression(P[high]), size = 3)+
+  annotate("text", x = 1000, y = 1500, label = "= 34.3", size = 3)+
+
+  annotate("text", x = 180, y = 1000, label = expression(P[low]), size = 3)+
+  annotate("text", x = 980, y = 1000, label = "= 28.8", size = 3)+
+  
+  
+  # GDD sum Scenario 1
+  geom_line(data = GDD_cap_scenario1_A, aes(x = hr, y = gdh_A_cum/24), linetype = 1, alpha = 0.5, col = "#190C3EFF")+ #
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_A_cum/24),  linetype = 3, alpha = 1, col = "#190C3EFF")+
+  
+  # GDD sum Scenario 2
+    geom_line(data = GDD_cap_scenario2_A, mapping = aes(x = hr, y = gdh_A_cum/24), linetype = 1, col =  "#E55C30FF", alpha = 0.5)+
+  geom_line(data = GDD_scenario2, mapping = aes( x = hr, y = gdh_A_cum/24), col =  "#E55C30FF", linetype = 3, alpha = 1)+
+
+  # Voltinism Scenario 1
+  #geom_segment(x = 0, xend = 103*24, y = -50, yend = -50, col = "#190C3EFF")+
+  #geom_segment(x = 103*24, xend = 171*24, y = -50, yend = -50, col = "#190C3EFF")+
+  geom_point(x = 103*24,  y = filter(GDD_cap_scenario1_A, hr == 103*24)[["gdh_A_cum"]]/24,  col = "#190C3EFF")+
+  geom_point(x = 171*24,  y = filter(GDD_cap_scenario1_A, hr == 171*24)[["gdh_A_cum"]]/24,  col = "#190C3EFF")+
+  
+  # Voltinism Alpha, scenario 2
+  #geom_segment(x = 0, xend = 83*24, y = -150, yend = -150, col = "#E55C30FF")+
+  #geom_segment(x = 83*24, xend = 124*24, y = -150, yend = -150, col = "#E55C30FF")+
+  #geom_segment(x = 124*24, xend = 172*24, y = -150, yend = -150, col = "#E55C30FF")+
+  #geom_point(x = 83*24,  y = -150,  col = "#E55C30FF")+
+  geom_point(x = 83*24,  y = filter(GDD_cap_scenario2_A, hr == 83*24)[["gdh_A_cum"]]/24,  col = "#E55C30FF")+
+  geom_point(x = 124*24,  y = filter(GDD_cap_scenario2_A, hr == 124*24)[["gdh_A_cum"]]/24,  col = "#E55C30FF")+
+  geom_point(x = 172*24,  y = filter(GDD_cap_scenario2_A, hr == 172*24)[["gdh_A_cum"]]/24,  col = "#E55C30FF")+
+  
+  ylab("GDD sum")+
+
+  #ylim(-3,2000)+
+  #scale_color_manual(values = c("#E55C30FF" ,  "#440154FF" , "#277F8EFF"))+ # Red: "#E55C30FF" 
+  #scale_color_manual(values = c("#440154FF" , "#277F8EFF"))+ # "#E55C30FF"
+  #scale_color_manual(values = c("grey","purple"))+ #, , "#190C3EFF"
+  xlab("Days")+
+  theme_cowplot()+
+  theme(legend.position = "none")+
+  ylim(0, 2500)+
+  #coord_trans(x = ~./24)
+  #scale_y_continuous(name = "Alpha \n GDD Accumulation", sec.axis = sec_axis(~./50, name = ""))  
+  #scale_x_continuous(name = "Time (days)", sec.axis = sec_axis(~./24, name = "Time (days)"))  
+  scale_x_continuous(labels=function(x)floor(x/24))
+
+panC
+```
+
+
+
+
+
 
 ```{r}
 # Species B (35C)
 B_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_B_cum/24))+
   #annotate("text", x = 50, y = 2400, label = "C", size = 4)+
-  annotate("text", x = 2000, y = 2400, label = "Beta", size = 4)+
-  geom_text(data = letter, aes(label = "C", y = 2400, x = 50), size = 4)+
-  # annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
-  # annotate("text", x = 1000, y = 1900, label = "= 10.5", size = 3)+
-  # 
-  # annotate("text", x = 200, y = 1700, label = expression(P[high]), size = 3)+
-  # annotate("text", x = 1000, y = 1700, label = "= 32.9", size = 3)+
-  # 
-  # annotate("text", x = 180, y = 1500, label = expression(P[low]), size = 3)+
-  # annotate("text", x = 980, y = 1500, label = "= 26.4", size = 3)+
+  #annotate("text", x = 2000, y = 2400, label = "Beta", size = 4)+
+  geom_text(data = letter, aes(label = "D", y = 2400, x = 50), size = 4)+
+  
+  annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
+  annotate("text", x = 1000, y = 1900, label = "= 10.5", size = 3)+
+
+  annotate("text", x = 200, y = 1500, label = expression(P[high]), size = 3)+
+  annotate("text", x = 1000, y = 1500, label = "= 32.9", size = 3)+
+
+  annotate("text", x = 180, y = 1000, label = expression(P[low]), size = 3)+
+  annotate("text", x = 980, y = 1000, label = "= 26.4", size = 3)+
   
   #Scenario 1
-  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_B_cum/24), col =  "#190C3EFF", linetype = 1, alpha = 0.5)+
-  geom_line(data = GDD_cap_scenario1_B, aes(x = hr, y = gdh_B_cum/24), linetype = 3, col =  "#190C3EFF")+
-  geom_line(data = GDD_scenario2, aes(x = hr, y = 0, col = Beta))+
+  
+  geom_line(data = GDD_cap_scenario1_B, aes(x = hr, y = gdh_B_cum/24), linetype = 1, col =  "#190C3EFF", alpha = 0.5)+
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_B_cum/24), col =  "#190C3EFF", linetype = 3)+
   
   #Scenario 2
-  geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.5)+
-  geom_line(data = GDD_cap_scenario2_B, aes(x = hr, y = gdh_B_cum/24), linetype = 3, col =  "#E55C30FF")+
+ 
+  geom_line(data = GDD_cap_scenario2_B, aes(x = hr, y = gdh_B_cum/24), linetype = 1, col =  "#E55C30FF",alpha = 0.5)+
+  geom_line(col =  "#E55C30FF", linetype = 3)+
+   # Voltinism Beta, scenario 1
+  #geom_segment(x = 0, xend = 98*24, y = -50, yend = -50, col = "#190C3EFF")+
+  #geom_segment(x = 98 * 24, xend = 152 * 24, y = -50, yend = -50, col = "#190C3EFF")+
+  geom_point(x = 98*24 , y = filter(GDD_cap_scenario1_B, hr == 98*24)[["gdh_B_cum"]]/24,  col = "#190C3EFF")+
+  geom_point(x = 152*24,  y = filter(GDD_cap_scenario1_B, hr == 152*24)[["gdh_B_cum"]]/24,  col = "#190C3EFF")+
   
+  # Voltinism Beta, scenario 2
+  #geom_segment(x = 0, xend = 82*24, y = -150, yend = -150, col = "#E55C30FF")+
+  #geom_segment(x = 82*24, xend = 130*24, y = -150, yend = -150, col = "#E55C30FF")+
+  #geom_segment(x = 130*24, xend = 173*24, y = -150, yend = -150, col = "#E55C30FF")+
+  geom_point(x = 82*24,  y = filter(GDD_cap_scenario2_B, hr == 82*24)[["gdh_B_cum"]]/24,  col = "#E55C30FF")+
+  geom_point(x = 130*24,  y = filter(GDD_cap_scenario2_B, hr == 130*24)[["gdh_B_cum"]]/24,  col = "#E55C30FF")+
+  geom_point(x = 173*24,  y = filter(GDD_cap_scenario2_B, hr == 173*24)[["gdh_B_cum"]]/24,  col = "#E55C30FF")+
+
   #ylab("Cumulative degree-days")
 ylab("")+
   xlab("time (hr)")+
-  theme_cowplot()
+  xlab("Days")+
+  theme_cowplot()+
+  scale_x_continuous(labels=function(x)floor(x/24))+
+  ylim(0, 2500)
 B_gdd
 ```
 
@@ -698,26 +790,39 @@ B_gdd
 # Species c (45C)
 C_gdd <- ggplot(GDD_scenario2, aes(x = hr, y = gdh_C_cum/24))+
   #annotate("text", x = 0.5, y = 2500, label = "D", size = 4)+
-  annotate("text", x = 2000, y = 2500, label = "Gamma", size = 4)+
-  geom_text(data = letter, aes(label = "D", y = 2500, x = 0.5), size = 4)+
-  # annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
-  # annotate("text", x = 1000, y = 1900, label = "= 9.3", size = 3)+
-  # 
-  # annotate("text", x = 200, y = 1700, label = expression(P[high]), size = 3)+
-  # annotate("text", x = 1000, y = 1700, label = "= 31.9", size = 3)+
-  # 
-  # annotate("text", x = 180, y = 1500, label = expression(P[low]), size = 3)+
-  # annotate("text", x = 980, y = 1500, label = "= 24.6", size = 3)+
+  #annotate("text", x = 2000, y = 2500, label = "Gamma", size = 4)+
+  geom_text(data = letter, aes(label = "E", y = 2500, x = 0.5), size = 4)+
+  annotate("text", x = 200, y = 1900, label = expression(`T`[0]), size = 3)+
+  annotate("text", x = 1000, y = 1900, label = "= 9.3", size = 3)+
+
+  annotate("text", x = 200, y = 1500, label = expression(P[high]), size = 3)+
+  annotate("text", x = 1000, y = 1500, label = "= 31.9", size = 3)+
+
+  annotate("text", x = 180, y = 1000, label = expression(P[low]), size = 3)+
+  annotate("text", x = 980, y = 1000, label = "= 24.6", size = 3)+
   #Scenario 1
-  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_C_cum/24), col =  "#190C3EFF", linetype = 1, alpha = 0.5)+
-  geom_line(data = GDD_cap_scenario1_C, aes(x = hr, y = gdh_C_cum/24), linetype = 3, col =  "#190C3EFF")+
+  geom_line(data = GDD_scenario1, aes(x = hr, y = gdh_C_cum/24), col =  "#190C3EFF", linetype = 3)+
+  geom_line(data = GDD_cap_scenario1_C, aes(x = hr, y = gdh_C_cum/24), linetype = 1, col =  "#190C3EFF", alpha = 0.5)+
   
   #Scenario 2
-  geom_line(col =  "#E55C30FF", linetype = 1, alpha = 0.5)+
-  geom_line(data = GDD_cap_scenario2_C, aes(x = hr, y = gdh_C_cum/24), linetype = 3, col =  "#E55C30FF")+
+  
+  geom_line(data = GDD_cap_scenario2_C, aes(x = hr, y = gdh_C_cum/24), linetype = 1, col =  "#E55C30FF", alpha = 0.5)+
+  geom_line(col =  "#E55C30FF", linetype = 3)+
+  
+  # Voltinism scenario 1
+  geom_point(x = 92*24,  y = filter(GDD_cap_scenario1_C, hr == 92*24)[["gdh_C_cum"]]/24,  col = "#190C3EFF")+
+  geom_point(x = 140*24,  y = filter(GDD_cap_scenario1_C, hr == 140*24)[["gdh_C_cum"]]/24,  col = "#190C3EFF")+
+  
   ylab("")+
+  ylim(0,2500)+
+  #Voltinism scenario 2
+  geom_point(x = 78*24,  y = filter(GDD_cap_scenario2_C, hr == 78*24)[["gdh_C_cum"]]/24,  col =  "#E55C30FF")+
+  geom_point(x = 127*24,  y = filter(GDD_cap_scenario2_C, hr == 127*24)[["gdh_C_cum"]]/24,  col =  "#E55C30FF")+
+  
   #ylab("Cumulative degree-days")+
-  xlab("time (hr)")+
+  #xlab("time (hr)")+
+  xlab("Days")+
+  scale_x_continuous(labels=function(x)floor(x/24))+
   theme_cowplot()
 C_gdd
 ```
@@ -726,6 +831,7 @@ C_gdd
 ```{r}
 plot_grid(speciesData, scenario1, scenario2, A_gdd, B_gdd, C_gdd, ncol = 3, labels = "AUTO")
 ```
+
 
 
 
@@ -869,6 +975,23 @@ tally_stress <- inner_join(daycount_A1,add_A1, by = c("day", "temperature"))
 tally_stress
 filter(tally_stress, value == "heat stress")
 ```
+
+
+
+```{r}
+
+Scenarios <- plot_grid(scenario1, scenario2, ncol = 1)
+theplot <- plot_grid(panC, B_gdd, C_gdd, stress_A, stress_B,stress_C, ncol = 3)
+
+plot_grid(Scenarios, theplot, ncol = 1)
+
+```
+
+
+
+
+
+
 
 
 ```{r}
