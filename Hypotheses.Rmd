@@ -2,8 +2,7 @@
 title: "Hypotheses plots"
 output: html_notebook
 ---
-Figure 1. Thermal tolerance indicators
-Figure 2. Hypotheses
+
 
 
 ```{r}
@@ -25,15 +24,15 @@ library(devRate)
 ```
 
 
-# Figure 1. Thermal tolerance indicators and their relationships (definitions)
+# Version IV
 
 ```{r}
 # Import Toy data (based on set 944)
 ToyData <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalStressCompilation/Toydata.xlsx", 
-                  sheet = "toy", na = c("NA", ""))
+                  sheet = "toy2", na = c("NA", ""))
 # # Fill in data gaps using loess
-# 
-# 
+
+# This is the code I used to create toy data (which I later altered manually)
 # model1 <- loess(dr3 ~ temp, data=ToyData)
 # xrange <- range(ToyData$temp)
 # xseq <- seq(from=4, to=39, length=36)
@@ -59,88 +58,104 @@ ToyData <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalStressCom
 ```
 
 
-```{r}
-
-deve <- ggplot(ToyData, aes(x = temp, y = dr))+
- geom_line(size = 2, alpha = 0.5, se = F, linetype = 1)+
-  theme_cowplot()+
-  #annotate("text", x = 8, y = 1, label = "A")+
-  ylab("Development rate")+
-  xlab("Temperature")+
-  ylim(0.0,1)+
-  geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
-  theme(axis.text = element_text(size = 16))+
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c("Tmin", expression("T"[0]), "Topt", "Tmax"))
-deve
-```
-
+Figure 1
 
 ```{r}
-ToyData
-
-devesur <- ggplot(ToyData, aes(x = temp, y = dr))+
-  geom_line(size = 2, col = "grey", size = 2)+
-  geom_line(data = ToyData, mapping = aes(x = temp, y = sl/100), size = 2, col = "black", linetype = 2)+
-  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 8, y = 1, label = "B")+
-  ylab("Development rate/ \n Survival")+
-  xlab("Temperature")+
-  ylim(0.0,1)+
-  geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
-  theme(axis.text = element_text(size = 16))+
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c("Tmin", expression("T"[0]), "Topt", "Tmax"))
-devesur
+ToyData$p1 <- ToyData$dr2 *(ToyData$shigher/100)
+ToyData$p2 <- ToyData$dr2 *(ToyData$highequal/100)
+initialplot <- ggplot(ToyData, aes(x = temp, y = p1))+
   
-```
-Figure 1A
-```{r}
-#detach(cowplot)
-#library(cowplot)
-
-#plot_grid(deve, devesur, ncol = 2)
-
-```
-
-
-
-Figure 2
-
-```{r}
-ToyData$p2 <- ToyData$dr2 *(ToyData$shigher/100)
-dhigher <- ggplot(ToyData, aes(x = temp, y = p2))+
-  geom_line(size = 2, col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = shigher/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
  # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 34.2, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 35.5, y = -0.08, label = expression("P"[high]))+
+  geom_line(size = 2, col = "#90548bff", alpha = 1)+ # performance, orange:"#E55C30FF", green: "#5DC863FF"
+  geom_segment(x = 17.5, y = -0.08, xend = 31.3, yend = -0.08, linetype = 1, col =  "#90548bff", size = 2, alpha = 1)+
+  annotate("rect", xmin = 17.5, xmax = 31.3, ymin = 0, ymax = 1, fill =  "#90548bff", alpha = 0.3)+
+  annotate("text", x = 16, y = -0.08, label = expression("P"[low]))+
+  annotate("text", x = 33, y = -0.08, label = expression("P"[high]))+
   
   # development
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
+  geom_segment(x = 17.5, y = 0.51, xend = 31.3, yend = 0.51, linetype = 3)+
+  geom_segment(x = 17.5, y = -0.16, xend = 31.3, yend = -0.16, linetype = 3)+
+  annotate("text", x = 16, y = -0.16, label = expression("D"[low]))+
+  annotate("text", x = 33, y = -0.16, label = expression("D"[high]))+
+ 
+  # survival
+   geom_line(data = ToyData, mapping = aes(x = temp, y = shigher/100), size = 1, linetype = 1, col = "grey40")+ # survival
+   geom_segment(x = 9.1, y = 0.49, xend = 34.8, yend = 0.49, linetype = 1, col = "grey40")+
+  geom_segment(x = 9.1, y = -0.24, xend = 34.8, yend = -0.24, linetype = 1, col = "grey40")+
+  annotate("text", x = 8, y = -0.24, label = expression("S"[low]))+
+  annotate("text", x = 36, y = -0.24, label = expression("S"[high]))+
+  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
+  theme_cowplot()+
+  annotate("text", x =5, y = 1, label = "A")+
+  ylab("Development rate")+
+  xlab("")+
+ 
+  ylim(-0.25,1)+
+  
+  # annotate("text", x = 12, y = -0.08, label = "chill stress")+
+  # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
+  # annotate("text", x = 28, y = -0.08, label = "optimal range")+
+  
+  # T0
+  geom_segment(x = 9, y = 0, xend = 26, yend = 1)+
+  annotate("text", x = 9, y = -0.08, label = expression("T"[0]))+
+  #theme(axis.text = element_text(size = 16))
+  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
+  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
+  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
+   scale_x_continuous(breaks = c(9.5, 25, 37.5), labels = c("chill stress", "optimal range", "heat stress"))+
+   theme(axis.ticks.x = element_blank(), axis.title.y = element_text(colour = "grey40"), axis.title.y.left = element_text(colour = "black"))+
+  #scale_y_continuous(name = "Development rate", sec.axis = sec_axis(~ .*1, name = "Survival"),breaks = c(0, 0.5, 1))
+  scale_y_continuous(breaks = c(0, 0.5, 1))
+#theme(axis.title.x = element_text(colour = "red"))
+```
+
+
+When the interval of temperatures that allow for survivorship is larger than on both the cold and the hot side that allow for development, performance is entirely limited by development rate.
+
+```{r}
+initialplot
+
+```
+
+
+
+```{r}
+ToyData$p4 <- ToyData$dr3 *(ToyData$lowequal/100)
+equal<- ggplot(ToyData, aes(x = temp, y = p4))+
+ 
+   # performance
+  geom_line(size = 2, col = "#90548bff")+ # performance
+   geom_segment(x = 24, y = -0.08, xend = 33, yend = -0.08, linetype = 1, col = "#90548bff", size = 2)+
+  annotate("text", x = 23, y = -0.08, label = expression("P"[low]))+
+  annotate("text", x = 34.3, y = -0.08, label = expression("P"[high]))+
+  annotate("rect", xmin = 24, xmax = 33, ymin = 0, ymax = 1, fill = "#90548bff", alpha = 0.3)+
+  
+  # development
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
   geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
   geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
-  annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
+  annotate("text", x = 19., y = -0.16, label = expression("D"[low]))+
+  annotate("text", x = 35.5, y = -0.16, label = expression("D"[high]))+
  
   
   
   # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 39.4, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 39.4, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 40.5, y = -0.24, label = expression("S"[high]))+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = lowequal/100), size = 1, linetype = 1, col = "grey40")+ # survival
+
+
+  geom_segment(x = 20.5, y = 0.49, xend = 34.2, yend = 0.49, linetype = 1, col = "grey40")+
+  geom_segment(x = 20.5, y = -0.24, xend = 34.2, yend = -0.24, linetype = 1, col = "grey40")+
+  annotate("text", x = 19., y = -0.24, label = expression("S"[low]))+
+  annotate("text", x = 35.5, y = -0.24, label = expression("S"[high]))+
   #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
   theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
+  annotate("text", x =5, y = 1, label = "B")+
   ylab("Development rate/ \n Survival")+
   xlab("")+
   ylim(-0.25,1)+
-  annotate("rect", xmin = 20.5, xmax = 34.2, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
+  
   # annotate("text", x = 12, y = -0.08, label = "chill stress")+
   # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
   # annotate("text", x = 28, y = -0.08, label = "optimal range")+
@@ -150,35 +165,35 @@ dhigher <- ggplot(ToyData, aes(x = temp, y = p2))+
   #theme(axis.text = element_text(size = 16))
   #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
   #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
-  scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  theme(axis.ticks.x = element_blank())
-dhigher
+ scale_y_continuous(  sec.axis = sec_axis(~ .*1, name = "Survival", breaks = c(0, 0.5, 1)))+
+  scale_x_continuous(breaks = c(12, 29, 38.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  theme(axis.ticks.x = element_blank(),axis.ticks.y.left = element_blank(), axis.title.y.left = element_blank(), axis.title.y.right = element_text(colour = "grey40"),axis.text.y.left = element_blank() , axis.line.y.left = element_blank())
+# scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  # theme(axis.ticks.x = element_blank())
+```
+
+
+When development limits (Dlow and Dhigh) are equal to survival limits (Slow and Shigh), performance interval is reduced, with Plow being higher than Dlow and Slow; and Phigh smaller than Dhigh and Shigh
+
+```{r}
+equal
 
 ```
 
 
+
 ```{r}
-ToyData$p3 <- ToyData$dr2 *(ToyData$slower/100)
-dlower <- ggplot(ToyData, aes(x = temp, y = p3))+
-  geom_line(size = 2,  col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = slower/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
-  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 5, y = 1, label = "B")+
- # ylab("Development rate/ \n Survival")+
-   ylab("")+
-  xlab("")+
-  ylim(-0.25,1)+
-  # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 32, yend = -0.08, linetype = 1, col = "grey", size = 2)+
+ToyData$p3 <- ToyData$dr3 *(ToyData$slower/100)
+devhigher <- ggplot(ToyData, aes(x = temp, y = p3))+
+ 
+ # performance
+  geom_line(size = 2, col = "#90548bff")+ # performance
+  geom_segment(x = 20.5, y = -0.08, xend = 31.8, yend = -0.08, linetype = 1, col = "#90548bff", size = 2)+
   annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 33.5, y = -0.08, label = expression("P"[high]))+
+  annotate("text", x = 33, y = -0.08, label = expression("P"[high]))+
   
   # development
-  geom_segment(x = 9.5, y = 0.49, xend = 32, yend = 0.49, linetype = 3)+
-  geom_segment(x = 20.5, y = 0.51, xend = 34.5, yend = 0.51, linetype = 3)+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
   geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
   geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
   annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
@@ -187,105 +202,58 @@ dlower <- ggplot(ToyData, aes(x = temp, y = p3))+
   
   
   # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 32.1, yend = 0.49, linetype = 1, size = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 32.1, yend = -0.24, linetype = 1, col = "grey40")+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = slower/100), size = 1, linetype = 1, col = "grey40")+ # survival
+  geom_segment(x = 9.1, y = 0.49, xend = 32.3, yend = 0.49, linetype = 1, col = "grey40")+
+  geom_segment(x = 9.1, y = -0.24, xend = 32.3, yend = -0.24, linetype = 1, col = "grey40")+
   annotate("text", x = 8.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 33.5, y = -0.24, label = expression("S"[high]))+
-  
-  
-  geom_segment(x = 11, y = 0, xend = 28, yend = 1)+
+  annotate("text", x = 34, y = -0.24, label = expression("S"[high]))+
+  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
+  theme_cowplot()+
+  annotate("text", x =5, y = 1, label = "C")+
+  ylab("Development rate")+
+  xlab("")+
+  ylim(-0.25,1)+
+  annotate("rect", xmin = 20.5, xmax = 31.8, ymin = 0, ymax = 1, fill = "#90548bff", alpha = 0.3)+
+  # annotate("text", x = 12, y = -0.08, label = "chill stress")+
+  # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
+  # annotate("text", x = 28, y = -0.08, label = "optimal range")+
+  # 
+  geom_segment(x = 12, y = 0, xend = 29, yend = 1)+
   annotate("text", x = 11, y = -0.08, label = expression("T"[0]))+
-  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  annotate("rect", xmin = 20.5, xmax = 32, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
-  
-  
   #theme(axis.text = element_text(size = 16))
   #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
   #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 34.2, 39.5), labels = c("chill stress", expression("P"[low]), expression("P"[high]), "heat stress"))
-  scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
+  scale_x_continuous(breaks = c(11, 26, 38.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
   theme(axis.ticks.x = element_blank())
-dlower
-  
+
+
+
 ```
 
 
+When both development thresholds are higher than both survival thresholds, Performance
 ```{r}
-ToyData$p4 <- ToyData$dr2 *(ToyData$sforc2/100)
-
-equalhigh <- ggplot(ToyData, aes(x = temp, y = p4))+
-  geom_line(size = 2,  col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = sforc2/100), size = 1, linetype = 1, col= "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
-  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 5, y = 1, label = "C")+
-  ylab("Development rate/ \n Survival")+
-  xlab("Temperature")+
-  ylim(-0.25,1)+
-  # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 34, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 35.1, y = -0.08, label = expression("P"[high]))+
-  
-  # development
-  #geom_segment(x = 9.5, y = 0.49, xend = 32, yend = 0.49, linetype = 2)+
-  geom_segment(x = 20.5, y = 0.51, xend = 34.5, yend = 0.51, linetype = 3)+
-  geom_segment(x = 20.5, y = -0.16, xend = 34.5, yend = -0.16, linetype = 3)+
-  annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
- 
-  
-  
-  # survival
-  geom_segment(x = 9.2, y = 0.49, xend = 34.5, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.2, y = -0.24, xend = 34.5, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 35.7, y = -0.24, label = expression("S"[high]))+
-  
-  
-  geom_segment(x = 11, y = 0, xend = 29, yend = 1)+
-  annotate("text", x = 11, y = -0.08, label = expression("T"[0]))+
-  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  annotate("rect", xmin = 20.5, xmax = 34, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
-  
-  
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 34.2, 39.5), labels = c("chill stress", expression("P"[low]), expression("P"[high]), "heat stress"))
-  scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  theme(axis.ticks.x = element_blank())
-equalhigh
-  
+devhigher
 ```
 
+Survival limits are higher than development limits
 
 ```{r}
-ToyData$p5 <- ToyData$dr2 *(ToyData$surfordd/100)
-equalow <- ggplot(ToyData, aes(x = temp, y = p5))+
-  geom_line(size = 2,  col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = surfordd/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
-  #geom_smooth(data = ToyData, mapping = aes(x = temp, y = survival2/100), size = 2, linetype = 2, se = F, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 5, y = 1, label = "D")+
-  #ylab("Development rate/ \n Survival")+
-  ylab("")+
-  xlab("Temperature")+
-  ylim(-0.25,1)+
-  # performance
-  geom_segment(x = 23.5, y = -0.08, xend = 34, yend = -0.08, linetype = 1, col = "grey", size= 2)+
-  annotate("text", x = 21.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 35.1, y = -0.08, label = expression("P"[high]))+
+ToyData$p5 <- ToyData$dr3 *(ToyData$surhigher/100)
+shigher<- ggplot(ToyData, aes(x = temp, y = p5))+
+  
+ # performance
+  geom_line(size = 2, col = "#90548bff")+ # performance
+  geom_segment(x = 24.8, y = -0.08, xend = 34.2, yend = -0.08, linetype = 1, col = "#90548bff", size = 2)+
+  annotate("rect", xmin = 24.8, xmax = 34.2, ymin = 0, ymax = 1, fill = "#90548bff", alpha = 0.3)+
+  annotate("text", x = 23.5, y = -0.08, label = expression("P"[low]))+
+  annotate("text", x = 35.5, y = -0.08, label = expression("P"[high]))+
   
   # development
- # geom_segment(x = 9.5, y = 0.49, xend = 32, yend = 0.49, linetype = 2)+
-  geom_segment(x = 20.5, y = 0.51, xend = 34.5, yend = 0.51, linetype = 3)+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
+  geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
   geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
   annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
   annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
@@ -293,993 +261,43 @@ equalow <- ggplot(ToyData, aes(x = temp, y = p5))+
   
   
   # survival
-  geom_segment(x = 20.5, y = 0.49, xend = 34.5, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 20.5, y = -0.24, xend = 34.5, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 19.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 35.7, y = -0.24, label = expression("S"[high]))+
+  geom_line(data = ToyData, mapping = aes(x = temp, y = surhigher/100), size = 1, linetype = 1, col = "grey40")+ # survival
+  geom_segment(x = 22.3, y = 0.49, xend = 37, yend = 0.49, linetype = 1, col = "grey40")+
+  geom_segment(x = 22.3, y = -0.24, xend = 37, yend = -0.24, linetype = 1, col = "grey40")+
+  annotate("text", x = 21, y = -0.24, label = expression("S"[low]))+
+  annotate("text", x = 38, y = -0.24, label = expression("S"[high]))+
   
-  
-
-  #geom_segment(x = 11, y = 0, xend = 31, yend = 1)+
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  annotate("rect", xmin = 23.5, xmax = 34, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
-  
-  geom_segment(x = 13, y = 0, xend = 30, yend = 1)+
-  annotate("text", x = 13, y = -0.08, label = expression("T"[0]))+
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 34.2, 39.5), labels = c("chill stress", expression("P"[low]), expression("P"[high]), "heat stress"))
-  scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  theme(axis.ticks.x = element_blank())
-equalow
-  
-```
-
-```{r}
-#plot_grid(dhigher, dlower, equalhigh, equalow, ncol = 2)
-```
-
-
-
-```{r}
-surv <- ggplot(Figure1, aes(x = temperature, y = tropical))+
-  
-  geom_line(Figure1, mapping = aes(x = temperature, y = survival), size = 2, linetype = 2)+
-  
-  geom_text(Dopt, mapping = aes(x = 24, y = 0.55, label = "Swidth"), size = 5)+
-  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "B"), size = 5)+
-  
-  #geom_point(Figure1, mapping = aes(x = 12, y = 0.5), size = 4)+
-  #geom_point(Figure1, mapping = aes(x = 34, y = 0.5), size = 4)+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4)+
-  
-  geom_segment(x = 12, xend = 34, y = 0.5, yend = 0.5, linetype = 3)+
-  #geom_segment(x = Dopt$temperature, xend = 14.5, y = 1, yend = 0)+
-  #geom_point(Dopt, mapping = aes(x = temperature, y = 0), size = 4)+
+    
+    #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
   theme_cowplot()+
-  ylab("Survival")+
-  xlab("Temperature")+
-  #ylim(0.04,1)+
-  theme(axis.text = element_text(size = 16))+
-  #theme(axis.text.x=element_blank())+
-  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(breaks = c(12, 31, 34), labels = c(expression("S"[low]),expression("S"[opt]), expression("S"[high])))
-surv
-```
-
-Performance. 
-We calculated performance as a function of development rate and surivival. If development rate has a fixed function, P-width (the length of the temperature interval that allows for 50% efficiency in dr and survival) will depend on the relationship between Dopt and Sopt. 
-
-Panel C. Performance when Dopt < Sopt
-
-```{r}
-Figure1$s2 <- c(0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1, 1, 1, 1,1,1,1,1,
-                0.89, 0.75,0.5,0.25,0)
-
-Figure1$P2 <- Figure1$s2 * Figure1$tropical
-
-per1 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
-  geom_line(Figure1, mapping = aes(x = temperature, y = P2), size = 3, col = "gray")+
-  geom_line(linetype = 3, size = 1)+
-  geom_line(Figure1, mapping = aes(x = temperature, y = s2), size = 1, linetype = 2)+
-  
-  geom_point(Figure1, mapping = aes(x = 35, y = 1), size = 4, col = "black")+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "grey")+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
-  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
-  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "C"), size = 5)+
-  annotate("text", x = 31, y = 0.01, label = expression("D"[opt]))+
-  annotate("text", x = 35, y = 0.01, label = expression("S"[opt]))+
-  
-  theme_cowplot()+
-  ylab("Performance")+
-  xlab("Temperature")+
-  #ylim(0.04,1)+
-  theme(axis.text = element_text(size = 16))+
-  #theme(axis.text.x=element_blank())+
-  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(breaks = c(23,31, 36), labels = c(expression("P"[low]), expression("P"[opt]), expression("P"[high])))
-
-per1
-
-```
-
-
-
-
-Panel D. Performance when Dopt = Popt
-
-```{r}
-per2 <- ggplot(Figure1, aes(x = temperature, y = tropical))+
-  geom_line(Figure1, mapping = aes(x = temperature, y = P_tropical), size = 3, col = "gray")+
-  geom_line(linetype = 3, size = 1)+
-  geom_line(Figure1, mapping = aes(x = temperature, y = survival), size = 1, linetype = 2)+
-  
-  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "D"), size = 5)+
-  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
-  annotate("text", x = 31, y = 0.06, label = expression("D"[opt]))+
-  annotate("text", x = 31, y = 0.01, label = expression("S"[opt]))+
-  geom_text(Dopt, mapping = aes(x = 29, y = 0.55, label = "Pwidth"), size = 5)+
-  
-  #geom_point(Figure1, mapping = aes(x = 33.5, y = 0.5), size = 5, col = "grey")+
-  #geom_point(Figure1, mapping = aes(x = 23, y = 0.5), size = 5, col = "grey")+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 5, col = "grey")+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
-  
-  geom_segment(x = 23, xend = 33.5, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  theme_cowplot()+
-  ylab("Performance")+
-  xlab("Temperature")+
-  theme(axis.text = element_text(size = 12))+
-  scale_x_continuous(breaks = c(23, 31, 33.5), labels = c(expression("P"[low]),expression("P"[opt]),expression("P"[high])))
-per2
-
-```
-
-
-
-Panel E. Performance when Dopt > Sopt
-```{r}
-
-Figure1$s3 <-  c(0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1,  
-                0.89, 0.75,0.5,0.25,0,NA, NA, NA, NA, 
-                NA, NA, NA, NA)
-Figure1$d3 <- ifelse(Figure1$temperature <= 32, Figure1$tropical, NA)
-
-Figure1$P3 <- Figure1$s3 *Figure1$tropical
-per3 <- ggplot(Figure1, aes(x = temperature, y = d3))+
-  geom_line(Figure1, mapping = aes(x = temperature, y = P3), size = 3, col = "grey")+
-  geom_line(linetype = 3, size = 1, alpha = 1)+
-  geom_line(Figure1, mapping = aes(x = temperature, y = s3), size = 1, linetype = 2, alpha = 1)+
-  
-  geom_point(Figure1, mapping = aes(x = 27, y = 1), size = 4, col = "black", shape = 16)+
-  geom_point(Figure1, mapping = aes(x = 27, y = 0.849), size = 5, col = "grey", shape = 16)+
-  geom_point(Figure1, mapping = aes(x = 31, y = 1), size = 4, col = "black", shape = 1)+
-  
-  geom_segment(x = 23, xend = 30, y = 0.5, yend = 0.5, linetype = 3)+
-  geom_text(Dopt, mapping = aes(x = 27, y = 0.55, label = "Pwidth"), size = 5)+
-  geom_text(Dopt, mapping = aes(x = 10, y = 0.95, label = "E"), size = 5)+
-  
-  annotate("text", x = 31, y = 0.01, label = expression("D"[opt]))+
-  annotate("text", x = 27, y = 0.01, label = expression("S"[opt]))+
-  theme_cowplot()+
-  theme(axis.text = element_text(size = 16))+
-  
-  ylab("Performance")+
-  xlab("Temperature")+
- # xlim(10,30)+
-  
-  #theme(axis.text.x=element_blank())+
-  #theme(axis.text.x= c("T0", "D-low", "D-opt", "D-high"))+
-  scale_x_continuous(limits = c(10,33),breaks = c(23, 27, 30), labels = c(expression("P"[low]), expression("P"[opt]),  expression("P"[high])))
-per3
-```
-
-
-```{r}
-# run this in .R document to get proper figure (no overlaping letters)
-
-# grid.arrange(
-#   arrangeGrob(
-#     devrate, 
-#     arrangeGrob(surv, nrow=1),
-#     ncol=2 ,widths=c(1.5,1.5)),
-#   arrangeGrob(per1, per2 ,per3 ,ncol=3, widths=rep(1,3)),
-#   nrow=2)
-```
-
-
-# Figure 2. Hypotheses
-
-```{r}
-hyp <- tibble(Dopt = rnorm(50, mean = 30, sd = 2), 
-              Sopt = Dopt,
-              Dhigh = rnorm(50, mean = 34, sd = 1), 
-              Shigh = Dhigh -2, 
-              Dwidth = rnorm(50, mean = 7, sd = 2),
-              Swidth = Dwidth *2,
-              latopt = Sopt/2)
-
-ylab <- expression(paste( D[low],", ", D[opt],", ", D[high]))
-xlab <- expression(paste( S[low],", ", S[opt],", ", S[high]))
-
-opt <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  #geom_hline(yintercept = 4,size = 2)+
-  theme_cowplot()+
-  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
-  ylab(ylab)+
-  xlab(xlab)+
-  annotate("text", x = 0, y = 8, label = "A", size = 5)+
-  ylim(0,8)+
-  xlim(0, 8)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-  
-  
-opt
-
-```
-
-
-```{r}
-high <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  #geom_hline(yintercept = 4,size = 2)+
-  theme_cowplot()+
-  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
-  ylab(expression("D"[high]))+
-  xlab(expression("S"[high]))+
-  annotate("text", x = 0, y = 8, label = "B", size = 5)+
-  ylim(0,8)+
-  xlim(0, 8)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-  
-high
-```
-
-
-```{r}
-width <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  #geom_hline(yintercept = 4,size = 2)+
-  theme_cowplot()+
-  geom_segment(x = 4, xend = 8, y = 2, yend = 3, size = 1.3, col = "black")+
-  ylab(expression("D"[width]))+
-  xlab(expression("S"[width]))+
-  
-  annotate("text", x = 0, y = 8, label = "B", size = 5)+
-  ylim(0,8)+
-  xlim(0, 8)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-width
-```
-
-
-```{r}
-mini <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  #geom_hline(yintercept = 4,size = 2)+
-  theme_cowplot()+
-  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
-  ylab(expression("D"[low]))+
-  xlab(expression("S"[low]))+
-  annotate("text", x = 0, y = 8, label = "D", size = 5)+
-  ylim(0,8)+
-  xlim(0, 8)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-mini
-```
-
-```{r}
-Tmin <- ggplot(hyp, aes(x = Swidth, y = Dwidth))+
-  #geom_hline(yintercept = 4,size = 2)+
-  theme_cowplot()+
-  geom_segment(x = 0, xend = 8, y = 0, yend = 8, size = 1.3, col = "black")+
-  ylab(expression("D"[low]))+
-  xlab(expression("T"[0]))+
-  annotate("text", x = 0, y = 8, label = "C", size = 5)+
-  ylim(0,8)+
-  xlim(0, 8)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-Tmin
-```
-
-Figure 2
-```{r}
-
-plot_grid(opt, width,Tmin, ncol = 3)
-```
-
-
-
-
-```{r}
-widthlat <- ggplot(hyp, aes(x = Shigh, y = Dhigh -1, col = "larva"))+
-  geom_line(data = hyp, mapping = aes(x = Shigh, y = Dhigh, col = "egg"), size = 1.3)+
-  geom_line(data = hyp, mapping = aes(x = Shigh, y = Dhigh -.2, col = "pupa"), size = 1.3)+
-  geom_line(size = 1.3)+
-  #scale_color_discrete()+
-  scale_color_manual(values = c("grey", "grey50", "black"))+
-  theme_cowplot()+
-  annotate("text", x = 28.5, y = 37, label = "A", size = 5)+
-  ylab(expression(P[width]))+
-  xlab("Absolute latitude")+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-        legend.title = element_blank(), legend.position = c(0.2,0.8))
-widthlat
-```
-
-
-
-```{r}
-lab <- expression(paste( S[opt],", ", D[opt],", ", P[opt]))
-threelat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
-  geom_point(col = "white")+
-  geom_segment(x = 26, xend = 34, y = 32-1, yend = 29-1, size = 1.3, col = "grey50")+
-  geom_segment(x = 26, xend = 34, y = 32-0.2, yend = 29-0.2, size = 1.3, col = "black")+
-  geom_segment(x = 26, xend = 34, y = 32, yend = 29, size = 1.3, col = "grey")+
-  #geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2, linetype = 1)+
-  #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 25, y = 35, label = "B", size = 5)+
-  ylab(lab)+
-  xlab("Absolute latitude")+
-  ylim(25, 35)+
-  xlim(25, 35)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank())
-
-
-threelat
-```
-
-
-
-
-```{r}
-
-
-lab2 <- expression(paste( S[low],", ", D[low],", ", P[low]))
-lowlat <-  ggplot(hyp, aes(x = Dopt, y = Sopt))+
-  geom_point(col = "white")+
-  geom_segment(x = 26, xend = 34, y = 34-1, yend = 26-1, size = 1.3, col = "grey50")+
-  geom_segment(x = 26, xend = 34, y = 34-0.2, yend = 26-0.2, size = 1.3, col = "black")+
-  geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 1.3, col = "grey")+
-  #geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 2, linetype = 1)+
-  #geom_segment(x = 2, xend = 31, y = 0, yend = 1, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 25, y = 35, label = "C", size = 5)+
-  ylab(lab2)+
-  xlab("Absolute latitude")+
-  ylim(25, 35)+
-  xlim(25, 35)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank())
-
-
-lowlat
-```
-
-
-
-Figure 3
-```{r}
-
-plot_grid(widthlat, threelat,lowlat, ncol = 3)
-```
-
-
-
-```{r}
-skewhy <- ggplot(hyp, aes(x = Dopt, y = Sopt))+
-  
-  geom_segment(x = 26, xend = 34, y = 34, yend = 26, size = 1.3, col = "black")+
-  theme_cowplot()+
-  annotate("text", x = 25, y = 35, label = "E", size = 5)+
-  ylab("Skew")+
-  xlab(expression("P"[high]))+
-  ylim(25, 35)+
-  xlim(25, 35)+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank())
-skewhy
-```
-
-```{r}
-# small Dwidth, skew = 0
-skew <- tibble(temperature = seq(0,20, by = 0.1), 
-               ssmall = Gaus(temperature, 1, 10, 2), #2
-               swide = Gaus(temperature, 1, 10, 5), # 4
-               wide_r = Gaus(temperature, 1, 15, 0.5), 
-               wide_l = Gaus(temperature, 1, 15, 8), 
-               wide = ifelse(temperature <= 15, wide_l, wide_r), 
-               small_r = Gaus(temperature, 1, 15, 0.5), 
-               small_l = Gaus(temperature, 1, 15, 3.25), 
-               small = ifelse(temperature <= 15, small_l, small_r))
-inset1 <- ggplot(skew, aes(x = temperature, y = ssmall))+
-  geom_line(size = 1, col = "grey")+
- 
-  geom_segment(x = 8, xend = 12, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
-  #geom_point(x = 31, y = 1, col = "black")+ # opt line
-  #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  #geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #annotate("text", x = 10, y = 0.4, label = "Dwidth = x\nskew = 0")+
-  #annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  #annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  ylim(0.02, 1)+
-  
-  theme_cowplot()+
-   ylab("")+
-   xlab("")+
-  theme(legend.position = "none")+
-   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-     axis.line.x = element_blank(), axis.line.y = element_blank())
-
-inset1
-
-```
-
-```{r}
-# large Dwidth, skew = 0
-inset2 <- ggplot(skew, aes(x = temperature, y = swide))+
-  geom_line(size = 1, col = "grey")+
- 
-  geom_segment(x = 5, xend = 15, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
-  #geom_point(x = 31, y = 1, col = "black")+ # opt line
-  #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  #geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #annotate("text", x = 10, y = 0.4, label = "Dwidth = 2x\nskew = 0")+
-  #annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  #annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
- # ylim(0.01, 1)+
-  theme_cowplot()+
-  ylab("")+
-  xlab("")+
-  theme(legend.position = "none")+
-  
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-     axis.line.x = element_blank(), axis.line.y = element_blank())
-inset2
-```
-
-```{r}
-# large Dwidth, skew = 0.7
-inset3 <- ggplot(skew, aes(x = temperature, y = wide))+
-  geom_line(size = 1, col = "grey")+
- 
-  geom_segment(x = 6, xend = 15.5, y = 0.5, yend = 0.5, col = "black", size = 1, linetype = 3)+ # opt line
-  #geom_point(x = 31, y = 1, col = "black")+ # opt line
-  #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  #geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
- # geom_segment(x = 15, xend = 15, y = 0, yend = 1,linetype = 1, size =2, col = "grey")+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #annotate("text", x = 10, y = 0.4, label = "Dwidth = 2x\nskew = 0.7")+
-  #annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  #annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  ylim(0.01, 1)+
-  theme_cowplot()+
-  ylab("")+
-  xlab("")+
-  theme(legend.position = "none")+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-     axis.line.x = element_blank(), axis.line.y = element_blank())
-inset3
-```
-
-```{r}
-# small Dwidth, skew = 0.7
-inset4 <- ggplot(skew, aes(x = temperature, y = small))+
-  geom_line(size = 1, col = "grey")+
-  geom_segment(x = 11.2, xend = 15.2, y = 0.5, yend = 0.5,linetype = 3, size =1, col = "black")+
-  #geom_segment(x = 11.2, xend = 16.2, y = 0.5, yend = 0.5, col = "black", size = 1)+ # opt line
-  #geom_point(x = 31, y = 1, col = "black")+ # opt line
-  #geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  #geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  #geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #annotate("text", x = 13.5, y = 0.4, label = "Dwidth = x\nskew = 0.7")+
-  #annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  #annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  ylim(0.01, 1)+
-  theme_cowplot()+
-  ylab("")+
-  xlab("")+
-  theme(legend.position = "none")+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-     axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
-     axis.line.x = element_blank(), axis.line.y = element_blank())
-  
-inset4
-```
-
-
-
-
-
-```{r}
-library(cowplot)
-inside <- plot_grid(inset4, inset3, inset1, inset2, ncol = 2)
-inside
-```
-
-```{r}
-out <- tibble(skew = c(0, 0.7), 
-              Dwidth = c(5, 10))
-outside <- ggplot(out, aes(x = Dwidth, y = skew))+
-  ylab(expression("Skew"))+
-  
-   xlab(expression(P[width]))+
-  annotate("text", x = 0, y = 1, label = "F", size = 5)+
-  theme_cowplot()+
-  ylim(0,1)+
-  xlim(0,10)+
-  scale_x_continuous(limits = c(0,10),breaks = c( 2.5, 7.5), labels = c("small", "large"))+
-  scale_y_continuous(limits = c(0,1),breaks = c( 0.25, 0.75), labels = c("0", "1"))
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-       axis.text.y = element_blank(), axis.ticks.y = element_blank())
-outside
-```
-
-```{r}
-panelf <- ggdraw(outside) +
-  draw_plot(inset1, 0.05, 0.1, 0.5,.5) +
-  draw_plot(inset2, 0.5, 0.1, 0.5,.5) +
-  draw_plot(inset3, 0.45, 0.5, 0.5,.5) +
-  draw_plot(inset4, 0, 0.5, 0.5,.5) +
-  #draw_plot(inside, 0.5, 0.1, 0.45,.45) +
-  #draw_plot(inside, 0.5, 0.1, 0.45,.45) +
-  draw_plot_label(
-    c("A", "B"),
-    c(1, 0),
-    c(0, 0),
-    size = 12
-  )
-
-panelf
-```
-
-
-Run this in a regular .R file to prevent crowdine
-```{r}
-plot_grid(devrate, surv, per1, per2, per3, panelf, ncol = 3)
-```
-
-
-
-```{r}
-plot_grid(opt, high, width,  widthlat,threelat,skewhy, ncol = 3)
-
-```
-
-
-
-```{r}
-# small Dwidth, skew = 0
-A_drGaus <- Gaus(temperature, 1, 30, 3)
-Figure1$skew0 <- Gaus(temperature, 1, 30, 10)
-inset <- ggplot(Figure1, aes(x = temperature, y = skew0))+
-  geom_line(size = 3, col = "grey")+
-  geom_segment(x = 30, xend = 30, y = 0, yend = 1, col = "black")+ # opt line
-  geom_point(x = 31, y = 1, col = "black")+ # opt line
-  geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  annotate("text", x = 27, y = 0.5, label = "cold \ntolerance")+
-  annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  
-  theme_cowplot()+
-  ylab("Performance")+
-  xlab("Temperature")+
-  scale_x_continuous(breaks = c(23, 31, 36), labels = c(expression("P"[low]), expression("P"[opt]), expression("S"[opt])))
-inset
-```
-
-
-Skew inset 1 (small skew)
-```{r}
-inset <- ggplot(Figure1, aes(x = temperature, y = P_tropical))+
-  geom_line(size = 3, col = "grey")+
-  geom_segment(x = 31, xend = 31, y = 0, yend = 1, col = "black")+ # opt line
-  geom_point(x = 31, y = 1, col = "black")+ # opt line
-  geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  annotate("text", x = 27, y = 0.5, label = "cold \ntolerance")+
-  annotate("text", x = 34, y = 0.5, label = "heat \ntolerance")+
-  annotate("text", x = 14, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  
-  theme_cowplot()+
-  ylab("Performance")+
-  xlab("Temperature")+
-  scale_x_continuous(breaks = c(23, 31, 36), labels = c(expression("P"[low]), expression("P"[opt]), expression("S"[opt])))
-inset
-```
-
-
-Large skew
-```{r}
-inset2 <- ggplot(Figure1, aes(x = temperature, y = P_tropical))+
-  geom_line(size = 3, col = "grey")+
-  geom_segment(x = 31, xend = 31, y = 0, yend = 1, col = "black")+ # opt line
-  geom_point(x = 31, y = 1, col = "black")+ # opt line
-  geom_segment(x = 23, xend = 31, y = 0.5, yend = 0.5,linetype = 1, col = "grey35", size = 2)+ # cold tolerance (9)
-  geom_segment(x = 31, xend = 36, y = 0.5, yend = 0.5,linetype = 1, col = "lightgrey", size = 2)+ # heat tolerance (6)
-  geom_segment(x = 23, xend = 36, y = 0.5, yend = 0.5, linetype = 3)+
-  
-  #geom_segment(x = 12, xend = 20, y = 0.9, yend = 0.9,linetype = 2)+
-  #geom_segment(x = 12, xend = 17, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 17, xend = 31-11, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  #geom_segment(x = 15, xend = 20, y = 0.8, yend = 0.8,linetype = 3)+
-  #geom_segment(x = 12, xend = 15, y = 0.7, yend = 0.7,linetype = 1, size = 3)+
-  
-  annotate("text", x = 27, y = 0.5, label = "cold \ntolerance")+
-  annotate("text", x = 34, y = 0.55, label = "heat")+
-  #annotate("text", x = 16, y = 0.74, label = "skew = cold tolerance/ \n        Pwidth")+
-  
-  theme_cowplot()+
-  ylab("Performance")+
-  xlab("Temperature")+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-        axis.text.y = element_blank(), axis.ticks.y = element_blank())
-inset2
-```
-
-
-skew (proportion of tolerance that represents cold tolerance)
-```{r}
-skew1 <- ggplot(hyp, aes(x = Shigh, y = Dhigh))+
-  geom_line(size = 2)+
-  
-  ylab(expression("skew"))+
-  xlab(expression("Absolute latitude"))+
-  annotate("text", x = 31, y = 35, label = "skew = cold tolerance/ \n        Pwidth")+
-  theme_cowplot()+
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-       axis.text.y = element_blank(), axis.ticks.y = element_blank())
-skew1
-```
-
-```{r}
-
-skew <- ggdraw(skew1 + theme_half_open(12)) +
-  draw_plot(inset2, 0.5, 0.1, 0.45,.45) +
-  draw_plot_label(
-    c("A", "B"),
-    c(1, 0),
-    c(0, 0),
-    size = 12
-  )
-
-skew
-```
-
-
-```{r}
-lifesta <- tibble(lifestage = c("egg", "larva", "pupa"), 
-                  meanPw = c(10, 4, 10), 
-                  min = c(8, 2, 8),
-                  max = c(12, 6, 12))
-
-life <- ggplot(lifesta, aes(x = lifestage, y = meanPw))+
-  geom_pointrange(lifesta, mapping = aes(ymin = min, ymax= max))+
-  theme_cowplot()+
-  ylim(0,13)+
-  annotate("text", x = 0.6, y = 13, label = "F", size = 5)+
-  ylab(expression("P"[width]))+
-  xlab("")+
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), axis.title.x = element_blank())
-life  
-```
-
-
-```{r}
-plot_grid(opt, high, width, threelat, widthlat,life, ncol = 3)
-
-```
-
-# Old code below:
-
-Anna's plots
-
-A. Survival is fixed, dr is adaptive with latitude
-
-
-```{r}
-FigureA <- tibble(temperature = temperature, 
-                  survival = A_survival, 
-                  tropical = A_drtrop, 
-                  temperate = A_drtemp, 
-                  P_tropical = survival * tropical, 
-                  P_temperate = survival * temperate)
-
-ggplot(FigureA, aes(x = temperature, y = survival))+
-  geom_line(linetype = 2, size = 2)+
-  #geom_line(aes(x = temperature, y = tropical, col = "tropical"))+
-  geom_line(aes(x = temperature, y = P_temperate), col = "grey",  size = 2)+
-  geom_line(aes(x = temperature, y = temperate), col = "black", linetype = 3, size = 2)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-```
-
-```{r}
-ggplot(FigureA, aes(x = temperature, y = survival))+
-  geom_line(linetype = 2, size = 2)+
-  
-  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = tropical), col = "black", size = 2, linetype = 3)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-```
-
-```{r}
-# Figure B
-B_drGaus <- Gaus(temperature, 1, 30, 7)
-B_dr <- c( NA,0.0168798841487899, 0.0251304889852744, 0.036658041953378, 0.0523931410698256, 0.0733696513683829, 0.100668899772898, 0.135335283236613, 0.178263979585048, 0.230066298993809, 0.290923807046148, 0.360447788597821, 0.437564737700269, 0.520450121020702, 0.606530659712633, 0.692569324205198, 0.774837428883249, 0.849365816568312, 0.912254076828545, 0.960005441285478, 0.989847803378734, 1,0.989847803378734, 0.960005441285478,0.90, 0.800737402916808, 0.606530659712633, 0, 
-              NA, NA, NA)
-B_temperate <- c(0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 
-                0.89, 0.75,0.5,0.25,0,NA,
-                NA, NA, NA, NA, NA, NA, NA, NA, NA)
-B_tropical <- c(NA, NA, NA, NA, NA, NA, 
-                NA, NA, NA,NA, 0, 0.25, 0.5, 0.75, 0.89,
-                1, 1, 1, 1, 1, 1,1, 1, 1, 1, 1,
-                0.89, 0.75,0.5,0.25,0)
-FigureB <- tibble(temperature = temperature, 
-                  dr= B_dr, 
-                  temperate = B_temperate, 
-                  tropical = B_tropical, 
-                  P_temperate = dr * temperate, 
-                  P_tropical = dr * tropical)
-
-ggplot(FigureB, aes(x = temperature, y = dr))+
-  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = tropical), col = "black", size = 2, linetype = 2)+
-  geom_line(linetype = 3, size = 2)+
-  
-  
-  scale_color_viridis_d()+
-  theme_cowplot()
-```
-
-```{r}
-ggplot(FigureB, aes(x = temperature, y = dr))+
-  geom_line(aes(x = temperature, y = P_temperate), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = temperate), col = "black", size = 2, linetype = 2)+
-  geom_line(linetype = 3, size = 2)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-```
-Figure C
-```{r}
-dr_temperateC <- c(NA, NA, NA, NA,
-              0.00386592013947281, 0.0111089965382423, 0.0285655007845504, 0.0657285286165305, 0.135335283236613,               0.249352208777296, 0.411112290507187, 0.606530659712633, 0.800737402916808, 0.945959468906766, 
-              1, 0.945959468906766, 0.800737402916808, 0.606530659712633, 0, 
-              NA, NA, NA, NA,NA,NA,
-              NA, NA, NA, NA, NA, NA)
-
-FigureC <- tibble(temperature = temperature, 
-                  dr_tropical = FigureA$tropical,
-                  dr_temperate = dr_temperateC,
-                  su_tropical = FigureB$tropical,
-                  su_temperate = FigureB$temperate, 
-                  P_tropical = dr_tropical * su_tropical,
-                  P_temperate = dr_temperate * su_temperate)
-
-ggplot(FigureC, aes(x = temperature, y = dr_temperate))+
-  geom_line(aes(x = temperature, y = P_temperate), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = su_temperate), col = "black", size = 2, linetype = 2)+
-  geom_line(linetype = 3, size = 2)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-
-
-```
-
-```{r}
-FigureD <- tibble(temperature = temperature, 
-                  dr = FigureB$dr, 
-                  survival = FigureA$survival, 
-                  P = dr * survival)
-ggplot(FigureD, aes(x = temperature, y = dr))+
-  geom_line(aes(x = temperature, y = P), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = survival), col = "black", size = 2, linetype = 2)+
-  geom_line(linetype = 3, size = 2)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-```
-
-
-```{r}
-
-ggplot(FigureC, aes(x = temperature, y = dr_tropical))+
-  geom_line(aes(x = temperature, y = P_tropical), col = "grey", size = 2)+
-  geom_line(aes(x = temperature, y = su_tropical), col = "black", size = 2, linetype = 2)+
-  geom_line(linetype = 3, size = 2)+
-  scale_color_viridis_d()+
-  theme_cowplot()
-
-```
-
-
-Is there a trade-off between cold and heat tolerance?
-
-```{r}
-Tolerance <- tibble(cold= rnorm(50, mean = 12, sd = 2), 
-                    hot1 = rnorm(50, mean = 2, sd = 2), 
-                    hot2 = (cold/2)-3,
-                    hot3 = 10 -(cold/2))
-
-ggplot(Tolerance, aes(x = hot1, y = cold)) +
-  geom_point(size = 2)+
-  theme_cowplot()+
-  geom_hline(yintercept = 12)+
-  ylim(0,20)+
-  xlim(0,20)+
-  ylab("cold tolerance")+
-  xlab("heat tolerance")
-  
-  
-  
-```
-
-```{r}
-ggplot(Tolerance, aes(x = hot2, y = cold)) +
-  geom_point(size = 2)+
-  theme_cowplot()+
-  geom_hline(yintercept = 12)+
-  ylim(0,20)+
-  xlim(0,20)+
-  ylab("cold tolerance")+
-  xlab("heat tolerance")
-```
-
-
-
-```{r}
-ggplot(Tolerance, aes(x = hot3, y = cold)) +
-  geom_point(size = 2)+
-  theme_cowplot()+
-  geom_hline(yintercept = 12)+
-  ylim(0,20)+
-  xlim(0,20)+
-  ylab("cold tolerance")+
-  xlab("heat tolerance")
-```
-
-# Version III
-
-```{r}
-# Import Toy data (based on set 944)
-ToyData <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalStressCompilation/Toydata.xlsx", 
-                  sheet = "toy2", na = c("NA", ""))
-# # Fill in data gaps using loess
-# 
-# 
-# model1 <- loess(dr3 ~ temp, data=ToyData)
-# xrange <- range(ToyData$temp)
-# xseq <- seq(from=4, to=39, length=36)
-# pred <- predict(model1, newdata = data.frame(temp = xseq), se=TRUE)
-# ToyData$dr <- pred$fit
-# data.frame(pred$fit)
-# 
-# model2 <- loess(survival2 ~ temp, data=ToyData)
-# pred2 <- predict(model2, newdata = data.frame(temp = xseq), se=TRUE)
-# ToyData$s11 <- pred2$fit
-# ToyData$s1 <- ifelse(ToyData$s11 < 0, 0, ifelse(ToyData$s11 > 100, 100, ToyData$s11))
-# 
-# model3 <- loess(drlow ~ temp, data=ToyData)
-# pred3 <- predict(model2, newdata = data.frame(temp = xseq), se=TRUE)
-# ToyData$s2 <- pred3$fit
-# 
-# model3 <- loess(drhigh ~ temp, data=ToyData)
-# pred3 <- predict(model3, newdata = data.frame(temp = xseq), se=TRUE)
-# ToyData$s3 <- pred2$fit
-# 
-
-
-```
-
-
-Figure 2
-
-```{r}
-ToyData$p1 <- ToyData$dr2 *(ToyData$shigher/100)
-ToyData$p2 <- ToyData$dr2 *(ToyData$highequal/100)
-initialplot <- ggplot(ToyData, aes(x = temp, y = p1))+
-  geom_line(size = 2, col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = shigher/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr2), size = 2, col = "black", linetype = 3)+ #development rate
- # performance
-  geom_segment(x = 17.5, y = -0.08, xend = 31.3, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 16, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 33, y = -0.08, label = expression("P"[high]))+
-  
-  # development
-  geom_segment(x = 17.5, y = 0.51, xend = 31.3, yend = 0.51, linetype = 3)+
-  geom_segment(x = 17.5, y = -0.16, xend = 31.3, yend = -0.16, linetype = 3)+
-  annotate("text", x = 16, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 33, y = -0.16, label = expression("D"[high]))+
- 
-  
-  
-  # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 34.8, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 34.8, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 36, y = -0.24, label = expression("S"[high]))+
-  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
-  theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
+  annotate("text", x =5, y = 1, label = "D")+
   ylab("Development rate/ \n Survival")+
   xlab("")+
   ylim(-0.25,1)+
-  annotate("rect", xmin = 17.5, xmax = 31.3, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
+  
   # annotate("text", x = 12, y = -0.08, label = "chill stress")+
   # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
   # annotate("text", x = 28, y = -0.08, label = "optimal range")+
-  
-  # T0
-  geom_segment(x = 9, y = 0, xend = 26, yend = 1)+
-  annotate("text", x = 9, y = -0.08, label = expression("T"[0]))
+  # 
+  geom_segment(x = 12, y = 0, xend = 29, yend = 1)+
+  annotate("text", x = 12, y = -0.08, label = expression("T"[0]))+
   #theme(axis.text = element_text(size = 16))
   #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
-  # scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  scale_y_continuous(  sec.axis = sec_axis(~ .*1, name = "Survival", breaks = c(0, 0.5, 1)))+
+  scale_x_continuous(breaks = c(12, 29, 38.5), labels = c("chill stress", "optimal range", "heat stress"))+
+  theme(axis.ticks.x = element_blank(),axis.ticks.y.left = element_blank(), axis.title.y.left = element_blank(), axis.title.y.right = element_text(colour = "grey40"),axis.text.y.left = element_blank(), axis.line.y.left = element_blank())
+# scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
   # theme(axis.ticks.x = element_blank())
+
+shigher
+
 ```
 
 
-When the interval of temperatures that allow for survivorship is larger than on both the cold and the hot side that allow for development, performance is entirely limited by development rate.
+# Not used here.
 
 ```{r}
-initialplot
-
+plot_grid(initialplot,equal, devhigher, shigher, ncol = 2)
 ```
 
 
@@ -1311,7 +329,7 @@ heatequal <- ggplot(ToyData, aes(x = temp, y = p2))+
   annotate("text", x = 35.7, y = -0.24, label = expression("S"[high]))+
   #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
   theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
+  annotate("text", x =5, y = 1, label = "C")+
   ylab("Development rate/ \n Survival")+
   xlab("")+
   ylim(-0.25,1)+
@@ -1336,167 +354,6 @@ For heat-tolerant populations, if Dhigh is equal to Shigh performance is depende
 
 ```{r}
 heatequal
-```
-
-
-```{r}
-ToyData$p3 <- ToyData$dr3 *(ToyData$slower/100)
-heatdhigher <- ggplot(ToyData, aes(x = temp, y = p3))+
-  geom_line(size = 2, col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = slower/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
- # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 31.8, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 33, y = -0.08, label = expression("P"[high]))+
-  
-  # development
-  geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
-  geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
-  annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
- 
-  
-  
-  # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 32.3, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 32.3, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 34, y = -0.24, label = expression("S"[high]))+
-  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
-  theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
-  ylab("Development rate/ \n Survival")+
-  xlab("")+
-  ylim(-0.25,1)+
-  annotate("rect", xmin = 20.5, xmax = 31.8, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)#+
-  # annotate("text", x = 12, y = -0.08, label = "chill stress")+
-  # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
-  # annotate("text", x = 28, y = -0.08, label = "optimal range")+
-  # 
-  #geom_segment(x = 11, y = 0, xend = 30, yend = 1)+
-  #annotate("text", x = 11, y = -0.08, label = expression("T"[0]))
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
-  # scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  # theme(axis.ticks.x = element_blank())
-
-
-
-```
-For heat-tolerant populations, if Dhigh is larger than Shigh, then performance is limited by x
-
-```{r}
-heatdhigher
-```
-
-For heat-tolerant populations, if Dhigh is smaller than Shigh, then performance is limited by y.
-```{r}
-initialplot
-```
-
-
-
-
-
-```{r}
-ToyData$p4 <- ToyData$dr3 *(ToyData$lowequal/100)
-heatdlower<- ggplot(ToyData, aes(x = temp, y = p4))+
-  geom_line(size = 2, col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = lowequal/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
- # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 34.2, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 35.5, y = -0.08, label = expression("P"[high]))+
-  
-  # development
-  geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
-  geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
-  annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
- 
-  
-  
-  # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 39.4, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 39.4, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 40.5, y = -0.24, label = expression("S"[high]))+
-  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
-  theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
-  ylab("Development rate/ \n Survival")+
-  xlab("")+
-  ylim(-0.25,1)+
-  annotate("rect", xmin = 20.5, xmax = 34.2, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
-  # annotate("text", x = 12, y = -0.08, label = "chill stress")+
-  # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
-  # annotate("text", x = 28, y = -0.08, label = "optimal range")+
-  # 
-  geom_segment(x = 11, y = 0, xend = 30, yend = 1)+
-  annotate("text", x = 11, y = -0.08, label = expression("T"[0]))
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
-  # scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  # theme(axis.ticks.x = element_blank())
-
-heatdlower
-
-```
-
-Survival limits are higher than development limits
-
-```{r}
-ToyData$p5 <- ToyData$dr4 *(ToyData$surhigher/100)
-heatdlower<- ggplot(ToyData, aes(x = temp, y = p5))+
-  geom_line(size = 2, col = "grey")+ # performance
-  geom_line(data = ToyData, mapping = aes(x = temp, y = surhigher/100), size = 1, linetype = 1, col = "grey40")+ # survival
-  geom_line(data = ToyData, mapping = aes(x = temp, y = dr3), size = 2, col = "black", linetype = 3)+ #development rate
- # performance
-  geom_segment(x = 20.5, y = -0.08, xend = 34.2, yend = -0.08, linetype = 1, col = "grey", size = 2)+
-  annotate("text", x = 19.5, y = -0.08, label = expression("P"[low]))+
-  annotate("text", x = 35.5, y = -0.08, label = expression("P"[high]))+
-  
-  # development
-  geom_segment(x = 20.5, y = 0.51, xend = 34.2, yend = 0.51, linetype = 3)+
-  geom_segment(x = 20.5, y = -0.16, xend = 34.2, yend = -0.16, linetype = 3)+
-  annotate("text", x = 19.5, y = -0.16, label = expression("D"[low]))+
-  annotate("text", x = 35.7, y = -0.16, label = expression("D"[high]))+
- 
-  
-  
-  # survival
-  geom_segment(x = 9.1, y = 0.49, xend = 39.4, yend = 0.49, linetype = 1, col = "grey40")+
-  geom_segment(x = 9.1, y = -0.24, xend = 39.4, yend = -0.24, linetype = 1, col = "grey40")+
-  annotate("text", x = 8.5, y = -0.24, label = expression("S"[low]))+
-  annotate("text", x = 40.5, y = -0.24, label = expression("S"[high]))+
-  #geom_segment(x = 9.5, y = 0.49, xend = 39, yend = 0.49, linetype = 2)+
-  theme_cowplot()+
-  annotate("text", x =5, y = 1, label = "A")+
-  ylab("Development rate/ \n Survival")+
-  xlab("")+
-  ylim(-0.25,1)+
-  annotate("rect", xmin = 20.5, xmax = 34.2, ymin = 0, ymax = 1, fill = "grey", alpha = 0.3)+
-  # annotate("text", x = 12, y = -0.08, label = "chill stress")+
-  # annotate("text", x = 39.5, y = -0.08, label = "heat stress")+
-  # annotate("text", x = 28, y = -0.08, label = "optimal range")+
-  # 
-  geom_segment(x = 11, y = 0, xend = 30, yend = 1)+
-  annotate("text", x = 11, y = -0.08, label = expression("T"[0]))
-  #theme(axis.text = element_text(size = 16))
-  #theme(axis.text.x= c("Tmin", "T0", "Topt", "Tmax"))+
-  #scale_x_continuous(breaks = c(8, 11, 31, 36), labels = c(expression("T"[min]), expression("T"[0]), expression("T"[opt]), expression("T"[high])))
-  #scale_x_continuous(breaks = c(9.5, 20.5, 39.5), labels = c("chill stress", "optimal range", "heat stress"))
-  # scale_x_continuous(breaks = c(9.5, 27, 39.5), labels = c("chill stress", "optimal range", "heat stress"))+
-  # theme(axis.ticks.x = element_blank())
-
-heatdlower
-
 ```
 
 
