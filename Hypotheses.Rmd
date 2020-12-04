@@ -112,7 +112,7 @@ initialplot <- ggplot(ToyData, aes(x = temp, y = p1))+
 ```
 
 
-When the interval of temperatures that allow for survivorship is larger than on both the cold and the hot side that allow for development, performance is entirely limited by development rate.
+When the interval of temperatures that allow for 50% survival is larger on both the cold and the hot side than the interval that allows for development at 50% efficiency, performance is entirely limited by development rate.
 
 ```{r}
 initialplot
