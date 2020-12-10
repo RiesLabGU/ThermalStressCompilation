@@ -50,12 +50,12 @@ Responses <- full_join(Merge3, setInfo, by = "set")
 
 
 ```{r}
-#write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+#write_csv(Responses,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 ```
 
 Summary plot
 ```{r}
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
   mutate(lifestage = factor(lifestage)) %>% 
@@ -74,8 +74,6 @@ ggplot(long_responses, aes(x = threshold, y = temperature))+
 str(responses_table)
 
 ```
-
-
 
 
 
@@ -134,7 +132,7 @@ ggplot(long_max, aes(x = threshold, y = temperature))+
 ```
 
 ```{r}
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
   mutate(lifestage = factor(lifestage))
