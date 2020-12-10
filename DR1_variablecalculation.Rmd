@@ -152,7 +152,7 @@ dat %>%
   summarise(dr_c = geometric.mean(dr),
             dr2 = mean(dr), 
             newset = newset,
-            n_sets = length(dr)) 
+            n_sets = length(dr),.groups = "drop") 
 }
 
 # Apply function to Ana_dr
