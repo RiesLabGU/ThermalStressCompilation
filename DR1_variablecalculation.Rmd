@@ -27,15 +27,13 @@ Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/
 
 ```{r}
 # Mariana's laptop
-Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
 ```{r}
 # Anna's Laptop
-Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
@@ -133,7 +131,7 @@ Ana_dr$lifestage <- factor(Ana_dr$lifestage, levels = c("egg", "larva", "pupa", 
 There are `r length(unique(Ana_dr$set))` sets of the relevant lifestages (`r length(unique(Ana_dr$sp))` species). Of those, `r length(unique(egg_dr$set))` correspond to egg (N = `r length(unique(egg_dr$sp))` species), `r length(unique(larva_dr$set))` to larva (N = `r length(unique(larva_dr$sp))` species), `r length(unique(pupa_dr$set))`to pupa (N = `r length(unique(pupa_dr$sp))` species) and `r length(unique(eggtoemergence_dr$set))` to eggtoadult (N = `r length(unique(eggtoemergence_dr$sp))`)
 
 # 3. Consolidate redundant sets
-Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
+Redundant sets occur because researchers varied experimental conditions such as host plant, humidity and day length, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, day length, humidity,etc) at the same temperature for analyses. 
 Consolidated sets kept the number (unique set identifier) of the first set they include.
 
 
@@ -406,10 +404,6 @@ MaxDrTable <- Ana_dr_consolidated %>%
 ```
  
  
- 
-
-
-
 Print tables for analysis
 Dopt: Optimum development rate
 Interval_table_cold: lower limmit of D-witdh
@@ -441,16 +435,28 @@ names(Dopt_table)
 Dopt_to_merge <- Dopt_table %>% mutate(s_dr = Dropt) %>% select(-Dropt)
 Merge1 <- select(Interval_table_cold, set, Dlower = Imin)
 head(Merge1)
+length(unique(Merge1$set))
+length(Merge1$set)
 Merge2 <- select(Interval_table_hot, set, Dupper = Imax)
 head(Merge2)
+length(unique(Merge2$set))
+length(Merge2$set)
+
+
 Merge3 <- select(Interval_table_both, set, Dwidth =Ilength)
 head(Merge3)
+length(unique(Merge3$set))
+length(Merge3$set)
+
 DevelopmentRate1 <- full_join(Dopt_to_merge, Merge1,  by = "set")
 DevelopmentRate2 <- full_join(DevelopmentRate1, Merge2,  by = "set")
 DevelopmentRate3 <- full_join(DevelopmentRate2, Merge3,  by = "set")
 DevelopmentRate <- full_join(DevelopmentRate3, MaxDrTable,  by = "set")
 head(DevelopmentRate)
 names(DevelopmentRate)
+summary(DevelopmentRate)
+length(unique(DevelopmentRate$set))
+length(unique(DevelopmentRate$sp))
 
 ```
 
