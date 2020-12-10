@@ -22,16 +22,14 @@ Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/
 
 ```{r}
 # Mariana's laptop
-Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx",  sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
 
 ```{r}
 # Anna's Laptop
-Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx",  sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
@@ -57,9 +55,45 @@ set_944 <- filter(Ana, set == 944)
  
 ```
 
+
+# Consolidate redundant sets
+```{r}
+# make a new column that unifies redundant sets
+Ana_dr <- Ana %>% 
+  mutate(redundancy_id = as.numeric(factor(paste(sp, locality, lifestage, id))))
+
+#length(unique(Ana_dr$set)) # there were 287 sets
+#length(unique(Ana_dr$redundancy_id)) # there were 216 non-redundant sets
+
+# Function to get the geometric mean of development rate (dr_c), and mean (dr2)
+mean_redundant <- function(dat){
+newset <- dat$set [[1]]
+dat %>%
+  select(temp, sp, dr) %>% 
+  group_by(temp) %>% 
+  summarise(dr_c = geometric.mean(dr),
+            dr2 = mean(dr), 
+            newset = newset,
+            n_sets = length(dr), .groups = "drop") 
+}
+
+# Apply function to Ana_dr
+
+Ana_dr_consolidated <- Ana_dr %>% 
+  group_by(redundancy_id) %>% 
+  nest() %>% 
+  mutate(consolidated = map(data, mean_redundant)) %>% 
+  select(redundancy_id, consolidated) %>% 
+  unnest(col = consolidated)# Function
+
+# re-name variables. Note that consolidated sets summarize multiple sets and got assigned the number (set id value) of the first set.
+names(Ana_dr_consolidated) <- c("redundancy_id", "temp", "dr", "dr2", "set", "n_sets")
+```
+
+
 Identify "rise" intervals
 ```{r}
-Ana_dr <- Ana %>% 
+Ana_dr <- Ana_dr_consolidated %>% 
   filter(!is.na(dr))
 Data <- filter(Ana_dr, set == 146)
 
@@ -143,7 +177,7 @@ get_rise_intervals <- function(Data){
 
 Get rise intervals from all sets
 ```{r}
-trial2 <- select(trial, set, dr, temp, lifestage)
+#trial2 <- select(trial, set, dr, temp, lifestage)
 RiseIntervals1 <- Ana_dr %>% 
   mutate(set2 = set) %>% 
   group_by(set2) %>% 
@@ -243,7 +277,7 @@ T0table <- Intervals %>%
   unnest(cols = Threshold) 
 IntervalID <- unique(Intervals$set)
 
-
+names(T0table)
 
 ```
 
@@ -345,139 +379,12 @@ thresholds <- valid_master %>%
 
 #Add info
 
-Info <- Ana_dr %>% 
+Info <- Ana %>% 
   select(set, sp, lifestage, family, lat, lon, locality, quality) %>% 
   distinct()
 
 thres <- inner_join(thresholds, Info, by = "set")
+summary(thres)
 #write_csv(thres,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/T0-G.csv")
-mainthres <- thres %>% 
-  filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa") %>% 
-  mutate(absLat = abs(lat))
-ggplot(mainthres, aes(x = lifestage, y = T0))+
-  geom_boxplot()+
-  theme_cowplot()
 
-ggplot(mainthres, aes(x = spread, y = T0))+
-  geom_point()+
-  theme_cowplot()
-
-ggplot(mainthres, aes(x = N_temp, y = T0))+
-  geom_point()+
-  theme_cowplot()
-
-
-names(mainthres)
-```
-
-```{r}
-library(lme4)
-library(car)
-library("dotwhisker")  # to make coefficient plots
-library(sjPlot) #prediction plots
-library(sjmisc)
-fit <- lmer(T0 ~ lifestage * absLat + (1|sp), data = mainthres)
-
-meannT0temperate <- mainthres %>% 
-  select(T0, absLat) %>% 
-  ungroup() %>% 
-  filter(absLat > 30 & absLat < 50) %>% 
-  summarise(mean = mean(T0, na.rm = T), 
-            sd = sd(T0, na.rm = T))
-
-
-Anova(fit)
-```
-
-```{r}
-dw_plot(fit) +
-  geom_vline(xintercept = mean(mainthres$T0, na.rm = T), lty=2)+
-  geom_vline(xintercept = 0 ,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-
-plot_model(fit, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-```
-
-```{r}
-ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
-  geom_point()+
-  theme_cowplot()+
-  facet_grid(.~lifestage)
-```
-
-```{r}
-
-rateops <- Ana_dr %>% 
-  group_by(set) %>% 
-  summarise(drmax =max(dr, na.rm = T))
-
-ad <- inner_join(rateops, mainthres, by = "set")
-ggplot(ad, aes(x = absLat, y = drmax))+
-  geom_point()+
-  theme_cowplot()+
-  facet_grid(.~lifestage)
-
-
-
-
-
-```
-
-```{r}
-
-fit2 <- lmer(drmax ~ -1+  lifestage * absLat + (1|family) , data = ad)
-
-fit2
-Anova(fit2)
-
-
-dw_plot(fit2) +
-  geom_vline(xintercept = mean(ad$drmax, na.rm = T), lty=2)+
-  geom_vline(xintercept = 0 ,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-
-plot_model(fit2, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
-  geom_point()+
-  theme_cowplot()+
-  facet_grid(.~lifestage)
-
-```
-
-```{r}
-larv <- filter(ad, lifestage == "larva")
-fit2 <- lm(drmax ~  absLat , data = ad)
-
-fit2
-Anova(fit2)
-
-
-dw_plot(fit2) +
-  geom_vline(xintercept = mean(ad$drmax, na.rm = T), lty=2)+
-  geom_vline(xintercept = 0 ,lty = 3)+
-  theme_cowplot()+
-  scale_color_viridis_d()+
-  theme(legend.position = "none")
-
-
-plot_model(fit2, type = "int")+
-  theme_cowplot()+
-  scale_color_viridis_d()
-
-ggplot(mainthres, aes(x = absLat, y = G, col = lifestage))+
-  geom_point()+
-  theme_cowplot()+
-  facet_grid(.~lifestage)
-```
-
+``` 
