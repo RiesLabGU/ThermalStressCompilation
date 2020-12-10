@@ -208,7 +208,7 @@ dat %>%
   summarise(performance_c = geometric.mean(P),
             performance2 = mean(P), 
             newset = newset,
-            n_sets = length(P)) 
+            n_sets = length(P),.groups = "drop") 
 }
 
 # Apply function to Ana_performance
