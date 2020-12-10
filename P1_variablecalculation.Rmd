@@ -22,16 +22,14 @@ Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/
 
 ```{r}
 # Mariana's laptop
-Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
 
 ```{r}
 # Anna's Laptop
-Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
@@ -186,7 +184,7 @@ Ana_performance$lifestage <- factor(Ana_performance$lifestage, levels = c("egg",
 
 There are `r length(unique(Ana_performance$set))` sets of the relevant lifestages (`r length(unique(Ana_performance$sp))` species). Of those, `r length(unique(egg_performance$set))` correspond to egg (N = `r length(unique(egg_performance$sp))` species), `r length(unique(larva_performance$set))` to larva (N = `r length(unique(larva_performance$sp))` species), `r length(unique(pupa_performance$set))`to pupa (N = `r length(unique(pupa_performance$sp))` species) and `r length(unique(eggtoemergence_performance$set))` to eggtoadult (N = `r length(unique(eggtoemergence_performance$sp))`)
 
-3. Consolidate redundant sets
+#3. Consolidate redundant sets
 Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
 Consolidated sets kept the number (unique set identifier) of the first set they include.
 
@@ -406,6 +404,7 @@ Performance2 <- full_join(Performance1, Merge2, by = "set")
 Performance <- full_join(Performance2, Merge3, by = "set")
 
 head(Performance)
+summary(Performance)
 
 ```
 
