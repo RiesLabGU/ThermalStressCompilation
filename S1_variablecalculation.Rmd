@@ -162,7 +162,7 @@ dat %>%
   summarise(survival_c = geometric.mean(survival),
             survival2 = mean(survival), 
             newset = newset,
-            n_sets = length(survival)) 
+            n_sets = length(survival),.groups = "drop") 
 }
 
 # Apply function to Ana_survival
