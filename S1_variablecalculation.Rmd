@@ -36,16 +36,14 @@ Data <- read_xlsx("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/
 
 ```{r}
 # Mariana's laptop
-Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("/Users/mar/Desktop/Projects/ThermalPerformance/PhysiologyDatabaseVersion5.xlsx", sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
 
 ```{r}
 # Anna's Laptop
-Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx", 
-                  sheet = "WorkingTable", na = c("NA", "")) 
+#Data <- read_xlsx("~/Desktop/PhysiologyDatabaseVersion5.xlsx",  sheet = "WorkingTable", na = c("NA", "")) 
 
 ```
 
@@ -142,7 +140,7 @@ Ana_survival$lifestage <- factor(Ana_survival$lifestage, levels = c("egg", "larv
 ```
 There are `r length(unique(Ana_survival$set))` sets of the relevant lifestages (`r length(unique(Ana_survival$sp))` species). Of those, `r length(unique(egg_survival$set))` correspond to egg (N = `r length(unique(egg_survival$sp))` species), `r length(unique(larva_survival$set))` to larva (N = `r length(unique(larva_survival$sp))` species), `r length(unique(pupa_survival$set))`to pupa (N = `r length(unique(pupa_survival$sp))` species) and `r length(unique(eggtoemergence_survival$set))` to eggtoadult (N = `r length(unique(eggtoemergence_survival$sp))`)
 
-3. Consolidate redundant sets
+#3. Consolidate redundant sets
 Redundant sets occur beacuse researchers varied experimental conditions such as host plant, humidity and daylength, or because data were reported for males and females separately. We considered multiple measurements reported in the same publication that were obtained at the same temperature, of the same ontogenetic stage of individuals of the same population (sp and locality) to be redundant, and we obtained the geometric mean of all treatments (host, sex, daylength, humidity,etc) at the same temperature for analyses. 
 Consolidated sets kept the number (unique set identifier) of the first set they include.
 
@@ -341,6 +339,7 @@ Survival1 <- full_join(Sopts_table, merge1, by = "set")
 Survival2 <- full_join(Survival1, merge2, by = "set")
 Survival <- full_join(Survival2, merge3, by = "set")
 head(Survival)
+summary(Survival)
 
 ```
 
