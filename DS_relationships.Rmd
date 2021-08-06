@@ -34,7 +34,7 @@ library(psych) # to get geometric mean
 
 
 ```{r}
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv") 
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv") 
 res <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality != "combination") %>% 
   mutate(lifestage = factor(lifestage))
@@ -42,6 +42,24 @@ names(res)
 
 
 res$skew <- (res$Popt - res$Plower) /res$Pwidth
+res_plot5 <- res %>% 
+  filter(!is.na(Dlower),  !is.na(Slower))
+
+  res_plot3 <- res %>% 
+  filter(!is.na(Swidth),  !is.na(Dwidth))
+
+  res_plot6 <- res %>% 
+  filter(!is.na(T0),  !is.na(Dlower))
+  res_plot6 <- res %>% 
+  filter(!is.na(T0),  !is.na(Dlower))
+max(res_plot6$Dlower)
+res_plot7 <- res %>% 
+  filter(!is.na(Plower),  !is.na(Slower), !is.na(Dlower))
+
+  res_plot2 <- res %>% 
+  filter( !is.na(Supper),  !is.na(Dupper))
+res_plot <- res %>% 
+  filter( !is.na(Dopt),  !is.na(maxSopt))
 
 ```
 
@@ -57,12 +75,13 @@ shapiro.test(fitdlows$residuals)
 summary(fitdlows)
 
 res$Ddif <- res$Dlower - res$Slower
+res$Highdif <- res$Dupper - res$Supper
 min(res$Ddif, na.rm = T)
 mean(res$Ddif, na.rm = T)
 ```
 
 The lower limit for development Dlow ranged from `r min(res$Dlower, na.rm = T)` to `r max(res$Dlower, na.rm = T)` and on average it was `r mean(res$Ddif, na.rm = T)` degrees higher than the corresponding Slow; which in turn ranged from `r min(res$Slower, na.rm = T)` to `r max(res$Slower, na.rm = T)` 
-The higher limit for development Dhigh ranged from `r min(res$Dupper, na.rm = T)` to `r max(res$Dupper, na.rm = T)`  Shigh which in turn ranged from `r min(res$Supper, na.rm = T)` to `r max(res$Supper, na.rm = T)`
+The higher limit for development Dhigh ranged from `r min(res$Dupper, na.rm = T)` to `r max(res$Dupper, na.rm = T)` and on average it was `r mean(res$Highdif, na.rm = T)` degrees higher than the corresponding Slow Shigh which in turn ranged from `r min(res$Supper, na.rm = T)` to `r max(res$Supper, na.rm = T)`
 
 T0 from `r min(res$T0, na.rm = T)` to `r max(res$T0, na.rm = T)`  
 #Dupper ~ Supper
@@ -74,26 +93,29 @@ summary(fitb)
 
 
 Dlow and Slow were correlated,R2= 0.4, P < 0.0001, N = `r nrow(model.frame(fitdlows))`).  
-Dlow for eggs, larvae and pupae ranged from `r min(res$low, na.rm = T)` to `r max(res$Dlow, na.rm = T)`, with a mean (+_SD) of `r min(res$Dopt, na.rm = T)` +- `r SD(res$Dopt, na.rm = T)`
+Dlow for eggs, larvae and pupae ranged from `r min(res$low, na.rm = T)` to `r max(res$Dlow, na.rm = T)`, with a mean (+_SD) of `r mean(res$Dopt, na.rm = T)` +- `r SD(res$Dopt, na.rm = T)`
 
 ```{r}
-res_plot5 <- res %>% 
-  filter(!is.na(Dlower),  !is.na(Slower))
-max(res_plot5$Slower)
-res_plot3 <- res %>% 
-  filter(!is.na(Swidth),  !is.na(Dwidth))
-lows <- ggplot(res_plot5, aes(x = Slower, y = Dlower))+
+res_plot5$AbsLat <- abs(res_plot5$lat)
+res_plot2$AbsLat <- abs(res_plot2$lat)
+res_plot3$AbsLat <- abs(res_plot3$lat)
+res_plot6$AbsLat <- abs(res_plot6$lat)
+
+res_plot7$AbsLat <- abs(res_plot7$lat)
+lows <- ggplot(res_plot5, aes(x = Slower, y = Dlower, col = AbsLat))+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
   geom_point()+
-  geom_point(data = res_plot2, aes(x = Supper, y = Dupper), shape = 1)+
-  geom_point(data = res_plot3, aes(x = Swidth, y = Dwidth), shape = 3)+
+  geom_point(data = res_plot2, aes(x = Supper, y = Dupper, col = AbsLat), shape = 1)+
+  #geom_point(data = res_plot3, aes(x = Swidth, y = Dwidth, col = AbsLat), shape = 3)+
   ylim(0,40)+
   xlim(0,40)+
   geom_smooth(method = lm, se = F, col = "black")+
   geom_smooth(data = res_plot2, aes(x = Supper, y = Dupper), method = lm, se = F, col = "black", linetype = 1)+
-  geom_smooth(data = res_plot3, aes(x = Swidth, y = Dwidth), method = lm, se = F, col = "black", linetype = 1)+
+  #geom_smooth(data = res_plot3, aes(x = Swidth, y = Dwidth), method = lm, se = F, col = "black", linetype = 1)+
   scale_shape_manual(values = c(1,16,8))+
+  scale_color_viridis_c()+
   #scale_color_viridis_d()+
-  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "black", linetype = 2)+
+  
   theme_cowplot()+
   #ylab(expression("D"[low]))+
   ylab("Development temperature")+
@@ -104,17 +126,53 @@ lows <- ggplot(res_plot5, aes(x = Slower, y = Dlower))+
   annotate("text", x = 30, y = 10, label = "low")+
   annotate("point", x = 33, y = 10, shape = 16)+
   annotate("text", x = 30, y = 15, label = "high")+
-  annotate("point", x = 33, y = 15, shape = 1)+
-  annotate("text", x = 30, y = 5, label = "width")+
-  annotate("point", x = 33, y = 5, shape = 3)
+  annotate("point", x = 33, y = 15, shape = 1)
+  #annotate("text", x = 30, y = 5, label = "width")+
+  #annotate("point", x = 33, y = 5, shape = 3)
 lows
 ```
-Figure 3D N = `r nrow(res_plot5)`
+`r mean(res$Dwidth, na.rm = T)` +- `r SD(res$Dwidth, na.rm = T)`
+`r mean(res$Swidth, na.rm = T)` +- `r SD(res$Swidth, na.rm = T)`
+`r mean(res$Swidth- res$Dwidth, na.rm = T)`
+`r min(res$Swidth, na.rm = T)`
+`r max(res$Swidth, na.rm = T)`
+`r min(res$Dwidth, na.rm = T)`
+`r max(res$Dwidth, na.rm = T)`
 
 
 ```{r}
-res_plot6 <- res %>% 
-  filter(!is.na(T0),  !is.na(Dlower))
+Figure3b <- ggplot(res_plot5, aes(x = Slower, y = Dlower, col = AbsLat))+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
+  #geom_point()+
+  #geom_point(data = res_plot2, aes(x = Supper, y = Dupper, col = AbsLat), shape = 1)+
+  geom_point(data = res_plot3, aes(x = Swidth, y = Dwidth, col = AbsLat), shape = 3)+
+  ylim(0,40)+
+  xlim(0,40)+
+  #geom_smooth(method = lm, se = F, col = "black")+
+  #geom_smooth(data = res_plot2, aes(x = Supper, y = Dupper), method = lm, se = F, col = "black", linetype = 1)+
+  geom_smooth(data = res_plot3, aes(x = Swidth, y = Dwidth), method = lm, se = F, col = "black", linetype = 1)+
+  scale_shape_manual(values = c(1,16,8))+
+  scale_color_viridis_c()+
+  #scale_color_viridis_d()+
+  
+  theme_cowplot()+
+  #ylab(expression("D"[low]))+
+  ylab("Development temperature")+
+  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  #xlab(expression("S"[low]))+
+  xlab("Survival temperature")+
+  theme(legend.position = "none")
+  #annotate("text", x = 30, y = 10, label = "low")+
+  #annotate("point", x = 33, y = 10, shape = 16)+
+  #annotate("text", x = 30, y = 15, label = "high")+
+  #annotate("point", x = 33, y = 15, shape = 1)
+  #annotate("text", x = 20, y = 5, label = "width")+
+  #annotate("point", x = 22, y = 5, shape = 3)
+Figure3b
+
+```
+
+```{r}
 fitT0 <- lm(T0 ~ Dlower, data = res_plot6)
 
 shapiro.test(fitT0$residuals)
@@ -139,23 +197,21 @@ nagelkerke(fitT0q)
 
 
 ```{r}
-res_plot6 <- res %>% 
-  filter(!is.na(T0),  !is.na(Dlower))
-max(res_plot6$Dlower)
-Ts <- ggplot(res_plot6, aes(x = T0, y = Dlower))+
+
+Ts <- ggplot(res_plot6, aes(x = T0, y = Dlower, col = AbsLat))+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
   geom_point()+
   ylim(0,40)+
   xlim(0,40)+
   geom_smooth(method = lm, se = F, col = "black")+
   scale_shape_manual(values = c(1,16,8))+
-  #scale_color_viridis_d()+
-  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "black", linetype = 2)+
+  scale_color_viridis_c()+
   theme_cowplot()+
   ylab(expression("D"[low]))+
   #annotate("text", x = 0, y = 29, label = "E", size = 5)+
-  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  annotate("text", x = 0, y = 40, label = "C", size = 5)+
   xlab(expression("T"[0]))+
-  theme(legend.position = "none")
+  theme(legend.position = c(0.7, 0.4))
 Ts
 ```
 
@@ -164,8 +220,7 @@ Ts
 
 #Figure 3B P~S; P~D [Low]
 ```{r}
-res_plot7 <- res %>% 
-  filter(!is.na(Plower),  !is.na(Slower), !is.na(Dlower))
+
 
 
 fitPlowsD <- lm(Plower ~ Dlower, data = res_plot7)
@@ -186,12 +241,16 @@ Dhigh and Shigh were significantly correlated adjusted R2 = 0.78, F = 119, degre
 
 res_plot9 <- res %>% 
   filter(!is.na(Pupper),  !is.na(Supper))
+res_plot9$AbsLat <- abs(res_plot9$lat)
+res$AbsLat <- abs(res$lat)
 
 Plow <- ggplot(res, aes(x = Slower, y = Plower))+
   # survival low
-  geom_point(col = "black")+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
+  scale_color_viridis_c()+
+  geom_point()+
   # development low
-  geom_point(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey")+
+  geom_point(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey48")+
   # survival high
   #geom_point(data = res_plot9, aes(x = Supper, y = Pupper), shape = 1, col = "black")+
   # development high
@@ -200,19 +259,19 @@ Plow <- ggplot(res, aes(x = Slower, y = Plower))+
   ylim(0,40)+
   xlim(0,40)+
   geom_smooth(method = lm, se = F, col = "black", linetype = 1)+
-  geom_smooth(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey", method = lm, se = F, linetype = 1)+
+  geom_smooth(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey48", method = lm, se = F, linetype = 1)+
   #geom_smooth(data = res_plot9, aes(x = Supper, y = Pupper), col = "black", method = lm, se = F, linetype = 1)+
   #geom_smooth(data = res_plot9, aes(x = Dupper, y = Pupper), col = "grey", method = lm, se = F, linetype = 1)+
   scale_shape_manual(values = c(1,16,8))+
-  #scale_color_viridis_d()+
+  
   #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
   theme_cowplot()+
   ylab(expression("P"[low]))+
   #ylab("Performance temperature")+ 
   #annotate("text", x = 5, y = 30, label = "F", size = 5)+
-   annotate("text", x = 1, y = 40, label = "C", size = 5)+
-   annotate("text", x = 5, y = 5, label = expression("D"[low]), size = 5, col = "grey")+
-   annotate("text", x = 5, y = 1, label = expression("S"[low]), size = 5, col = "black")+
+   annotate("text", x = 1, y = 40, label = "D", size = 5)+
+   annotate("text", x = 30, y = 10, label = expression("D"[low]), size = 5, col = "grey48")+
+   annotate("text", x = 30, y = 5, label = expression("S"[low]), size = 5, col = "black")+
    #xlab("Survival/ Development \n temperature")+
   #xlab(expression("S(black)/D(grey)"[low]))+
   xlab(expression("S"[low]|"D"[low]))+ 
@@ -227,21 +286,22 @@ Plow
 
 ```{r}
 Phigh <- ggplot(res, aes(x = Slower, y = Plower))+
-  # survival low
+  
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+# survival low
   #geom_point(col = "black")+
   # development low
   #geom_point(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey")+
   # survival high
   geom_point(data = res_plot9, aes(x = Supper, y = Pupper), shape = 1, col = "black")+
   # development high
-  geom_point(data = res_plot9, aes(x = Dupper, y = Pupper), shape = 1, col = "grey")+
+  geom_point(data = res_plot9, aes(x = Dupper, y = Pupper), shape = 1, col = "grey48")+
   
   ylim(0,40)+
   xlim(0,40)+
   #geom_smooth(method = lm, se = F, col = "black", linetype = 1)+
   #geom_smooth(data = res_plot7, aes(x = Dlower, y = Plower), col = "grey", method = lm, se = F, linetype = 1)+
   geom_smooth(data = res_plot9, aes(x = Supper, y = Pupper), col = "black", method = lm, se = F, linetype = 1)+
-  geom_smooth(data = res_plot9, aes(x = Dupper, y = Pupper), col = "grey", method = lm, se = F, linetype = 1)+
+  geom_smooth(data = res_plot9, aes(x = Dupper, y = Pupper), col = "grey48", method = lm, se = F, linetype = 1)+
   scale_shape_manual(values = c(1,16,8))+
   #scale_color_viridis_d()+
   #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
@@ -249,9 +309,9 @@ Phigh <- ggplot(res, aes(x = Slower, y = Plower))+
   ylab(expression("P"[high]))+
   #ylab("Performance temperature")+ 
   #annotate("text", x = 5, y = 30, label = "F", size = 5)+
-   annotate("text", x = 1, y = 40, label = "D", size = 5)+
-   annotate("text", x = 5, y = 5, label = expression("D"[high]), size = 5, col = "grey")+
-   annotate("text", x = 5, y = 1, label = expression("S"[high]), size = 5, col = "black")+
+   annotate("text", x = 1, y = 40, label = "E", size = 5)+
+   annotate("text", x = 30, y = 10, label = expression("D"[high]), size = 5, col = "grey48")+
+   annotate("text", x = 30, y = 5, label = expression("S"[high]), size = 5, col = "black")+
    #xlab("Survival/ Development \n temperature")+
   #xlab(expression("S(black)/D(grey)"[low]))+
   xlab(expression("S"[low]|"D"[low]))+ 
@@ -262,12 +322,9 @@ Phigh
 
 
 
-
-
-
-
-
-
+```{r}
+ plot_grid(lows, Ts,Plow,  Phigh, ncol = 2 )
+```
 
 
 
@@ -275,17 +332,60 @@ Phigh
 
 
 ```{r}
-res_plot2 <- res %>% 
-  filter( !is.na(Supper),  !is.na(Dupper))
+res_plot9 <- res %>% 
+  filter(!is.na(Pupper),  !is.na(Supper))
+res_plot9$AbsLat <- abs(res_plot9$lat)
+res$AbsLat <- abs(res$lat)
+
+widthplot <- ggplot(res, aes(x = Pwidth, y = Plower))+
+  # survival low
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
+  scale_color_viridis_c()+
+  geom_point()+
+  # development low
+  geom_point(data = res_plot7, aes(x = Pwidth, y = Pupper), col = "grey48")+
+  # survival high
+  #geom_point(data = res_plot9, aes(x = Supper, y = Pupper), shape = 1, col = "black")+
+  # development high
+  #geom_point(data = res_plot9, aes(x = Dupper, y = Pupper), shape = 1, col = "grey")+
+  
+  ylim(0,40)+
+  xlim(0,40)+
+  geom_smooth(method = lm, se = F, col = "black", linetype = 1)+
+  geom_smooth(data = res, aes(x = Pwidth, y = Pupper), col = "grey48", method = lm, se = F, linetype = 1)+
+  #geom_smooth(data = res_plot9, aes(x = Supper, y = Pupper), col = "black", method = lm, se = F, linetype = 1)+
+  #geom_smooth(data = res_plot9, aes(x = Dupper, y = Pupper), col = "grey", method = lm, se = F, linetype = 1)+
+  scale_shape_manual(values = c(1,16,8))+
+  
+  #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
+  theme_cowplot()+
+  ylab(expression("P"[breadth]))+
+  #ylab("Performance temperature")+ 
+  #annotate("text", x = 5, y = 30, label = "F", size = 5)+
+   annotate("text", x = 1, y = 40, label = "C", size = 5)+
+   annotate("text", x = 30, y = 10, label = expression("D"[low]), size = 5, col = "grey48")+
+   annotate("text", x = 30, y = 5, label = expression("S"[low]), size = 5, col = "black")+
+   #xlab("Survival/ Development \n temperature")+
+  #xlab(expression("S(black)/D(grey)"[low]))+
+  xlab(expression("S"[low]|"D"[low]))+ 
+  xlab("Temperature")+ 
+  theme(legend.position = "none")
+widthplot
+```
+
+
+
+```{r}
 
 high <- ggplot(res_plot2, aes(x = Supper, y = Dupper))+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "darkgrey", linetype = 2)+
   geom_point(aes(shape = lifestage))+
   ylim(0,40)+
   xlim(0,40)+
   #scale_color_viridis_d()+
   geom_smooth(method = lm, se = F, col = "black")+
   scale_shape_manual(values = c(1,16,8))+
-  geom_segment(x = 0, xend = 40, y = 0, yend = 40, col = "black", linetype = 2)+
+  
   theme_cowplot()+
   #annotate("text", x = 15, y = 40, label = "C", size = 5)+
   annotate("text", x = 1, y = 40, label = "B", size = 5)+
@@ -336,16 +436,63 @@ Plow
 
 
 
+```{r}
+
+fitPs <- lm(Pupper ~ Plower, data = res_plot2)
+fitPs <- lm(Pupper ~ Plower, data = res_plot2)
+
+
+shapiro.test(fitPs$residuals)
+
+
+summary(fitPs)
+```
 
 
 
 
+```{r}
+some <- ggplot(res_plot2, aes(x = Plower, y = Pupper))+
+  geom_point()+
+  ylim(20,40)+
+  xlim(0,40)+
+  #scale_color_viridis_d()+
+  geom_smooth(method = lm, se = F, col = "black")+
+  #scale_shape_manual(values = c(1,16,8))+
+  geom_segment(x = 20, xend = 20, y = 0, yend = 40, col = "black", linetype = 2)+
+  geom_segment(x = 0, xend = 40, y = 20, yend = 20, col = "black", linetype = 2)+
+  theme_cowplot()+
+  #annotate("text", x = 15, y = 40, label = "C", size = 5)+
+  annotate("text", x = 1, y = 40, label = "B", size = 5)+
+  
+  xlab(expression("P"[low]))+
+  ylab(expression("P"[high]))+
+  theme(legend.position = "none")
+
+some
+```
 
 
 
-
-
-
+```{r}
+ggplot(res, aes(x = Pupper, y = Dupper-Supper))+
+  geom_point(col = "red")+
+  geom_point(data = res, mapping = aes(x = Plower, y = Dlower-Slower), col = "blue")+
+  ylim(-15,15)+
+  #xlim(0,40)+
+  #scale_color_viridis_d()+
+  geom_smooth(method = lm, se = F, col = "black")+
+  #scale_shape_manual(values = c(1,16,8))+
+  #geom_segment(x = 20, xend = 20, y = 0, yend = 40, col = "black", linetype = 2)+
+  geom_segment(x = 0, xend = 40, y = 0, yend = 0, col = "black", linetype = 2)+
+  theme_cowplot()+
+  #annotate("text", x = 15, y = 40, label = "C", size = 5)+
+  annotate("text", x = 1, y = 20, label = "B", size = 5)+
+  ylab("Difference (D-S)")+
+  xlab("Performance limit, lower blue, upper red")+
+  #ylab(expression("P"[high]))+
+  theme(legend.position = "none")
+```
 
 
 
@@ -375,8 +522,7 @@ Dopt and Sopt were significantly correlated adjuster R2 = 0.14, F = 12.7, degree
 ```{r}
 
 
-res_plot <- res %>% 
-  filter( !is.na(Dopt),  !is.na(maxSopt))
+
 optima <- ggplot(res_plot, aes(x = maxSopt, y = Dopt))+
   geom_smooth(method = lm, se = FALSE, col = "black")+
   geom_point(aes(shape = lifestage))+
@@ -688,5 +834,6 @@ library(cowplot)
 plot_grid(lows, optima, high, width,Ts,legend, ncol = 3 )
 plot_grid(lows, optima, high, width,Ts,legend, Plow, Popt, Pupper, ncol = 3 )
 plot_grid(lows, high, width,Ts, Plow,  Pupper,legend, ncol = 2 )
+plot_grid(lows, Ts,Plow,  Phigh, ncol = 2 )
 
 ```
