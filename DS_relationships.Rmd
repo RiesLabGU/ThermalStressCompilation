@@ -207,7 +207,7 @@ Ts <- ggplot(res_plot6, aes(x = T0, y = Dlower, col = AbsLat))+
   scale_shape_manual(values = c(1,16,8))+
   scale_color_viridis_c()+
   theme_cowplot()+
-  ylab(expression("D"[low]))+
+  ylab(expression("D"[l]))+
   #annotate("text", x = 0, y = 29, label = "E", size = 5)+
   annotate("text", x = 0, y = 40, label = "C", size = 5)+
   xlab(expression("T"[0]))+
@@ -266,15 +266,15 @@ Plow <- ggplot(res, aes(x = Slower, y = Plower))+
   
   #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
   theme_cowplot()+
-  ylab(expression("P"[low]))+
+  ylab(expression("P"[l]))+
   #ylab("Performance temperature")+ 
   #annotate("text", x = 5, y = 30, label = "F", size = 5)+
    annotate("text", x = 1, y = 40, label = "D", size = 5)+
-   annotate("text", x = 30, y = 10, label = expression("D"[low]), size = 5, col = "grey48")+
-   annotate("text", x = 30, y = 5, label = expression("S"[low]), size = 5, col = "black")+
+   annotate("text", x = 30, y = 10, label = expression("D"[l]), size = 5, col = "grey48")+
+   annotate("text", x = 30, y = 5, label = expression("S"[l]), size = 5, col = "black")+
    #xlab("Survival/ Development \n temperature")+
   #xlab(expression("S(black)/D(grey)"[low]))+
-  xlab(expression("S"[low]|"D"[low]))+ 
+  xlab(expression("S"[l]|"D"[l]))+ 
   xlab("Temperature")+ 
   theme(legend.position = "none")
 Plow
@@ -306,15 +306,15 @@ Phigh <- ggplot(res, aes(x = Slower, y = Plower))+
   #scale_color_viridis_d()+
   #geom_segment(x = 5, xend = 30, y = 15, yend = 15, col = "black", linetype = 2)+
   theme_cowplot()+
-  ylab(expression("P"[high]))+
+  ylab(expression("P"[h]))+
   #ylab("Performance temperature")+ 
   #annotate("text", x = 5, y = 30, label = "F", size = 5)+
    annotate("text", x = 1, y = 40, label = "E", size = 5)+
-   annotate("text", x = 30, y = 10, label = expression("D"[high]), size = 5, col = "grey48")+
-   annotate("text", x = 30, y = 5, label = expression("S"[high]), size = 5, col = "black")+
+   annotate("text", x = 30, y = 10, label = expression("D"[h]), size = 5, col = "grey48")+
+   annotate("text", x = 30, y = 5, label = expression("S"[h]), size = 5, col = "black")+
    #xlab("Survival/ Development \n temperature")+
   #xlab(expression("S(black)/D(grey)"[low]))+
-  xlab(expression("S"[low]|"D"[low]))+ 
+  xlab(expression("S"[l]|"D"[l]))+ 
   xlab("Temperature")+ 
   theme(legend.position = "none")
 Phigh
@@ -323,7 +323,7 @@ Phigh
 
 
 ```{r}
- plot_grid(lows, Ts,Plow,  Phigh, ncol = 2 )
+ plot_grid(lows, Figure3b, Ts,Plow,  Phigh, ncol = 3 )
 ```
 
 
