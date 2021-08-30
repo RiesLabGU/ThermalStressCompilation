@@ -4,22 +4,22 @@ output: html_notebook
 ---
 ## Contents
 1. Import data and housekeeping
-2. Sopt
+
+2. Slow (Slower)
 2.1  Model selection
-2.2  Phylogenetic correction
+2.2  Implement phylogenetic correction
 
-3. Swidth
+3. Shigh (Dupper)
 3.1  Model selection
-3.2  Phylogenetic correction
+3.2  Implement phylogenetic correction
 
-4. Shigh (Dupper)
+4. Swidth
 4.1  Model selection
-4.2  Implement phylogenetic correction
+4.2  Phylogenetic correction
 
-5. Slow (Slower)
+5. Sopt
 5.1  Model selection
-5.2  Implement phylogenetic correction
-
+5.2  Phylogenetic correction
 
 # 1. Import data and housekeeping
 ```{r}
@@ -52,7 +52,7 @@ library(rr2)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
@@ -83,62 +83,62 @@ S.sets <- S.set %>%
 
 ```
 
-## Sopt: temperature that maximizes development rate
-Sopt ranged from `r min(S.set$Sopt, na.rm = T)` to `r max(S.set$Sopt)`, mean =  `r mean(S.set$Sopt)`, SD = `r sd(S.set$Sopt)`
-Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`,  N =`r length(!is.na(S.set$Sopt))`
 
-# 2.1 Model selection
 
-```{r}
-Sopt_i <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #singular model
-Sopt_a <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set) #
-
-anova(Sopt_i, Sopt_a, test.statistic = "Chisq") # keep additive model
-```
+#2 Slow 
+(Slower)
+Slow ranged from `r min(S.set$Slower, na.rm = T)` to `r max(S.set$Slower, na.rm = T)`, mean =  `r mean(S.set$Slower, na.rm = T)`, SD = `r sd(S.set$Slower, na.rm = T)`
+Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
+## 2.1 Model selection
 
 ```{r}
-Sopt_a_ML <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set)
+Slow_i <- lmer(Slower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
+Slow_a <- lmer(Slower ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
 
-summary(Sopt_a_ML)
+anova(Slow_i, Slow_a, test.statistic = "Chisq") # keep interaction model
 ```
-According to this model, Sopt increased across development, as it was 28.6 for eggs, 30.2 for larvae and 30.5 for pupae. Sopt decreased 1.5 C per every 10 degrees latitude. Variation among species was small: 1.8
 
+
+```{r}
+Slow_i_ML <- lmer(Slower ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp), REML = F, data = S.set) #
+
+#Anova(Slow_i_ML)
+summary(Slow_i_ML)
+
+```
  
  
 ```{r}
 # Plot data and predictions
-library(effects)
-library(ggeffects)
-
 S.set$group <- S.set$lifestage
-predso <- ggpredict(Sopt_a_ML, terms = c("absLat","lifestage"))
+predSlow <- ggpredict(Slow_i_ML, terms = c("absLat","lifestage"))
 
 
-
-Sopt_plot <- ggplot(predso, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+Slow_plot <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  scale_shape_manual(values = c(1,16,8))+
-  ylab(expression(S[opt]))+
-  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  scale_fill_viridis_d(option = "plasma", begin = 0, end = 0.8)+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+
+  ylab(expression(S[low]))+
+   annotate("text", x = 0, y = 30, label = "X", size = 5)+
+  
   xlab("Absolute latitude")+
-  ylim(10, 40)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col =group ), alpha = 0.6)+
+  #ylim(0, 40)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col =group ), alpha = 0.6, shape = 16)+
   theme_cowplot()+
   theme(legend.position = "none")
 
-Sopt_plot
+Slow_plot
 ```
  
  
 ```{r}
-# #type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-# plot_model(Sopt_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
-#   theme_cowplot()+
-#   scale_color_viridis_d()
+#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+# plot_model(Slow_i_ML, type = "pred", terms = c("lifestage", "absLat"))+
+#  theme_cowplot()+
+#  scale_color_viridis_d()
 ```
+ 
 ## 2.2 Phylogenetic correction
 ###2.2.1 Adjust data table
 Change species' names of the following species to reflect substitutions due to lack of data and to correct mispellings
@@ -177,49 +177,130 @@ S.tree <- keep.tip(tree_relabel, V_species)
 plotTree(S.tree)
 ```
 
-# Fit phylogenetic correction
+
+
 
 ```{r}
-# With phylogenetic correction
-Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+Slow_phylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
 
-# Without phylogenetic correction
-Sopt_nophylo <- pglmm(Sopt ~ -1 + lifestage + absLat  +  (1|sp), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+Slow_nophylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
 
+
+summary(Slow_phylo)
+```
+
+Assess the effect of phylogeny
+```{r}
+R2(Slow_phylo,Slow_nophylo, phy = S.tree) # 
+ 
 ```
 
 
-
-Asses the effect of phylogeny on Sopt
+Extract effect sizes
 ```{r}
-R2(Sopt_phylo,Sopt_nophylo, phy = S.tree) # if this does not work unload and reload rr2
+SlowFixedEffects <- tibble(Response = "Slow", Term = row.names(Slow_phylo$B), Effect = Slow_phylo$B[1:6], 
+SE = Slow_phylo$B.se[1:6])
+
+SlowRandomEffects <- tibble(Response = "Slow", Term = c("sp", "sp__", "residual"), Variance = c(Slow_phylo$s2r, Slow_phylo$s2resid) , 
+SD = sqrt(Variance))
 ```
 
-Extract effect sizes for plot
-```{r}
-SoptFixedEffects <- tibble(Response = "Sopt", Term = row.names(Sopt_phylo$B), Effect = Sopt_phylo$B[1:4], 
-SE = Sopt_phylo$B.se[1:4])
 
-SoptRandomEffects <- tibble(Response = "Sopt", Term = c("sp", "sp__", "residual"), Variance = c(Sopt_phylo$s2r,Sopt_phylo$s2resid) , 
+Consolidate effects and save table
+```{r}
+SFixedEffects <- rbind(SoptFixedEffects, SwidthFixedEffects, ShighFixedEffects, SlowFixedEffects)
+SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffects, SlowRandomEffects)
+# write_csv(SFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SFixedEffects.csv")
+# write_csv(SRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SRandomEffects.csv")
+```
+
+
+## 3 Shigh (Supper)
+Supper ranged from `r min(S.set$Supper, na.rm = T)` to `r max(S.set$Supper)`, mean =  `r mean(S.set$Supper)`, SD = `r sd(S.set$Supper)`
+Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
+### 3.1 Model selection
+
+```{r}
+Shigh_i <- lmer(Supper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
+Shigh_a<- lmer(Supper ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
+
+anova(Shigh_i, Shigh_a, test.statistic = "Chisq") # keep aditive model
+```
+
+```{r}
+Shigh_a_ML <- lmer(Supper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = S.set) #
+
+#Anova(Shigh_a_ML)
+summary(Shigh_a_ML)
+```
+ 
+ 
+```{r}
+# Plot data and predictions
+S.set$group <- S.set$lifestage
+predSh <- ggpredict(Shigh_i, terms = c("absLat","lifestage"))
+
+
+ggplot(predSh, aes(x = x, y = predicted, colour = group, fill = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_fill_viridis_d(option = "plasma", begin = 0, end = 0.8)+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+
+  ylab(expression(S[high]))+#ylab("Supper")+
+  xlab("Absolute latitude")+
+  ylim(0, 40)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col =group ), alpha = 0.6, shape = 1)+
+  theme_cowplot()+
+  theme(legend.position = "none")
+
+```
+ 
+### 3.2 Phylogenetic correction
+
+```{r}
+Shigh_phylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+
+Shigh_nophylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
+```
+
+Assess effect of phylogeny
+```{r}
+R2(Shigh_phylo,Shigh_nophylo, phy = S.tree) # 
+ 
+```
+
+```{r}
+summary(Shigh_phylo)
+```
+
+Extract effect sizes
+```{r}
+ShighFixedEffects <- tibble(Response = "Shigh", Term = row.names(Shigh_phylo$B), Effect = Shigh_phylo$B[1:4], 
+SE = Shigh_phylo$B.se[1:4])
+
+
+
+ShighRandomEffects <- tibble(Response = "Shigh", Term = c("sp", "sp__", "residual"), Variance = c(Shigh_phylo$s2r, Shigh_phylo$s2resid) , 
 SD = sqrt(Variance))
 
 ```
 
-##3 Swidth
+
+##4 Swidth
 Swidth ranged from `r min(S.set$Swidth, na.rm = T)` to `r max(S.set$Swidth)`, mean =  `r mean(S.set$Swidth, na.rm = T)`, SD = `r sd(S.set$Swidth, na.rm = T)`
 Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
 
-###3.1 Model selection
+###4.1 Model selection
 
 ```{r}
 Swidth_i <- lmer(Swidth ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
 Swidth_a<- lmer(Swidth ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
 
-anova(Swidth_i, Swidth_a, test.statistic = "Chisq")
+anova(Swidth_i, Swidth_a, test.statistic = "Chisq") # keep additive model
 ```
 
 ```{r}
-Swidth_a_ML <- lmer(Swidth ~ -1 + absLat + lifestage + (1|sp), REML = F, data = S.set) #
+Swidth_a_ML <- lmer(Swidth ~ -1 + absLat + lifestage +  (1|sp), REML = F, data = S.set) #
 
 #Anova(Swidth_a_ML)
 summary(Swidth_a_ML)
@@ -231,18 +312,18 @@ summary(Swidth_a_ML)
 ```{r}
 # Plot data and predictions
 S.set$group <- S.set$lifestage
-predsw <- ggpredict(Swidth_a_ML, terms = c("absLat","lifestage"))
+predsw <- ggpredict(Swidth_i, terms = c("absLat","lifestage"))
 
 ggplot(predsw, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
+  scale_fill_viridis_d(option = "plasma", begin = 0, end = 0.8)+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+
   ylab(expression(S[width]))+ #ylab("Swidth")+
   xlab("Absolute latitude")+
   annotate("text", x = 0, y = 40, label = "X", size = 5)+
   ylim(0, 40)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Swidth, col =group ), alpha = 0.6)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Swidth, col =group ), alpha = 0.6, shape = 0)+
   theme_cowplot()+
   theme(legend.position = "none")
 
@@ -280,203 +361,19 @@ SD = sqrt(Variance))
 
 ```
 
-## 4 Dhigh (Dupper)
-Supper ranged from `r min(S.set$Supper, na.rm = T)` to `r max(S.set$Supper)`, mean =  `r mean(S.set$Supper)`, SD = `r sd(S.set$Supper)`
-Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
-### 4.1 Model selection
-
-```{r}
-Shigh_i <- lmer(Supper ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
-Shigh_a<- lmer(Supper ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
-
-anova(Shigh_i, Shigh_a, test.statistic = "Chisq") # keep additive model
-```
-
-```{r}
-Shigh_a_ML <- lmer(Supper ~ -1 + absLat + lifestage + (1|sp), REML = F, data = S.set) #
-
-#Anova(Shigh_a_ML)
-summary(Shigh_a_ML)
-```
- 
- 
-```{r}
-# Plot data and predictions
-S.set$group <- S.set$lifestage
-predSh <- ggpredict(Shigh_a_ML, terms = c("absLat","lifestage"))
-
-
-ggplot(predSh, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab(expression(S[high]))+#ylab("Supper")+
-  xlab("Absolute latitude")+
-  ylim(0, 40)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col =group ), alpha = 0.6)+
-  theme_cowplot()+
-  theme(legend.position = "none")
-
-```
- 
-###4.2 Phylogenetic correction
-
-```{r}
-Shigh_phylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
-
-Shigh_nophylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
-```
-
-Assess effect of phylogeny
-```{r}
-R2(Shigh_phylo,Shigh_nophylo, phy = S.tree) # 
- 
-```
-
-```{r}
-summary(Shigh_phylo)
-```
-
-Extract effect sizes
-```{r}
-ShighFixedEffects <- tibble(Response = "Shigh", Term = row.names(Shigh_phylo$B), Effect = Shigh_phylo$B[1:4], 
-SE = Shigh_phylo$B.se[1:4])
-
-
-
-ShighRandomEffects <- tibble(Response = "Shigh", Term = c("sp", "sp__", "residual"), Variance = c(Shigh_phylo$s2r, Shigh_phylo$s2resid) , 
-SD = sqrt(Variance))
-
-```
-
-
-## 5 Slow (Slower)
-Slow ranged from `r min(S.set$Slower, na.rm = T)` to `r max(S.set$Slower, na.rm = T)`, mean =  `r mean(S.set$Slower, na.rm = T)`, SD = `r sd(S.set$Slower, na.rm = T)`
-Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`
-###4.1 Model selection
-
-```{r}
-Slow_i <- lmer(Slower ~ lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #
-Slow_a <- lmer(Slower ~ lifestage + absLat + lifestage + (1|sp), data = S.set)
-
-anova(Slow_i, Slow_a, test.statistic = "Chisq") # keep interaction model
-```
-
-
-```{r}
-Slow_i_ML <- lmer(Slower ~ -1 + absLat + lifestage + lifestage:absLat + (1|sp), REML = F, data = S.set) #
-
-#Anova(Slow_i_ML)
-summary(Slow_i_ML)
-
-```
- 
- 
-```{r}
-# Plot data and predictions
-S.set$group <- S.set$lifestage
-predSlow <- ggpredict(Slow_i_ML, terms = c("absLat","lifestage"))
-
-
-Slow_plot <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  ylab(expression(S[low]))+
-   annotate("text", x = 0, y = 30, label = "H", size = 5)+
-  scale_shape_manual(values = c(1,16,8))+
-  xlab("Absolute latitude")+
-  #ylim(0, 40)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col =group ), alpha = 0.6)+
-  theme_cowplot()+
-  theme(legend.position = "none")
-
-Slow_plot
-```
- 
- 
-```{r}
-#type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
-# plot_model(Slow_i_ML, type = "pred", terms = c("lifestage", "absLat"))+
-#  theme_cowplot()+
-#  scale_color_viridis_d()
-```
- 
-### 4.2 Phylogenetic correction
-
-```{r}
-Slow_phylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp__),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
-
-Slow_nophylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
-
-
-summary(Slow_phylo)
-```
-
-Assess the effect of phylogeny
-```{r}
-R2(Slow_phylo,Slow_nophylo, phy = S.tree) # 
- 
-```
-
-
-Extract effect sizes
-```{r}
-SlowFixedEffects <- tibble(Response = "Slow", Term = row.names(Slow_phylo$B), Effect = Slow_phylo$B[1:6], 
-SE = Slow_phylo$B.se[1:6])
-
-SlowRandomEffects <- tibble(Response = "Slow", Term = c("sp", "sp__", "residual"), Variance = c(Slow_phylo$s2r, Slow_phylo$s2resid) , 
-SD = sqrt(Variance))
-```
-
-
-Consolidate effects and save table
-```{r}
-SFixedEffects <- rbind(SoptFixedEffects, SwidthFixedEffects, ShighFixedEffects, SlowFixedEffects)
-SRandomEffects <- rbind(SoptRandomEffects, SwidthRandomEffects, ShighRandomEffects, SlowRandomEffects)
-# write_csv(SFixedEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SFixedEffects.csv")
-# write_csv(SRandomEffects,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SRandomEffects.csv")
-```
-
 
 
 All in one figures
 
-All survival variables in the same plot
-```{r}
-Stest1 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
-  geom_line()+
-  geom_line(data = predso, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
-  geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
-   #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
-  #scale_shape_manual(values = c(1,16,8))+
- ylab(expression(S[low/opt/high]))+
-  xlab("Absolute latitude")+
-  ylim(0, 40)+
-  annotate("text", x = 0, y = 40, label = "B", size = 5)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col = group), alpha = 0.6, shape = 1)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 8)+
-  theme_cowplot()+
-  theme(legend.title = element_blank(), legend.position = "none")
-Stest1
-
-```
-
-
 
 ```{r}
 
-Stest2 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+PanelC <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
-  #geom_line(data = predso, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  #geom_line(data = predsw, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
   geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
    #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+
   scale_fill_viridis_d()+
   #scale_shape_manual(values = c(1,16,8))+
  #ylab(expression(S[low]-S[high]))+
@@ -485,51 +382,149 @@ Stest2 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = grou
   
 # ylab("Temperature")+
  ylab("")+
-  xlab("Absolute latitude")+
+  #xlab("Absolute latitude")+
+  xlab("")+
   ylim(0, 40)+
-  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  annotate("text", x = 0, y = 40, label = "C", size = 5)+
   geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
-  #geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col = group), alpha = 0.6, shape = 1)+
+  #geom_point(data = S.set, mapping = aes(x = absLat, y = Swidth, col = group), alpha = 0.6, shape = 6)+
   geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 1)+
   theme_cowplot()+
   theme(legend.title = element_blank(), legend.position = "none")
-Stest2
+PanelC
 ```
 
 
 ```{r}
-Stest3 <- ggplot(predSlow, aes(x = x, y = predicted, colour = group, fill = group)) +
+PanelD <- ggplot(predsw, aes(x = x, y = predicted, colour = group, fill = group)) +
   geom_line()+
-  geom_line(data = predso, mapping = aes(x = x, y = predicted), colour = "grey")+
-  geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
+  #geom_line(data = predso, mapping = aes(x = x, y = predicted), colour = "grey")+
+  #geom_line(data = predSh, mapping = aes(x = x, y = predicted, colour = group, fill = group))+
    #geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+
   scale_fill_viridis_d()+
   #scale_shape_manual(values = c(1,16,8))+
- ylab(expression(S[low/high]))+
+  annotate("text", x = 59, y = 10, label = expression(S[width]))+
+ ylab("Temperature")+
   xlab("Absolute latitude")+
-  ylim(0, 40)+
-  annotate("text", x = 0, y = 40, label = "B", size = 5)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt), alpha = 0.6, shape = 1, col = "grey")+
-  geom_point(data = S.set, mapping = aes(x = absLat, y = Supper, col = group), alpha = 0.6, shape = 8)+
+  ylim(0, 30)+
+  annotate("text", x = 0, y = 30, label = "D", size = 5)+
+  #geom_point(data = S.set, mapping = aes(x = absLat, y = Slower, col = group), alpha = 0.6, shape =16)+
+  #geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt), alpha = 0.6, shape = 1, col = "grey")+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Swidth, col = group), alpha = 0.6, shape = 0)+
   theme_cowplot()+
   theme(legend.title = element_blank(), legend.position = "none")
-Stest3
+PanelD
 ```
-
-
-
-
-
-
-
-
+Save data to make figures:
+predSh
+predSlow
+predsw
+S.set
+```{r}
+#write_csv(predSh,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/predSh.csv")
+#write_csv(predSlow,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/predSlow.csv")
+#write_csv(S.set,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/Sset.csv")
+#write_csv(predsw,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/predsw.csv")
+```
 
 
  
  # Old code below
  ********************************************
+ 
+ 
+ 
+
+
+
+## Sopt: temperature that maximizes development rate
+Sopt ranged from `r min(S.set$Sopt, na.rm = T)` to `r max(S.set$Sopt)`, mean =  `r mean(S.set$Sopt)`, SD = `r sd(S.set$Sopt)`
+Latitude ranged from `r min(S.set$absLat, na.rm = T)` to `r max(S.set$absLat, na.rm = T)`,  N =`r length(!is.na(S.set$Sopt))`
+
+# 2.1 Model selection
+
+```{r}
+Sopt_i <- lmer(Sopt ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = S.set) #singular model
+Sopt_a <- lmer(Sopt ~ -1 + lifestage + absLat + (1|sp), data = S.set) #
+
+anova(Sopt_i, Sopt_a, test.statistic = "Chisq") # keep additive model
+```
+
+```{r}
+Sopt_a_ML <- lmer(Sopt ~ -1 + absLat + lifestage  + (1|sp), data = S.set)
+
+summary(Sopt_a_ML)
+```
+According to this model, Sopt increased across development, as it was 28.6 for eggs, 30.2 for larvae and 30.5 for pupae. Sopt decreased 1.5 C per every 10 degrees latitude. Variation among species was small: 1.8
+
+ 
+ 
+```{r}
+# Plot data and predictions
+library(effects)
+library(ggeffects)
+
+S.set$group <- S.set$lifestage
+predso <- ggpredict(Sopt_i_ML, terms = c("absLat","lifestage"))
+
+
+
+Sopt_plot <- ggplot(predso, aes(x = x, y = predicted, colour = group, fill = group, shape = group)) +
+  geom_line()+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  scale_shape_manual(values = c(1,16,8))+
+  ylab(expression(S[opt]))+
+  annotate("text", x = 0, y = 40, label = "B", size = 5)+
+  xlab("Absolute latitude")+
+  ylim(10, 40)+
+  geom_point(data = S.set, mapping = aes(x = absLat, y = Sopt, col =group ), alpha = 0.6)+
+  theme_cowplot()+
+  theme(legend.position = "none")
+
+Sopt_plot
+```
+ 
+ 
+```{r}
+# #type = c("est", "re", "eff", "pred", "int", "std", "std2", "slope", "resid", "diag")
+# plot_model(Sopt_a_ML, type = "pred", terms = c("lifestage", "absLat"))+
+#   theme_cowplot()+
+#   scale_color_viridis_d()
+```
+
+# Fit phylogenetic correction
+
+```{r}
+# With phylogenetic correction
+Sopt_phylo <- pglmm(Sopt ~ -1 + lifestage + absLat + (1|sp__), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+# Without phylogenetic correction
+Sopt_nophylo <- pglmm(Sopt ~ -1 + lifestage + absLat  +  (1|sp), bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML =F)
+
+```
+
+
+
+Asses the effect of phylogeny on Sopt
+```{r}
+R2(Sopt_phylo,Sopt_nophylo, phy = S.tree) # if this does not work unload and reload rr2
+```
+
+Extract effect sizes for plot
+```{r}
+SoptFixedEffects <- tibble(Response = "Sopt", Term = row.names(Sopt_phylo$B), Effect = Sopt_phylo$B[1:4], 
+SE = Sopt_phylo$B.se[1:4])
+
+SoptRandomEffects <- tibble(Response = "Sopt", Term = c("sp", "sp__", "residual"), Variance = c(Sopt_phylo$s2r,Sopt_phylo$s2resid) , 
+SD = sqrt(Variance))
+
+```
+
+
+
 # 4. Correlation coefficients of survival variables
 
 ```{r}
