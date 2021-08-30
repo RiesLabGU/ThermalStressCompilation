@@ -21,7 +21,7 @@ library(psych)
 
 ```{r}
 # table with sets inclduded in analyses
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesII.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 
 
 # table with relevant columns to extract sample size by treatment
