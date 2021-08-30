@@ -37,7 +37,8 @@ library(stringr)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
+responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
+splist <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SpeciesList.csv")
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 ```
 
@@ -50,11 +51,11 @@ responses <- responses %>%
 # convert character to factor
 responses <- responses %>%
   mutate_if(is.character, factor)
+list <- splist$sp
 # discard non-pertinent data
-
 responses_table <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa",   #quality!= "inferred", 
-         quality != "combination", !is.na(Dopt)) %>% 
+         quality != "combination", sp%in%list, !is.na(T0)) %>% 
   mutate(absLat = abs(lat))
 responses_table$lifestage <- factor(responses_table$lifestage)
 responses_table$sp <- factor(responses_table$sp)
@@ -67,7 +68,7 @@ T.set$species <- word(T.set$sp, 2)
 # save a list of sets included in analyses
 T.sets <- T.set %>% 
   select(set)
-# write_csv(P.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_Tnot.csv")
+# write_csv(T.sets,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/sets_Tnot.csv")
 ```
 
 # 2 T0 Temperature threshold to accumulate degree-days
@@ -82,10 +83,11 @@ T0_i <- lmer(T0 ~ -1 + lifestage + absLat + lifestage:absLat + (1|sp), data = T.
 T0_a <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), data = T.set) #
 
 anova(T0_a, T0_i, test.statistic = "Chisq")# keep additive model
+
 ```
 
 ```{r}
-T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat + (1|sp), REML = F, data = T.set)
+T0_a_ML <- lmer(T0 ~ -1 + lifestage + absLat +  (1|sp), REML = F, data = T.set)
 summary(T0_a_ML)
 ```
  
@@ -94,29 +96,24 @@ summary(T0_a_ML)
 # Plot data and predictions
 
 responses_table$group <- responses_table$lifestage
-predto <- ggpredict(T0_a_ML, terms = c("absLat","lifestage"))
+predto <- ggpredict(T0_i, terms = c("absLat","lifestage"))
 
+T.set$group <- T.set$lifestage
 
-T0_plot <- ggplot(predto, aes(x = x, y = predicted, colour = group, shape = group)) +
+T0_plot <- ggplot(predto, aes(x = x, y = predicted, colour = group)) +
   geom_line()+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, col = group), alpha = 0.1)+
-  scale_color_viridis_d()+
-  scale_fill_viridis_d()+
+  scale_color_viridis_d(option = "plasma", begin = 0, end = 0.8)+ # "magma", "inferno", "plasma"
+  #scale_fill_viridis_d(option = "magma", limits = c(0.2,0.8))+
   xlim(0,50)+
-  scale_shape_manual(values = c(1,16,8))+
   ylab(expression('T'[0]))+
   annotate("text", x = 0, y = 16, label = "F", size = 5)+
   xlab("Absolute latitude")+
-  geom_point(data = responses_table, mapping = aes(x = absLat, y = T0, col =group ), alpha = 0.6)+
+  geom_point(data = responses_table, mapping = aes(x = absLat, y = T0, col =group ), alpha = 0.6, shape = 6)+
   theme_cowplot()+
   theme(legend.position = "none")
 
 T0_plot
-```
- 
-```{r}
-# plot_model(T0_a_ML, type = "pred", levels = "absLat", "lifestage")
-# plot_model(T0_a_ML, type = "eff")
 ```
  
 
@@ -137,7 +134,7 @@ Hyphantria cunea instead of   Hypantria cunea
 Ameyelois transitella instead of Amyelois transitella,
 ```{r}
 T.set$original_species <- T.set$sp
-T.set$sp <- ifelse(T.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(T.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(T.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(T.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(T.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(T.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", ifelse(T.set$original_species == "Ephestia calidella", "Ephestia columbiella",as.character(T.set$original_species))))))))
+T.set$sp <- ifelse(T.set$original_species == "Episimus utilis", "Episimus tyrius", ifelse(T.set$original_species == "Marmara gulosa", "Marmara arbutiella", ifelse(T.set$original_species == "Naranga aenescens", "Protodeltote albidula", ifelse(T.set$original_species == "Hypantria cunea", "Hyphantria cunea",  ifelse(T.set$original_species == "Ameyelois transitella", "Amyelois transitella", ifelse(T.set$original_species == "Utethesia ornatrix", "Utetheisa ornatrix", ifelse(T.set$original_species == "Ephestia calidella", "Ephestia columbiella",ifelse(T.set$original_species == "Euzopherodes vapidella", "Euzopherodes allocrossa",as.character(T.set$original_species)))))))))
 
 Dspecies <- tibble(sp = unique(T.set$sp))
 V_species <- unique(T.set$sp)
@@ -179,6 +176,14 @@ Is phylogenetic history important?
 ```{r}
 R2(T0_phylo,T0_nophylo, phy = S.tree) 
 ```
+
+Write tables for figures
+```{r}
+#write_csv(predto,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/predto.csv")
+#write_csv(T.set,"/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/Output/Tset.csv")
+```
+
+
 
 # 4. Variation in maximum development rate (exploratory not in presentation)
 ```{r}
