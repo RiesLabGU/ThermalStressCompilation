@@ -157,10 +157,10 @@ Figure3b <- ggplot(res_plot5, aes(x = Slower, y = Dlower, col = AbsLat))+
   
   theme_cowplot()+
   #ylab(expression("D"[low]))+
-  ylab("Development temperature")+
+  ylab("Development breadth (°C)")+
   annotate("text", x = 0, y = 40, label = "B", size = 5)+
   #xlab(expression("S"[low]))+
-  xlab("Survival temperature")+
+  xlab("Survival breadth (°C)")+
   theme(legend.position = "none")
   #annotate("text", x = 30, y = 10, label = "low")+
   #annotate("point", x = 33, y = 10, shape = 16)+
