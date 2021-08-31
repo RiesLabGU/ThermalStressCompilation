@@ -52,7 +52,7 @@ library(rr2)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
+responses <- read_csv("~/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
@@ -189,9 +189,14 @@ Slow_nophylo <- pglmm(Slower ~ -1 + lifestage + absLat + lifestage:absLat +  (1|
 summary(Slow_phylo)
 ```
 
+
+```{r}
+summary(Slow_phylo)
+```
+
 Assess the effect of phylogeny
 ```{r}
-R2(Slow_phylo,Slow_nophylo, phy = S.tree) # 
+R2.lik(Slow_phylo,Slow_nophylo) # 
  
 ```
 
@@ -263,9 +268,20 @@ Shigh_phylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp__),bayes= F, data
 Shigh_nophylo <- pglmm(Supper ~ -1 + lifestage + absLat +  (1|sp),bayes= F, data = S.set, cov_ranef = list(sp = S.tree), REML = F)
 ```
 
+
+```{r}
+Shigh_phylo
+```
+
+```{r}
+Shigh_phylo
+```
+
+
+
 Assess effect of phylogeny
 ```{r}
-R2(Shigh_phylo,Shigh_nophylo, phy = S.tree) # 
+R2.lik(Shigh_phylo,Shigh_nophylo) # 
  
 ```
 
@@ -346,11 +362,27 @@ Swidth_nophylo <- pglmm(Swidth ~ -1 + lifestage + absLat +  (1|sp), bayes = F, d
 
 ```
 
+
+```{r}
+Swidth_phylo
+```
+
+```{r}
+Swidth_phylo
+```
+
+
+
+
+
+
+
 ```{r}
 
-R2(Swidth_phylo,Swidth_nophylo) # if this does not work unload and reload rr2
+R2.lik(Swidth_phylo,Swidth_nophylo) # if this does not work unload and reload rr2
 
 ```
+
 Extract effect sizes
 ```{r}
 SwidthFixedEffects <- tibble(Response = "Swidth", Term = row.names(Swidth_phylo$B), Effect = Swidth_phylo$B[1:4], 
