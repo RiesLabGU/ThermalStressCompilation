@@ -52,7 +52,7 @@ library(rr2)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
+responses <- read_csv("~/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
 ```
@@ -141,7 +141,7 @@ The object "tree" is an unpartitioned ML tree constrained by superfamily, develo
 
 
 ```{r}
-plot(tree, show.tip.label = F, show.node.label = F) # run = T to see names, but it obscures the shape here
+plot(tree, show.tip.label = T, show.node.label = F) # run = T to see names, but it obscures the shape here
 ```
 ### 2.2.1 Adjust data table
 Change species' names of the following species to reflect substitutions due to lack of data and to correct mispellings
@@ -209,7 +209,7 @@ Plow_a_nophylo
 
 
 ```{r}
-R2(Plow_a_phylo, Plow_a_nophylo)
+R2.lik(Plow_a_phylo, Plow_a_nophylo)
 ```
 
 Extract effect sizes
@@ -290,17 +290,17 @@ Phigh_a_nophylo
 
 
 ```{r}
-R2(Phigh_a_phylo, Phigh_a_nophylo)
+R2.lik(Phigh_a_phylo, Phigh_a_nophylo)
 ```
 
 Extract effect sizes
 ```{r}
-PhighFixedEffects <- tibble(Response = "Phigh", Term = row.names(Phigh_i_phylo$B), Effect = Phigh_i_phylo$B[1:4], 
-SE = Phigh_i_phylo$B.se[1:4])
+PhighFixedEffects <- tibble(Response = "Phigh", Term = row.names(Phigh_a_phylo$B), Effect = Phigh_a_phylo$B[1:4], 
+SE = Phigh_a_phylo$B.se[1:4])
 
 
 
-PhighRandomEffects <- tibble(Response = "Phigh", Term = c("sp", "sp__", "residual"), Variance = c(Phigh_i_phylo$s2r,Phigh_i_phylo$s2resid) , 
+PhighRandomEffects <- tibble(Response = "Phigh", Term = c("sp", "sp__", "residual"), Variance = c(Phigh_a_phylo$s2r,Phigh_a_phylo$s2resid) , 
 SD = sqrt(Variance))
 
 ```
@@ -373,7 +373,7 @@ Pwidth_a_nophylo
 
 
 ```{r}
-R2(Pwidth_a_phylo, Pwidth_a_nophylo)
+R2.lik(Pwidth_a_phylo, Pwidth_a_nophylo)
 ```
 
 
