@@ -25,7 +25,8 @@ output: html_notebook
 # 1. Import data and housekeeping
 ```{r}
  
-#library(INLA) # install.packages("INLA", repos=c(getOption("repos"), #INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA) 
+# install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(tidyverse)
 library(readxl)
 library(cowplot)
@@ -51,16 +52,10 @@ library(rr2)
 
 
 ```{r}
-# Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
+responses <- read_csv("~/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
 
-```
-
-```{r}
-# Mariana's laptop
-#responses <- read_csv("/Users/mar/Desktop/Projects/ThermalPerformance/ThermalResponsesIII.csv")
 ```
 
 ```{r}
@@ -185,9 +180,23 @@ Dlow_nophylo <- pglmm(Dlower ~ -1 + lifestage + absLat + (1|sp), tree = tree, ba
 
 ```
 
+
+```{r}
+summary(Dlow_phylo)
+```
+
+```{r}
+summary(Dlow_phylo)
+```
+
+
 Asses the effect of phylogeny on Dlow
 ```{r}
-R2(Dlow_phylo, Dlow_nophylo) # if this does not work unload and reload rr2
+
+#R2(Dlow_phylo, Dlow_nophylo) # if this does not work unload and reload rr2
+R2.lik(Dlow_phylo, Dlow_nophylo) # if this does not work unload and reload rr2
+
+
 ```
 
 #3. Dhigh (Dupper)
@@ -238,9 +247,19 @@ Dhigh_nophylo <- pglmm(Dupper ~ -1 + lifestage + absLat + (1|sp), tree = tree, b
 
 ```
 
+
+```{r}
+Dhigh_phylo
+```
+```{r}
+Dhigh_phylo
+```
+
+
+
 Asses the effect of phylogeny
 ```{r}
-R2(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
+R2.lik(Dhigh_phylo, Dhigh_nophylo) # if this does not work unload and reload rr2
 ```
 
 Extract effect sizes
@@ -307,10 +326,28 @@ Dwidth_nophylo <- pglmm(Dwidth ~ -1 + lifestage + absLat + (1|sp), tree = tree, 
 
 ```
 
+
+```{r}
+Dwidth_phylo
+```
+
+
+
+
+```{r}
+Dwidth_phylo
+```
+```
+
+
 Asses the effect of phylogeny
 ```{r}
-R2(Dwidth_phylo,Dwidth_nophylo) # if this does not work unload and reload rr2
+ R2.lik(Dwidth_phylo,Dwidth_nophylo) # if this does not work unload and reload rr2
+
 ```
+
+[1] 4.39282e-08
+
 Extract effect sizes
 ```{r}
 DwidthFixedEffects <- tibble(Response = "Dwidth", Term = row.names(Dwidth_phylo$B), Effect = Dwidth_phylo$B[1:4], 
