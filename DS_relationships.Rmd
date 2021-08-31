@@ -34,7 +34,7 @@ library(psych) # to get geometric mean
 
 
 ```{r}
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv") 
+responses <- read_csv("~/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv") 
 res <- responses %>% 
   filter(lifestage == "egg"| lifestage == "larva"| lifestage == "pupa", quality != "combination") %>% 
   mutate(lifestage = factor(lifestage))
