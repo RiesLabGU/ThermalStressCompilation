@@ -30,6 +30,9 @@ library(phyr)
 library(ape)
 library(nlme)
 library(stringr)
+library(phylotools)
+library(phytools)
+library(rr2)
 ```
 
 
@@ -37,9 +40,12 @@ library(stringr)
 ```{r}
 # Mariana's desktop
 
-responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
-splist <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SpeciesList.csv")
+#responses <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
+#splist <- read_csv("/Users/marianaabarcazama/Desktop/Projects/ThermalPerformance/SpeciesList.csv")
+#tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
+responses <- read_csv("~/Desktop/Projects/ThermalPerformance/ThermalResponsesTable.csv")
 tree <- read.tree("GTRG_Unpartitioned_constrain.raxml.bestTree.tre")
+splist <- read_csv("~/Desktop/Projects/ThermalPerformance/SpeciesList.csv")
 ```
 
 
@@ -174,7 +180,7 @@ summary(T0_nophylo)
 ```
 Is phylogenetic history important?
 ```{r}
-R2(T0_phylo,T0_nophylo, phy = S.tree) 
+R2.lik(T0_phylo,T0_nophylo) 
 ```
 
 Write tables for figures
